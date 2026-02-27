@@ -39,7 +39,7 @@ export function ClientesModule() {
     try {
       // id_rol: 2 suele ser el rol de 'cliente' en tu sistema actual
       const response = await userService.getAll({ 
-        id_rol: 3,
+        id_rol: 2,
         q: searchQuery.length >= 2 ? searchQuery : undefined 
       });
       
@@ -103,7 +103,15 @@ export function ClientesModule() {
         await userService.update(editingCliente.id, userData);
         toast.success('Cliente actualizado correctamente');
       } else {
-        toast.info('La creación de clientes se realiza vía registro');
+        await userService.create({
+          ...userData,
+          id_rol: 2, // Cliente
+          email: formData.email,
+          documento: formData.documento,
+          tipo_documento: 'CC',
+          password_hash: formData.documento // Password inicial por defecto es su documento
+        });
+        toast.success('Cliente creado correctamente');
       }
       
       await fetchClientes();

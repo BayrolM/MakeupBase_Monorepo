@@ -73,4 +73,17 @@ export const userService = {
       );
     }
   },
+  /**
+   * Crear un nuevo usuario (Admin)
+   */
+  async create(userData: any): Promise<any> {
+    try {
+      const response = await api.post("/users", userData);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(
+        error.response?.data?.message || "Error al crear el usuario",
+      );
+    }
+  },
 };

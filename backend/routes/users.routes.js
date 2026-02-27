@@ -4,6 +4,7 @@ import {
   updateProfile,
   listarUsuarios,
   obtenerUsuario,
+  crearUsuario,
   actualizarUsuario,
   desactivarUsuario,
 } from "../controllers/users.controller.js";
@@ -17,6 +18,7 @@ router.put("/profile", authRequired, updateProfile);
 
 // Rutas de administración de usuarios (requieren autenticación)
 router.get("/", authRequired, listarUsuarios);
+router.post("/", authRequired, crearUsuario);
 router.get("/:id", authRequired, obtenerUsuario);
 router.put("/:id", authRequired, actualizarUsuario);
 router.delete("/:id", authRequired, desactivarUsuario);

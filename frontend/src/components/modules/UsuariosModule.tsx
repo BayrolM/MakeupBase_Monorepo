@@ -63,8 +63,8 @@ export function UsuariosModule() {
         telefono: u.telefono,
         direccion: u.direccion,
         ciudad: u.ciudad,
-        rol: (u.nombre_rol?.toLowerCase() === 'admin' ? 'admin' : 
-             u.nombre_rol?.toLowerCase() === 'vendedor' ? 'vendedor' : 'cliente') as UserRole,
+        rol: (Number(u.id_rol) === 1 ? 'admin' : 
+             Number(u.id_rol) === 2 ? 'cliente' : 'vendedor') as UserRole,
         estado: (u.estado ? 'activo' : 'inactivo') as Status,
         fechaCreacion: u.fecha_registro || new Date().toISOString()
       }));
@@ -215,7 +215,7 @@ export function UsuariosModule() {
 
     try {
       const userData = {
-        id_rol: formData.rol === 'admin' ? 1 : formData.rol === 'vendedor' ? 2 : 3,
+        id_rol: formData.rol === 'admin' ? 1 : 2, // Admin: 1, Cliente: 2 (según base de datos)
         nombres: formData.nombre.trim(),
         apellidos: formData.apellido.trim(),
         telefono: formData.telefono.trim(),
@@ -228,9 +228,14 @@ export function UsuariosModule() {
         await userService.update(editingUser.id, userData);
         toast.success('Usuario actualizado correctamente');
       } else {
-        // Para crear nuevos usamos register del authService o un endpoint de admin
-        // Por ahora asumimos que el endpoint de actualización maneja creación si implementamos POST
-        toast.info('La creación se realiza desde el registro público o una ruta POST no implementada aún');
+        await userService.create({
+          ...userData,
+          tipo_documento: formData.tipoDocumento,
+          documento: formData.numeroDocumento,
+          email: formData.email,
+          password_hash: formData.passwordHash
+        });
+        toast.success('Usuario creado correctamente');
       }
 
       await fetchUsers();

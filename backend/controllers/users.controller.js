@@ -1,4 +1,5 @@
 import sql from '../config/db.js';
+import bcrypt from 'bcryptjs';
 
 export const getProfile = async (req, res) => {
   try {
@@ -137,6 +138,87 @@ export const listarUsuarios = async (req, res) => {
   }
 };
 
+
+
+/**
+ * Crear un nuevo usuario (Admin)
+ */
+export const crearUsuario = async (req, res) => {
+  try {
+    const {
+      id_rol,
+      tipo_documento,
+      documento,
+      nombres,
+      apellidos,
+      email,
+      telefono,
+      direccion,
+      ciudad,
+      password_hash,
+      estado = true
+    } = req.body;
+
+    // Validar campos requeridos
+    if (!email || !nombres || !apellidos || !id_rol) {
+      return res.status(400).json({
+        ok: false,
+        message: 'Faltan campos obligatorios (email, nombres, apellidos, rol)'
+      });
+    }
+
+    // Verificar si el email ya existe
+    const emailExiste = await sql`SELECT * FROM usuarios WHERE email = ${email}`;
+    if (emailExiste.length > 0) {
+      return res.status(400).json({
+        ok: false,
+        message: 'El email ya está registrado'
+      });
+    }
+
+    // Verificar si el documento ya existe (si se proporciona)
+    if (documento) {
+      const docExiste = await sql`SELECT * FROM usuarios WHERE documento = ${documento}`;
+      if (docExiste.length > 0) {
+        return res.status(400).json({
+          ok: false,
+          message: 'El documento ya está registrado'
+        });
+      }
+    }
+
+    // Encriptar contraseña
+    const salt = await bcrypt.genSalt(10);
+    const passwordToHash = password_hash || documento || '123456';
+    const hashedPassword = await bcrypt.hash(passwordToHash, salt);
+
+    const nuevoUsuario = await sql`
+      INSERT INTO usuarios (
+        id_rol, tipo_documento, documento, nombre, apellido,
+        email, telefono, direccion, ciudad, password_hash, estado
+      )
+      VALUES (
+        ${id_rol}, ${tipo_documento || 'CC'}, ${documento || ''}, 
+        ${nombres}, ${apellidos}, ${email}, ${telefono || ''}, 
+        ${direccion || ''}, ${ciudad || ''}, ${hashedPassword}, 
+        ${estado}
+      )
+      RETURNING id_usuario, email, nombre as nombres, apellido as apellidos
+    `;
+
+    return res.status(201).json({
+      ok: true,
+      message: 'Usuario creado exitosamente',
+      data: nuevoUsuario[0]
+    });
+  } catch (error) {
+    console.error('Error en crearUsuario:', error);
+    return res.status(500).json({
+      ok: false,
+      message: 'Error al crear el usuario'
+    });
+  }
+};
 
 /**
  * Obtener detalle de un usuario específico (Admin)

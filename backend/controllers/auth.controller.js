@@ -53,7 +53,7 @@ export const register = async (req, res) => {
         email, telefono, direccion, ciudad, password_hash, estado
       )
       VALUES (
-        ${id_rol || 3}, ${tipo_documento || "CC"}, ${
+        ${id_rol || 2}, ${tipo_documento || "CC"}, ${
       documento || ""
     }, ${nombre}, ${apellido},
         ${email}, ${telefono || ""}, ${direccion || ""}, ${
