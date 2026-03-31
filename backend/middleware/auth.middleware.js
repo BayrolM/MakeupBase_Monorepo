@@ -3,13 +3,13 @@ import jwt from 'jsonwebtoken';
 // Middleware para verificar autenticación y autorización.
 // Ademas de verificar el token, extrae el id_usuario y el rol del token y los asigna a req.user
 export const authRequired = (req, res, next) => {
-  console.log('🔐 === Middleware authRequired ===');
+  console.log('🔐 [AuthMiddleware] Verificando token...');
 
   try {
     // Verificar que existe el header Authorization
     if (!req.headers.authorization) {
-      console.log('❌ No hay header Authorization');
-      return res.status(401).json({ message: 'Token no proporcionado' });
+      console.log('❌ Error: Falta el header "Authorization"');
+      return res.status(401).json({ message: 'Debe iniciar sesión para acceder a este recurso' });
     }
 
     // Extraer el token del header Authorization

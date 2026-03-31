@@ -1,18 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useStore, Producto } from '../../lib/store';
 import { PageHeader } from '../PageHeader';
 import { StatusSwitch } from '../StatusSwitch';
 import { Pagination } from '../Pagination';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Button } from '../ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Textarea } from '../ui/textarea';
-import { Plus, Pencil, Trash2, Eye, Search, X, AlertTriangle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, Search, X, AlertTriangle, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { productService } from '../../services/productService';
+import { marcaService, Marca } from '../../services/marcaService';
 
 export function ProductsModule() {
   const { productos, categorias, setProductos, currentUser } = useStore();
@@ -23,14 +24,17 @@ export function ProductsModule() {
   const [selectedProduct, setSelectedProduct] = useState<Producto | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     sku: '',
     nombre: '',
     descripcion: '',
     categoriaId: '',
-    marca: '',
+    marcaId: '',
     precioCompra: '',
     precioVenta: '',
     stock: '',
@@ -40,24 +44,28 @@ export function ProductsModule() {
     estado: 'activo' as 'activo' | 'inactivo',
   });
 
-  // Load products on mount
-  useEffect(() => {
-    refreshProductsLocal();
-  }, []);
-
   // Check if current user is admin
   const isAdmin = currentUser?.rol === 'admin';
+
+  const [marcas, setMarcas] = useState<Marca[]>([]);
 
   // Helper to map backend to frontend
   const refreshProductsLocal = async () => {
     try {
-      const resp = await productService.getAll({ limit: 100 });
+      const resp = await productService.getAll({ 
+        page: currentPage, 
+        limit: itemsPerPage,
+        q: searchQuery
+      });
+      
+      setTotalItems(resp.total || 0);
       const mapped = resp.data.map(prod => ({
         id: prod.id_producto.toString(),
         sku: prod.sku,
         nombre: prod.nombre,
         descripcion: prod.descripcion || '',
         categoriaId: prod.id_categoria.toString(),
+        marcaId: prod.id_marca?.toString() || '1',
         marca: (prod as any).nombre_marca || 'Genérica',
         precioCompra: Number(prod.costo_promedio) || 0,
         precioVenta: Number(prod.precio_venta) || 0,
@@ -71,8 +79,17 @@ export function ProductsModule() {
       setProductos(mapped);
     } catch (e) {
       console.error(e);
+      toast.error('Error al cargar productos');
     }
   };
+
+  useEffect(() => {
+    refreshProductsLocal();
+  }, [currentPage, itemsPerPage, searchQuery]);
+
+  useEffect(() => {
+    marcaService.getAll().then(setMarcas).catch(console.error);
+  }, []);
 
   const handleOpenDialog = (product?: Producto) => {
     if (!isAdmin) {
@@ -89,7 +106,7 @@ export function ProductsModule() {
         nombre: product.nombre,
         descripcion: product.descripcion,
         categoriaId: product.categoriaId,
-        marca: product.marca,
+        marcaId: product.marcaId || '',
         precioCompra: product.precioCompra.toString(),
         precioVenta: product.precioVenta.toString(),
         stock: product.stock.toString(),
@@ -98,6 +115,7 @@ export function ProductsModule() {
         imagenUrl: product.imagenUrl || '',
         estado: product.estado,
       });
+      setImagePreview(product.imagenUrl || '');
     } else {
       setEditingProduct(null);
       setFormData({
@@ -105,7 +123,7 @@ export function ProductsModule() {
         nombre: '',
         descripcion: '',
         categoriaId: categorias[0]?.id || '',
-        marca: '',
+        marcaId: marcas[0]?.id_marca.toString() || '',
         precioCompra: '0',
         precioVenta: '0',
         stock: '0',
@@ -115,7 +133,46 @@ export function ProductsModule() {
         estado: 'activo',
       });
     }
+    setImagePreview('');
     setIsDialogOpen(true);
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('La imagen no puede superar los 5MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let { width, height } = img;
+        const MAX_SIZE = 800; // Resize to max 800px on the longest side to keep payload small
+        
+        if (width > height && width > MAX_SIZE) {
+          height = Math.round((height * MAX_SIZE) / width);
+          width = MAX_SIZE;
+        } else if (height > MAX_SIZE) {
+          width = Math.round((width * MAX_SIZE) / height);
+          height = MAX_SIZE;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedBase64 = canvas.toDataURL('image/webp', 0.8); // 80% quality WebP
+          setImagePreview(compressedBase64);
+          setFormData(prev => ({ ...prev, imagenUrl: compressedBase64 }));
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSave = async () => {
@@ -131,7 +188,7 @@ export function ProductsModule() {
         nombre: formData.nombre,
         descripcion: formData.descripcion,
         id_categoria: Number(formData.categoriaId),
-        id_marca: 1, // Temporarily default to 1
+        id_marca: Number(formData.marcaId) || 1,
         precio_venta: Number(formData.precioVenta),
         costo_promedio: Number(formData.precioCompra),
         stock_actual: Number(formData.stock),
@@ -188,23 +245,14 @@ export function ProductsModule() {
     return null;
   };
 
-  const sortedProducts = [...productos].sort((a, b) => b.id.localeCompare(a.id));
-  
-  const filteredProducts = sortedProducts.filter(product => {
-    if (!searchQuery || searchQuery.length < 2) return true;
-    const query = searchQuery.toLowerCase();
-    const catName = categorias.find(c => c.id === product.categoriaId)?.nombre || '';
-    return product.sku.toLowerCase().includes(query) || 
-           product.nombre.toLowerCase().includes(query) || 
-           product.marca.toLowerCase().includes(query) ||
-           catName.toLowerCase().includes(query);
-  });
+  // Pagination logic
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-  const paginatedProducts = filteredProducts.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  // Reset to page 1 when search changes
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    setCurrentPage(1);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -227,20 +275,20 @@ export function ProductsModule() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground-secondary" />
                 <input
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   className="w-full h-10 pl-10 pr-10 bg-input-background border border-border rounded-lg text-foreground placeholder:text-foreground-secondary focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="Buscar por SKU, nombre, marca o categoría..."
                 />
                 {searchQuery && (
-                  <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-secondary hover:text-foreground">
+                  <button onClick={() => handleSearchChange('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-secondary hover:text-foreground">
                     <X className="w-4 h-4" />
                   </button>
                 )}
               </div>
             </div>
-            <p className="text-foreground-secondary text-sm">
-              Mostrando {filteredProducts.length} de {productos.length} productos
-            </p>
+              <p className="text-foreground-secondary" style={{ fontSize: '14px' }}>
+                Mostrando {productos.length} de {totalItems} productos
+              </p>
           </div>
 
           <Table>
@@ -257,7 +305,7 @@ export function ProductsModule() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedProducts.map((product) => (
+              {productos.map((product) => (
                 <TableRow key={product.id} className="border-border">
                   <TableCell>{product.sku}</TableCell>
                   <TableCell>
@@ -304,10 +352,13 @@ export function ProductsModule() {
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
-                onPageChange={setCurrentPage}
-                totalItems={filteredProducts.length}
+                totalItems={totalItems}
                 itemsPerPage={itemsPerPage}
-                onItemsPerPageChange={setItemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={(newItemsPerPage) => {
+                  setItemsPerPage(newItemsPerPage);
+                  setCurrentPage(1);
+                }}
               />
             </div>
           )}
@@ -319,6 +370,7 @@ export function ProductsModule() {
         <DialogContent className="max-w-2xl bg-card border-border">
           <DialogHeader>
             <DialogTitle>{editingProduct ? 'Editar Producto' : 'Nuevo Producto'}</DialogTitle>
+            <DialogDescription className="sr-only">Formulario para crear o editar un producto y su información.</DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-4">
             <div className="space-y-2">
@@ -339,6 +391,15 @@ export function ProductsModule() {
               </Select>
             </div>
             <div className="space-y-2">
+              <Label>Marca</Label>
+              <Select value={formData.marcaId} onValueChange={(v: string) => setFormData({...formData, marcaId: v})}>
+                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                <SelectContent>
+                  {marcas.map(m => <SelectItem key={m.id_marca} value={m.id_marca.toString()}>{m.nombre}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label>Precio Venta</Label>
               <Input type="number" value={formData.precioVenta} onChange={e => setFormData({...formData, precioVenta: e.target.value})} />
             </div>
@@ -353,13 +414,45 @@ export function ProductsModule() {
               />
             </div>
             <div className="space-y-2 col-span-2">
-              <Label>URL de la Imagen</Label>
-              <Input value={formData.imagenUrl} onChange={e => setFormData({...formData, imagenUrl: e.target.value})} placeholder="https://ejemplo.com/imagen.jpg" />
-              {formData.imagenUrl && (
-                <div className="mt-2 w-20 h-20 rounded-lg border border-border overflow-hidden">
-                  <img src={formData.imagenUrl} alt="Vista previa" className="w-full h-full object-cover" />
-                </div>
-              )}
+              <Label>Imagen del Producto</Label>
+              <div
+                className="relative border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 transition-colors bg-surface/50"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png, image/jpeg, image/webp"
+                  className="hidden"
+                  onChange={handleImageChange}
+                />
+                {imagePreview ? (
+                  <div className="flex items-center gap-4">
+                    <div className="w-20 h-20 rounded-lg overflow-hidden border border-border flex-shrink-0">
+                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-foreground font-medium text-sm">Imagen seleccionada</p>
+                      <p className="text-foreground-secondary text-xs mt-1">Haz clic para cambiarla</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="ml-auto text-foreground-secondary hover:text-danger transition-colors"
+                      onClick={(e) => { e.stopPropagation(); setImagePreview(''); setFormData(prev => ({ ...prev, imagenUrl: '' })); }}
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Upload className="w-6 h-6 text-primary" />
+                    </div>
+                    <p className="text-foreground font-medium text-sm">Arrastra una imagen o haz clic para seleccionar</p>
+                    <p className="text-foreground-secondary text-xs">PNG, JPG o WebP · Máx 5MB</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -372,7 +465,10 @@ export function ProductsModule() {
       {/* Dialogo de Detalles */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
         <DialogContent className="bg-card border-border">
-          <DialogHeader><DialogTitle>Detalles del Producto</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Detalles del Producto</DialogTitle>
+            <DialogDescription className="sr-only">Información completa del producto seleccionado del catálogo.</DialogDescription>
+          </DialogHeader>
           {selectedProduct && (
             <div className="space-y-6 py-4">
               <div className="flex justify-center">
@@ -430,8 +526,12 @@ export function ProductsModule() {
       {/* Dialogo de Eliminación */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="bg-card border-border">
-          <DialogHeader><DialogTitle>Eliminar Producto</DialogTitle></DialogHeader>
-          <p className="py-4 text-center">¿Seguro que deseas eliminar <strong>{selectedProduct?.nombre}</strong>?</p>
+          <DialogHeader>
+            <DialogTitle>Eliminar Producto</DialogTitle>
+            <DialogDescription className="py-4 text-center">
+              ¿Seguro que deseas eliminar <strong>{selectedProduct?.nombre}</strong>? Esta acción no se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancelar</Button>
             <Button className="bg-danger text-foreground" onClick={handleConfirmDelete}>Eliminar</Button>

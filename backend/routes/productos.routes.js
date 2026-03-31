@@ -8,14 +8,15 @@ import {
   eliminar,
   featured,
 } from "../controllers/productos.controller.js";
+import { adminRequired } from "../middleware/adminRequired.middleware.js";
 
 const router = Router();
 
-router.get("/", listar); // Público
-router.get("/featured", featured); // Público
-router.get("/:id", obtener); // Público
-router.post("/", authRequired, crear); // ✅ Protegido
-router.put("/:id", authRequired, actualizar); // ✅ Protegido
-router.delete("/:id", authRequired, eliminar); // ✅ Protegido
+router.get("/", listar);
+router.get("/featured", featured);
+router.get("/:id", obtener);
+router.post("/", authRequired, adminRequired, crear);
+router.put("/:id", authRequired, adminRequired, actualizar);
+router.delete("/:id", authRequired, adminRequired, eliminar);
 
 export default router;

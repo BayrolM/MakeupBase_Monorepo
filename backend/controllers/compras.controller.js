@@ -1,4 +1,5 @@
 import sql from "../config/db.js";
+import { CONFIG } from "../config/constants.js";
 
 export const listar = async (req, res) => {
   try {
@@ -62,7 +63,7 @@ export const crear = async (req, res) => {
     items.forEach(item => {
       subtotalTotal += item.cantidad * item.precio_unitario;
     });
-    const iva = subtotalTotal * 0.19; // Ejemplo 19% IVA
+    const iva = subtotalTotal * CONFIG.IVA; 
     const total = subtotalTotal + iva;
 
     // Ejecutar transacción
@@ -85,7 +86,7 @@ export const crear = async (req, res) => {
         // 3. Actualizar el stock del producto
         await sql`
           UPDATE productos 
-          SET stock = stock + ${item.cantidad} 
+          SET stock_actual = stock_actual + ${item.cantidad} 
           WHERE id_producto = ${item.id_producto}
         `;
       }

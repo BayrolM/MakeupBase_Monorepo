@@ -123,8 +123,12 @@ export function AppSidebar({ onNavigate, currentRoute, onLogout }: AppSidebarPro
 
       <SidebarFooter className="p-4 border-t border-sidebar-border">
         <div className="flex items-center gap-3 mb-3 px-2">
-          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-            <UserCircle className="w-6 h-6 text-primary" />
+          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden border border-primary/10">
+            {currentUser?.foto_perfil ? (
+              <img src={currentUser.foto_perfil} alt="PFP" className="w-full h-full object-cover" />
+            ) : (
+              <UserCircle className="w-6 h-6 text-primary" />
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-foreground truncate" style={{ fontSize: '14px', fontWeight: 500 }}>

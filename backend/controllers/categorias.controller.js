@@ -2,8 +2,30 @@ import sql from "../config/db.js";
 
 export const listar = async (req, res) => {
   try {
-    const result = await sql`SELECT * FROM categorias ORDER BY id_categoria ASC`;
-    return res.json(result);
+    const { q, page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
+
+    const whereClause = q 
+      ? sql`WHERE nombre ILIKE ${'%' + q + '%'} OR descripcion ILIKE ${'%' + q + '%'}`
+      : sql``;
+
+    const totalResult = await sql`SELECT COUNT(1) as total FROM categorias ${whereClause}`;
+    const total = parseInt(totalResult[0].total, 10);
+
+    const categorias = await sql`
+      SELECT * FROM categorias 
+      ${whereClause}
+      ORDER BY id_categoria ASC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+
+    return res.json({
+      ok: true,
+      total,
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      data: categorias
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ ok: false, message: "Error al obtener categorías." });

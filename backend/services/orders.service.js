@@ -4,9 +4,24 @@ import sql from '../config/db.js';
  * Crear una nueva orden desde el carrito
  */
 export const crearOrden = async (id_usuario, datosEnvio) => {
-  const { direccion, ciudad, metodo_pago } = datosEnvio;
+  const { direccion, ciudad, metodo_pago, items: providedItems } = datosEnvio;
 
-  // Obtener el carrito actual
+  // Si el frontend envía los items directamente (Flujo de Carrito Local)
+  if (providedItems && Array.isArray(providedItems) && providedItems.length > 0) {
+    console.log(`🛒 Creando orden desde Carrito Local para usuario ${id_usuario}. Items: ${providedItems.length}`);
+    console.log('📦 Items recibidos:', JSON.stringify(providedItems));
+    
+    // El id_empleado es null cuando el cliente compra solo
+    return await crearOrdenDirecta(id_usuario, null, { 
+      direccion, 
+      ciudad, 
+      metodo_pago, 
+      items: providedItems 
+    });
+  }
+
+  // De lo contrario, buscar carrito guardado en BD (Flujo de Carrito en BD)
+  console.log(`📂 Buscando Carrito en BD para usuario ${id_usuario}`);
   const carrito = await sql`
     SELECT * FROM pedidos 
     WHERE id_usuario_cliente = ${id_usuario} AND estado = 'carrito'
@@ -14,7 +29,7 @@ export const crearOrden = async (id_usuario, datosEnvio) => {
   `;
 
   if (carrito.length === 0) {
-    throw new Error('No hay items en el carrito');
+    throw new Error('No hay items en el carrito (BD-FALLBACK)');
   }
 
   const id_pedido = carrito[0].id_pedido;
@@ -56,9 +71,9 @@ export const crearOrden = async (id_usuario, datosEnvio) => {
       WHERE id_pedido = ${id_pedido}
     `;
 
-    // 2. Reducir stock
+    // 2. Reducir stock (Reserva)
     for (const item of items) {
-      console.log(`📦 Reduciendo stock (Carrito) para Producto ID ${item.id_producto}: ${item.stock_actual} -> ${item.stock_actual - item.cantidad}`);
+       console.log(`📦 Reservando stock para Pedido ID ${id_pedido}: Producto ${item.id_producto}, Cantidad: ${item.cantidad}`);
       await sql`
         UPDATE productos 
         SET stock_actual = stock_actual - ${item.cantidad}
@@ -124,9 +139,9 @@ export const crearOrdenDirecta = async (id_cliente, id_empleado, datosEnvio) => 
       `;
     }
 
-    // 3. Reducir stock
+    // 3. Reducir stock (Reserva)
     for (const item of itemsValidados) {
-      console.log(`📦 Reduciendo stock (Directo) para Producto ID ${item.id_producto}: ${item.stock_actual} -> ${item.stock_actual - item.cantidad}`);
+      console.log(`📦 Reservando stock para Pedido Directo ID ${id_pedido}: Producto ${item.id_producto}, Cantidad: ${item.cantidad}`);
       await sql`
         UPDATE productos 
         SET stock_actual = stock_actual - ${item.cantidad}
@@ -147,67 +162,61 @@ export const crearOrdenDirecta = async (id_cliente, id_empleado, datosEnvio) => 
  * Si es admin (rol = 1), obtiene TODAS las órdenes
  * Si es usuario normal, solo sus órdenes
  */
-export const obtenerOrdenes = async (id_usuario, rol = null, estado = null) => {
-  console.log(`📦 obtenerOrdenes - Usuario: ${id_usuario}, Rol: ${rol}`);
+export const obtenerOrdenes = async (id_usuario, rol = null, options = {}) => {
+  const { 
+    estado = null, 
+    q = null, 
+    page = 1, 
+    limit = 10 
+  } = options;
+  
+  const offset = (page - 1) * limit;
 
-  let ordenes;
+  console.log(`📦 obtenerOrdenes - Usuario: ${id_usuario}, Rol: ${rol}, Búsqueda: ${q}`);
 
-  // Construir el fragmento de la condición de estado
+  // Fragmentos SQL dinámicos
   const estadoFilter = estado ? sql`AND p.estado = ${estado}` : sql``;
+  const searchFilter = q ? sql`AND (u.nombre ILIKE ${'%' + q + '%'} OR u.apellido ILIKE ${'%' + q + '%'} OR p.id_pedido::text ILIKE ${'%' + q + '%'})` : sql``;
+  const userFilter = rol === 1 ? sql`WHERE p.estado != 'carrito'` : sql`WHERE p.id_usuario_cliente = ${id_usuario} AND p.estado != 'carrito'`;
 
-  // Si es admin (rol === 1), obtener TODAS las ordenes
-  if (rol === 1) {
-    console.log('👑 Admin detectado - Obteniendo TODAS las órdenes');
-    ordenes = await sql`
-      SELECT
-        p.id_pedido,
-        p.id_usuario_cliente,
-        p.fecha_pedido,
-        p.direccion,
-        p.ciudad,
-        p.total,
-        p.estado,
-        p.motivo_anulacion,
-        v.id_venta,
-        v.metodo_pago,
-        CONCAT(COALESCE(u.nombre, ''), ' ', COALESCE(u.apellido, '')) as nombre_usuario,
-        u.email as email_usuario
-      FROM pedidos p
-      LEFT JOIN ventas v ON p.id_pedido = v.id_pedido
-      LEFT JOIN usuarios u ON p.id_usuario_cliente = u.id_usuario
-      WHERE p.estado != 'carrito'
-      ${estadoFilter}
-      ORDER BY p.id_pedido DESC
-    `;
-  } else {
-    // Usuario normal solo ve sus propias órdenes
-    console.log(
-      `👤 Usuario normal - Obteniendo órdenes de usuario ${id_usuario}`
-    );
-    ordenes = await sql`
-      SELECT
-        p.id_pedido,
-        p.id_usuario_cliente,
-        p.fecha_pedido,
-        p.direccion,
-        p.ciudad,
-        p.total,
-        p.estado,
-        p.motivo_anulacion,
-        v.id_venta,
-        v.metodo_pago,
-        CONCAT(COALESCE(u.nombre, ''), ' ', COALESCE(u.apellido, '')) as nombre_usuario
-      FROM pedidos p
-      LEFT JOIN ventas v ON p.id_pedido = v.id_pedido
-      LEFT JOIN usuarios u ON p.id_usuario_cliente = u.id_usuario
-      WHERE p.id_usuario_cliente = ${id_usuario}
-        AND p.estado != 'carrito'
-      ORDER BY p.id_pedido ASC
-    `;
-  }
+  // 1. Contar total para paginación
+  const countResult = await sql`
+    SELECT COUNT(1) as total
+    FROM pedidos p
+    LEFT JOIN usuarios u ON p.id_usuario_cliente = u.id_usuario
+    ${userFilter}
+    ${estadoFilter}
+    ${searchFilter}
+  `;
+  const total = parseInt(countResult[0].total, 10);
 
-  console.log(`✅ Encontradas ${ordenes.length} órdenes`);
-  return ordenes;
+  // 2. Obtener los datos paginados
+  const data = await sql`
+    SELECT
+      p.id_pedido,
+      p.id_usuario_cliente,
+      p.fecha_pedido,
+      p.direccion,
+      p.ciudad,
+      p.total,
+      p.estado,
+      p.motivo_anulacion,
+      v.id_venta,
+      v.metodo_pago,
+      CONCAT(COALESCE(u.nombre, ''), ' ', COALESCE(u.apellido, '')) as nombre_usuario,
+      u.email as email_usuario
+    FROM pedidos p
+    LEFT JOIN ventas v ON p.id_pedido = v.id_pedido
+    LEFT JOIN usuarios u ON p.id_usuario_cliente = u.id_usuario
+    ${userFilter}
+    ${estadoFilter}
+    ${searchFilter}
+    ORDER BY p.id_pedido DESC
+    LIMIT ${limit} OFFSET ${offset}
+  `;
+
+  console.log(`✅ Devolviendo página ${page} de órdenes (${data.length} de ${total})`);
+  return { total, page, limit, data };
 };
 
 /**
@@ -305,7 +314,7 @@ export const actualizarEstadoPedido = async (id_pedido, estado, motivo = null) =
     const [pedido] = await sql`SELECT * FROM pedidos WHERE id_pedido = ${id_pedido}`;
     if (!pedido) throw new Error('Pedido no encontrado');
 
-    // 2. Si es cancelación, devolver el stock
+    // 2. Si es cancelación, DEVOLVEMOS el stock reservado
     if (estado === 'cancelado') {
       const items = await sql`SELECT id_producto, cantidad FROM detalle_pedido WHERE id_pedido = ${id_pedido}`;
       for (const item of items) {
@@ -315,7 +324,6 @@ export const actualizarEstadoPedido = async (id_pedido, estado, motivo = null) =
           WHERE id_producto = ${item.id_producto}
         `;
       }
-
       // Anular la venta asociada si existe
       await sql`UPDATE ventas SET estado = false WHERE id_pedido = ${id_pedido}`;
     }
@@ -336,9 +344,10 @@ export const actualizarEstadoPedido = async (id_pedido, estado, motivo = null) =
           ) RETURNING id_venta
         `;
 
-        // Copiar detalles del pedido a detalles de venta
+        // Copiar detalles del pedido a detalles de venta (EL STOCK YA SE REDUJO AL CREAR EL PEDIDO)
         const items = await sql`SELECT * FROM detalle_pedido WHERE id_pedido = ${id_pedido}`;
         for (const item of items) {
+          // Insertar detalle de venta
           await sql`
             INSERT INTO detalle_ventas (id_venta, id_producto, cantidad, precio_unitario, subtotal)
             VALUES (${nuevaVenta.id_venta}, ${item.id_producto}, ${item.cantidad}, ${item.precio_unitario}, ${item.subtotal})
@@ -357,5 +366,47 @@ export const actualizarEstadoPedido = async (id_pedido, estado, motivo = null) =
     `;
 
     return updatedPedido;
+  });
+};
+
+/**
+ * Cancelar una orden y devolver el stock reservado
+ * Solo se pueden cancelar pedidos en estado 'pendiente'
+ */
+export const cancelarOrden = async (id_pedido, motivo) => {
+  return await sql.begin(async (sql) => {
+    // 1. Verificar que el pedido existe y está en estado pendiente
+    const [pedido] = await sql`SELECT * FROM pedidos WHERE id_pedido = ${id_pedido}`;
+    if (!pedido) {
+      throw new Error('Pedido no encontrado');
+    }
+
+    if (pedido.estado !== 'pendiente') {
+      throw new Error('Solo se pueden cancelar pedidos pendientes');
+    }
+
+    // 3. Devolver el stock reservado
+    const items = await sql`SELECT id_producto, cantidad FROM detalle_pedido WHERE id_pedido = ${id_pedido}`;
+    for (const item of items) {
+      await sql`
+        UPDATE productos 
+        SET stock_actual = stock_actual + ${item.cantidad} 
+        WHERE id_producto = ${item.id_producto}
+      `;
+    }
+
+    // 4. Marcar el pedido como cancelado
+    const [pedidoCancelado] = await sql`
+      UPDATE pedidos
+      SET estado = 'cancelado',
+          motivo_anulacion = ${motivo}
+      WHERE id_pedido = ${id_pedido}
+      RETURNING *
+    `;
+
+    // 5. Anular cualquier venta asociada (por si acaso)
+    await sql`UPDATE ventas SET estado = false WHERE id_pedido = ${id_pedido}`;
+
+    return pedidoCancelado;
   });
 };

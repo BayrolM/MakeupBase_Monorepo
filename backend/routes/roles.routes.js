@@ -6,13 +6,14 @@ import {
   crearRol,
   actualizarRol,
 } from "../controllers/roles.controller.js";
+import { adminRequired } from "../middleware/adminRequired.middleware.js";
 
 const router = Router();
 
-// Todas las rutas requieren autenticación
-router.get("/", authRequired, listarRoles);
-router.get("/:id", authRequired, obtenerRol);
-router.post("/", authRequired, crearRol);
-router.put("/:id", authRequired, actualizarRol);
+
+router.get("/", adminRequired,authRequired, listarRoles);
+router.get("/:id", adminRequired, authRequired, obtenerRol);
+router.post("/", adminRequired, authRequired, crearRol);
+router.put("/:id", adminRequired, authRequired, actualizarRol);
 
 export default router;

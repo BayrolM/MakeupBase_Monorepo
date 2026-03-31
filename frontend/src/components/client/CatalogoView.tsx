@@ -5,13 +5,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Slider } from '../ui/slider';
-import { Search, Filter } from 'lucide-react';
+import { Search, Filter, ShoppingCart } from 'lucide-react';
+import { toast } from 'sonner';
 
-export function CatalogoView() {
-  const { productos, categorias } = useStore();
+export function CatalogoView({ 
+  initialCategory = 'all',
+  onClearCategory
+}: { 
+  initialCategory?: string,
+  onClearCategory?: () => void
+} = {}) {
+  const { productos, categorias, addToCarrito } = useStore();
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [quantity, setQuantity] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory || 'all');
   const [priceRange, setPriceRange] = useState([0, 150000]);
   const [showFilters, setShowFilters] = useState(true);
 
@@ -54,6 +62,7 @@ export function CatalogoView() {
     setSearchQuery('');
     setSelectedCategory('all');
     setPriceRange([0, 150000]);
+    onClearCategory?.();
   };
 
   return (
@@ -241,15 +250,53 @@ export function CatalogoView() {
                   </p>
                 </div>
 
-                <div className="pt-4 border-t border-border">
-                  <p className="text-foreground-secondary mb-2" style={{ fontSize: '13px' }}>
-                    Disponibilidad: <span className={selectedProduct.stock > 0 ? 'text-success' : 'text-danger'}>
-                      {selectedProduct.stock > 0 ? `${selectedProduct.stock} unidades` : 'Agotado'}
-                    </span>
-                  </p>
-                  <p className="text-foreground-secondary" style={{ fontSize: '13px' }}>
-                    SKU: {selectedProduct.sku}
-                  </p>
+                <p className="text-foreground-secondary" style={{ fontSize: '13px' }}>
+                  SKU: {selectedProduct.sku}
+                </p>
+
+                <div className="pt-6 border-t border-border flex flex-col gap-4">
+                  <div className="flex items-center gap-4">
+                    <label className="text-foreground text-sm font-medium">Cantidad:</label>
+                    <div className="flex items-center border border-border rounded-lg overflow-hidden h-10">
+                      <button 
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        className="px-3 bg-surface hover:bg-primary/10 text-foreground transition-colors disabled:opacity-30"
+                        disabled={quantity <= 1}
+                      >
+                        -
+                      </button>
+                      <input 
+                        type="number" 
+                        value={quantity}
+                        onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="w-12 text-center bg-input-background text-foreground border-x border-border focus:outline-none"
+                      />
+                      <button 
+                        onClick={() => setQuantity(Math.min(selectedProduct.stock, quantity + 1))}
+                        className="px-3 bg-surface hover:bg-primary/10 text-foreground transition-colors disabled:opacity-30"
+                        disabled={quantity >= selectedProduct.stock}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={() => {
+                      addToCarrito(selectedProduct.id, quantity);
+                      // Reset and notify
+                      toast.success('Producto agregado', {
+                        description: `${quantity} ${quantity === 1 ? 'unidad' : 'unidades'} de ${selectedProduct.nombre} agregadas al carrito`,
+                      });
+                      setSelectedProduct(null);
+                      setQuantity(1);
+                    }}
+                    disabled={selectedProduct.stock === 0}
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-12 rounded-lg font-bold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    <ShoppingCart className="w-5 h-5" />
+                    AGREGAR AL CARRITO
+                  </button>
                 </div>
               </div>
             </div>

@@ -15,9 +15,10 @@ import { toast } from 'sonner';
 import { orderService } from '../../services/orderService';
 import { userService } from '../../services/userService';
 import { productService } from '../../services/productService';
+import { CONFIG } from '../../lib/constants';
 
 export function PedidosModule() {
-  const { pedidos, clientes, productos, setPedidos, setClientes, setProductos, updatePedidoEstado } = useStore();
+  const { pedidos, clientes, productos, setPedidos, setClientes, setProductos } = useStore();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
@@ -28,6 +29,7 @@ export function PedidosModule() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [isSaving, setIsSaving] = useState(false);
+  const [totalItems, setTotalItems] = useState(0);
 
   useEffect(() => {
     refreshPedidos();
@@ -65,6 +67,7 @@ export function PedidosModule() {
         stock: Number(p.stock_actual) || 0,
         stockMinimo: Number(p.stock_min) || 0,
         stockMaximo: Number(p.stock_max) || 100,
+        imagenUrl: p.imagen_url || '',
         estado: (p.estado ? 'activo' : 'inactivo') as Status,
         fechaCreacion: p.fecha_creacion || new Date().toISOString()
       }));
@@ -77,16 +80,24 @@ export function PedidosModule() {
 
   const refreshPedidos = async () => {
     try {
-      const dbOrders = await orderService.getAll();
+      const response = await orderService.getAll({
+        page: currentPage,
+        limit: itemsPerPage,
+        q: searchQuery
+      });
+      
+      setTotalItems(response.total || 0);
+      const dbOrders = response.data || [];
+      
       const mappedOrders = dbOrders.map((o: any) => ({
         id: o.id_pedido.toString(),
         clienteId: o.id_usuario_cliente ? o.id_usuario_cliente.toString() : 'N/A',
         clienteNombre: o.nombre_usuario || 'Sin Nombre',
         fecha: (o.fecha_pedido && typeof o.fecha_pedido === 'string') ? o.fecha_pedido.split('T')[0] : 'N/A',
         productos: [], 
-        subtotal: o.total ? Math.round(Number(o.total) / 1.19) : 0, 
-        iva: o.total ? Math.round(Number(o.total) - Math.round(Number(o.total) / 1.19)) : 0, 
-        costoEnvio: 12000,
+        subtotal: o.total ? Math.round(Number(o.total) / (1 + CONFIG.IVA)) : 0, 
+        iva: o.total ? Math.round(Number(o.total) - Math.round(Number(o.total) / (1 + CONFIG.IVA))) : 0, 
+        costoEnvio: CONFIG.COSTO_ENVIO,
         total: Number(o.total),
         estado: o.estado as OrderStatus,
         direccionEnvio: o.direccion || 'N/A',
@@ -97,6 +108,10 @@ export function PedidosModule() {
       toast.error('Ocurrió un error cargando los pedidos desde la DB');
     }
   };
+
+  useEffect(() => {
+    refreshPedidos();
+  }, [currentPage, itemsPerPage, searchQuery]);
   
   const [formData, setFormData] = useState({
     clienteId: '',
@@ -338,24 +353,8 @@ export function PedidosModule() {
     }).format(value);
   };
 
-  // Filter pedidos based on search
-  const filteredPedidos = pedidos.filter(pedido => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    const cliente = clientes.find(c => c.id === pedido.clienteId);
-    return (
-      pedido.id.toLowerCase().includes(query) ||
-      (cliente?.nombre || '').toLowerCase().includes(query) ||
-      pedido.estado.toLowerCase().includes(query)
-    );
-  });
-
   // Pagination logic
-  const totalPages = Math.ceil(filteredPedidos.length / itemsPerPage);
-  const paginatedPedidos = filteredPedidos.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   // Reset to page 1 when search changes
   const handleSearchChange = (query: string) => {
@@ -364,7 +363,7 @@ export function PedidosModule() {
   };
 
   const getAllStatuses = (): OrderStatus[] => {
-    return ['pendiente', 'preparado', 'entregado', 'cancelado'];
+    return ['pendiente', 'preparado', 'enviado', 'entregado', 'cancelado'];
   };
 
   return (
@@ -395,7 +394,7 @@ export function PedidosModule() {
             </div>
             <div>
               <p className="text-foreground-secondary" style={{ fontSize: '14px' }}>
-                Mostrando {filteredPedidos.length} de {pedidos.length} pedidos
+                Mostrando {pedidos.length} de {totalItems} pedidos
               </p>
             </div>
           </div>
@@ -413,16 +412,16 @@ export function PedidosModule() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredPedidos.length === 0 ? (
+              {pedidos.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12">
+                  <TableCell colSpan={7} className="text-center py-12">
                     <p className="text-foreground-secondary">
                       {searchQuery ? `No se encontraron resultados para "${searchQuery}"` : 'No hay pedidos'}
                     </p>
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedPedidos.map((pedido) => {
+                pedidos.map((pedido) => {
                 return (
                   <TableRow key={pedido.id} className="border-border hover:bg-surface/50">
                     <TableCell className="text-foreground-secondary">{pedido.id.slice(0, 8)}</TableCell>
@@ -480,11 +479,11 @@ export function PedidosModule() {
         </div>
 
         {/* Pagination */}
-        {filteredPedidos.length > 0 && (
+        {totalItems > 0 && (
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
-            totalItems={filteredPedidos.length}
+            totalItems={totalItems}
             itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
             onItemsPerPageChange={(newItemsPerPage) => {
@@ -739,12 +738,23 @@ export function PedidosModule() {
                   {selectedPedido.productos.map((p: any, i: number) => {
                     const producto = productos.find(prod => prod.id === p.productoId);
                     return (
-                      <div key={i} className="flex items-center justify-between p-3 bg-surface rounded-lg border border-border">
-                        <div className="flex-1">
-                          <p className="text-foreground" style={{ fontWeight: 500 }}>{producto?.nombre || 'Producto no encontrado'}</p>
-                          <p className="text-foreground-secondary" style={{ fontSize: '12px' }}>
-                            Cantidad: {p.cantidad} × {formatCurrency(p.precioUnitario)}
-                          </p>
+                      <div key={i} className="flex items-center justify-between p-3 bg-surface rounded-lg border border-border gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-card rounded flex items-center justify-center flex-shrink-0 overflow-hidden border border-border">
+                            {producto?.imagenUrl ? (
+                              <img src={producto.imagenUrl} alt={producto.nombre} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-primary" style={{ fontSize: '10px' }}>
+                                {producto?.sku || 'N/A'}
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-foreground" style={{ fontWeight: 500 }}>{producto?.nombre || 'Producto no encontrado'}</p>
+                            <p className="text-foreground-secondary" style={{ fontSize: '12px' }}>
+                              Cantidad: {p.cantidad} × {formatCurrency(p.precioUnitario)}
+                            </p>
+                          </div>
                         </div>
                         <p className="text-foreground" style={{ fontWeight: 600 }}>
                           {formatCurrency(p.cantidad * p.precioUnitario)}
@@ -764,7 +774,7 @@ export function PedidosModule() {
                     <span className="text-foreground">{formatCurrency(selectedPedido.subtotal)}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-foreground-secondary">IVA (19%):</span>
+                    <span className="text-foreground-secondary">IVA ({CONFIG.IVA * 100}%):</span>
                     <span className="text-foreground">{formatCurrency(selectedPedido.iva)}</span>
                   </div>
                   <div className="flex items-center justify-between">

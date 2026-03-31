@@ -15,6 +15,7 @@ import { saleService } from '../../services/saleService';
 import { userService } from '../../services/userService';
 import { productService } from '../../services/productService';
 import { Cliente, Producto, Status } from '../../lib/store';
+import { CONFIG } from '../../lib/constants';
 
 export function VentasModule() {
   const { ventas, clientes, productos, setVentas, setClientes, setProductos } = useStore();
@@ -27,6 +28,7 @@ export function VentasModule() {
   const [isAnnulDialogOpen, setIsAnnulDialogOpen] = useState(false);
   const [saleToAnnul, setSaleToAnnul] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [totalItems, setTotalItems] = useState(0);
 
   useEffect(() => {
     refreshVentas();
@@ -70,6 +72,7 @@ export function VentasModule() {
         stock: p.stock_actual,
         stockMinimo: p.stock_min,
         stockMaximo: p.stock_max,
+        imagenUrl: p.imagen_url || '',
         estado: p.estado ? 'activo' : 'inactivo',
         fechaCreacion: new Date().toISOString()
       }));
@@ -81,10 +84,18 @@ export function VentasModule() {
 
   const refreshVentas = async () => {
     try {
-      const data = await saleService.getAll();
-      const mapped = data.map((v: any) => ({
+      const response = await saleService.getAll({ 
+        page: currentPage, 
+        limit: itemsPerPage,
+        q: searchQuery 
+      });
+      
+      const salesItems = response.items || [];
+      setTotalItems(response.total || 0);
+      
+      const mapped = salesItems.map((v: any) => ({
         id: v.id_venta.toString(),
-        clienteId: v.id_usuario_cliente.toString(),
+        clienteId: v.id_usuario_cliente?.toString() || '',
         clienteNombre: `${v.nombre_cliente || ''} ${v.apellido_cliente || ''}`.trim() || 'Sin Nombre',
         pedidoId: v.id_pedido?.toString() || '',
         fecha: new Date(v.fecha_venta).toLocaleDateString(),
@@ -97,14 +108,20 @@ export function VentasModule() {
         iva: Number(v.iva),
         costoEnvio: 0,
         total: Number(v.total),
-        estado: v.estado ? 'activo' : 'anulada',
-        metodoPago: v.metodo_pago
+        estado: v.estado ? 'activo' as const : 'anulada' as const,
+        metodoPago: (v.metodo_pago as any) || 'Efectivo',
       }));
+
       setVentas(mapped);
     } catch (e) {
-      console.error(e);
+      console.error('Error fetching ventas:', e);
+      toast.error('Error al cargar ventas');
     }
   };
+
+  useEffect(() => {
+    refreshVentas();
+  }, [currentPage, itemsPerPage, searchQuery]);
   
   const [formData, setFormData] = useState({
     clienteId: '',
@@ -137,13 +154,22 @@ export function VentasModule() {
 
   const updateProductLine = (index: number, field: string, value: any) => {
     const newProductos = [...formData.productos];
+    const productoId = field === 'productoId' ? value : newProductos[index].productoId;
+    const producto = productos.find(p => p.id === productoId);
+
     if (field === 'productoId') {
-      const producto = productos.find(p => p.id === value);
       newProductos[index] = {
         ...newProductos[index],
         productoId: value,
         precioUnitario: producto?.precioVenta || 0,
+        cantidad: Math.min(newProductos[index].cantidad, producto?.stock || 0)
       };
+    } else if (field === 'cantidad') {
+      const cantidadValida = Math.max(1, Math.min(value, producto?.stock || 0));
+      if (value > (producto?.stock || 0)) {
+        toast.warning(`Stock limitado. Máximo disponible: ${producto?.stock || 0}`);
+      }
+      newProductos[index] = { ...newProductos[index], cantidad: cantidadValida };
     } else {
       newProductos[index] = { ...newProductos[index], [field]: value };
     }
@@ -167,7 +193,7 @@ export function VentasModule() {
     setIsSaving(true);
     try {
       const subtotal = formData.productos.reduce((sum, p) => sum + (p.cantidad * p.precioUnitario), 0);
-      const iva = Math.round(subtotal * 0.19);
+      const iva = Math.round(subtotal * CONFIG.IVA);
       const total = subtotal + iva;
 
       const payload = {
@@ -306,24 +332,8 @@ export function VentasModule() {
     }).format(value);
   };
 
-  // Filter ventas based on search
-  const filteredVentas = ventas.filter(venta => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    const cliente = clientes.find(c => c.id === venta.clienteId);
-    return (
-      venta.id.toLowerCase().includes(query) ||
-      (cliente?.nombre || '').toLowerCase().includes(query) ||
-      venta.estado.toLowerCase().includes(query)
-    );
-  });
-
   // Pagination logic
-  const totalPages = Math.ceil(filteredVentas.length / itemsPerPage);
-  const paginatedVentas = filteredVentas.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   // Reset to page 1 when search changes
   const handleSearchChange = (query: string) => {
@@ -371,74 +381,84 @@ export function VentasModule() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedVentas.map((venta) => {
-                const isAnulada = venta.estado === 'anulada';
-                return (
-                  <TableRow key={venta.id} className="border-border hover:bg-surface/50">
-                    <TableCell className="text-foreground-secondary">{venta.id.slice(0, 8)}</TableCell>
-                    <TableCell className="text-foreground-secondary" style={{ fontSize: '12px' }}>{venta.pedidoId ? `#${venta.pedidoId}` : '- Venta Directa -'}</TableCell>
-                    <TableCell className="text-foreground">{(venta as any).clienteNombre || 'Sin Nombre'}</TableCell>
-                    <TableCell className="text-foreground-secondary">{venta.fecha}</TableCell>
-                    <TableCell className="text-foreground">{formatCurrency(venta.total)}</TableCell>
-                    <TableCell className="text-foreground-secondary">{venta.metodoPago}</TableCell>
-                    <TableCell>
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full ${
-                        venta.estado === 'activo' 
-                          ? 'bg-success/10 text-success border border-success/30' 
-                          : 'bg-danger/10 text-danger border border-danger/30'
-                      }`} style={{ fontSize: '12px', fontWeight: 500 }}>
-                        {venta.estado === 'activo' ? 'Activa' : 'Anulada'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDownloadPDF(venta)}
-                          className="h-8 w-8 p-0 text-foreground-secondary hover:text-primary hover:bg-primary/10"
-                          title="Descargar PDF"
-                        >
-                          <FileText className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleViewDetail(venta)}
-                          className="h-8 w-8 p-0 text-foreground-secondary hover:text-primary hover:bg-primary/10"
-                          title="Ver Detalle"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        {!isAnulada && (
+              {ventas.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-12">
+                    <p className="text-foreground-secondary">
+                      {searchQuery ? `No se encontraron resultados para "${searchQuery}"` : 'No hay ventas'}
+                    </p>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                ventas.map((venta) => {
+                  const isAnulada = venta.estado === 'anulada';
+                  return (
+                    <TableRow key={venta.id} className="border-border hover:bg-surface/50">
+                      <TableCell className="text-foreground-secondary">{venta.id.slice(0, 8)}</TableCell>
+                      <TableCell className="text-foreground-secondary" style={{ fontSize: '12px' }}>{venta.pedidoId ? `#${venta.pedidoId}` : '- Venta Directa -'}</TableCell>
+                      <TableCell className="text-foreground">{(venta as any).clienteNombre || 'Sin Nombre'}</TableCell>
+                      <TableCell className="text-foreground-secondary">{venta.fecha}</TableCell>
+                      <TableCell className="text-foreground">{formatCurrency(venta.total)}</TableCell>
+                      <TableCell className="text-foreground-secondary">{venta.metodoPago}</TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full ${
+                          venta.estado === 'activo' 
+                            ? 'bg-success/10 text-success border border-success/30' 
+                            : 'bg-danger/10 text-danger border border-danger/30'
+                        }`} style={{ fontSize: '12px', fontWeight: 500 }}>
+                          {venta.estado === 'activo' ? 'Activa' : 'Anulada'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-2">
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => {
-                              setSaleToAnnul(venta.id);
-                              setIsAnnulDialogOpen(true);
-                            }}
-                            className="h-8 w-8 p-0 text-danger hover:text-danger/80 hover:bg-danger/10"
-                            title="Anular Venta"
+                            onClick={() => handleDownloadPDF(venta)}
+                            className="h-8 w-8 p-0 text-foreground-secondary hover:text-primary hover:bg-primary/10"
+                            title="Descargar PDF"
                           >
-                            <X className="w-4 h-4" />
+                            <FileText className="w-4 h-4" />
                           </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleViewDetail(venta)}
+                            className="h-8 w-8 p-0 text-foreground-secondary hover:text-primary hover:bg-primary/10"
+                            title="Ver Detalle"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          {!isAnulada && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setSaleToAnnul(venta.id);
+                                setIsAnnulDialogOpen(true);
+                              }}
+                              className="h-8 w-8 p-0 text-danger hover:text-danger/80 hover:bg-danger/10"
+                              title="Anular Venta"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </div>
 
         {/* Pagination */}
-        {filteredVentas.length > 0 && (
+        {totalItems > 0 && (
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
-            totalItems={filteredVentas.length}
+            totalItems={totalItems}
             itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
             onItemsPerPageChange={(newItemsPerPage) => {
@@ -446,6 +466,13 @@ export function VentasModule() {
               setCurrentPage(1);
             }}
           />
+        )}
+        {totalItems > 0 && (
+          <div className="mt-4 text-right">
+            <p className="text-foreground-secondary" style={{ fontSize: '14px' }}>
+              Mostrando {ventas.length} de {totalItems} ventas
+            </p>
+          </div>
         )}
       </div>
 
@@ -634,12 +661,23 @@ export function VentasModule() {
                   {selectedVenta.productos.map((p: any, i: number) => {
                     const producto = productos.find(prod => prod.id === p.productoId);
                     return (
-                      <div key={i} className="flex items-center justify-between p-3 bg-surface rounded-lg border border-border">
-                        <div className="flex-1">
-                          <p className="text-foreground" style={{ fontWeight: 500 }}>{producto?.nombre || 'Producto no encontrado'}</p>
-                          <p className="text-foreground-secondary" style={{ fontSize: '12px' }}>
-                            Cantidad: {p.cantidad} × {formatCurrency(p.precioUnitario)}
-                          </p>
+                      <div key={i} className="flex items-center justify-between p-3 bg-surface rounded-lg border border-border gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-card rounded flex items-center justify-center flex-shrink-0 overflow-hidden border border-border">
+                            {producto?.imagenUrl ? (
+                              <img src={producto.imagenUrl} alt={producto.nombre} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-primary" style={{ fontSize: '10px' }}>
+                                {producto?.sku || 'N/A'}
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-foreground" style={{ fontWeight: 500 }}>{producto?.nombre || 'Producto no encontrado'}</p>
+                            <p className="text-foreground-secondary" style={{ fontSize: '12px' }}>
+                              Cantidad: {p.cantidad} × {formatCurrency(p.precioUnitario)}
+                            </p>
+                          </div>
                         </div>
                         <p className="text-foreground" style={{ fontWeight: 600 }}>
                           {formatCurrency(p.cantidad * p.precioUnitario)}

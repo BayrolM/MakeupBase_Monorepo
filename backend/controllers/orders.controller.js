@@ -22,7 +22,7 @@ export const crearOrden = async (req, res) => {
       direccion,
       ciudad,
       metodo_pago,
-      items, // Se pasan los items al servicio
+      items, 
     });
     return res.status(201).json({
       ok: true,
@@ -82,18 +82,19 @@ export const crearOrdenDirecta = async (req, res) => {
 // Controlador para obtener todas las órdenes de un usuario
 export const obtenerOrdenes = async (req, res) => {
   try {
-    const { id_usuario, rol } = req.user; // Extraer rol del JWT
-    const { estado } = req.query;
+    const { id_usuario, rol } = req.user;
+    const { estado, q, page = 1, limit = 10 } = req.query;
 
     console.log(`📦 Usuario ${id_usuario} (rol: ${rol}) solicitando órdenes`);
 
-    // Pasar tanto el id_usuario como el rol al servicio
-    // El servicio ahora puede recibir un estado para filtrar
-    const ordenes = await ordersService.obtenerOrdenes(id_usuario, rol, estado);
+    const result = await ordersService.obtenerOrdenes(id_usuario, rol, { 
+        estado, 
+        q, 
+        page: parseInt(page, 10), 
+        limit: parseInt(limit, 10) 
+    });
 
-    console.log(`✅ Devolviendo ${ordenes.length} órdenes`);
-
-    return res.json({ ok: true, data: ordenes });
+    return res.json({ ok: true, ...result });
   } catch (error) {
     console.error("❌ Error en obtener Ordenes:", error);
     return res.status(500).json({ ok: false, message: "Error en el servidor" });
@@ -139,6 +140,28 @@ export const actualizarEstado = async (req, res) => {
     console.error(error);
     if (error.message === "Pedido no encontrado") {
       return res.status(404).json({ ok: false, message: error.message });
+    }
+    return res.status(500).json({ ok: false, message: "Error en el servidor" });
+  }
+};
+
+// Controlador para cancelar una orden y devolver stock
+export const cancelarOrden = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { motivo } = req.body;
+
+    if (!motivo) {
+      return res.status(400).json({ ok: false, message: "El motivo de cancelación es requerido" });
+    }
+
+    const orden = await ordersService.cancelarOrden(parseInt(id, 10), motivo);
+
+    return res.json({ ok: true, message: "Orden cancelada exitosamente", data: orden });
+  } catch (error) {
+    console.error(error);
+    if (error.message === "Pedido no encontrado" || error.message === "Solo se pueden cancelar pedidos pendientes") {
+      return res.status(400).json({ ok: false, message: error.message });
     }
     return res.status(500).json({ ok: false, message: "Error en el servidor" });
   }

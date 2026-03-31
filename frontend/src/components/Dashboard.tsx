@@ -216,8 +216,16 @@ export function Dashboard() {
                 {data.productos_mas_vendidos.map((producto, index) => (
                   <div key={producto.id_producto} className="flex items-center justify-between p-3 rounded-lg bg-surface">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary" style={{ fontSize: '14px', fontWeight: 600 }}>
-                        {index + 1}
+                      <div className="w-10 h-10 rounded overflow-hidden border border-border bg-card flex items-center justify-center flex-shrink-0">
+                        {productos.find(p => p.id === producto.id_producto.toString())?.imagenUrl ? (
+                          <img 
+                            src={productos.find(p => p.id === producto.id_producto.toString())?.imagenUrl} 
+                            alt={producto.nombre} 
+                            className="w-full h-full object-cover" 
+                          />
+                        ) : (
+                          <span className="text-primary text-[10px] font-bold">{index + 1}</span>
+                        )}
                       </div>
                       <div>
                         <p className="text-foreground" style={{ fontSize: '14px', fontWeight: 500 }}>
@@ -256,13 +264,22 @@ export function Dashboard() {
                 ) : (
                   productosStockCriticoList.slice(0, 5).map((producto) => (
                     <div key={producto.id} className="flex items-center justify-between p-3 rounded-lg bg-surface border border-danger/20">
-                      <div>
-                        <p className="text-foreground" style={{ fontSize: '14px', fontWeight: 500 }}>
-                          {producto.nombre}
-                        </p>
-                        <p className="text-foreground-secondary" style={{ fontSize: '12px' }}>
-                          {producto.sku}
-                        </p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded overflow-hidden border border-border bg-card flex items-center justify-center flex-shrink-0">
+                          {producto.imagenUrl ? (
+                            <img src={producto.imagenUrl} alt={producto.nombre} className="w-full h-full object-cover" />
+                          ) : (
+                            <AlertTriangle className="w-4 h-4 text-danger/30" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-foreground" style={{ fontSize: '14px', fontWeight: 500 }}>
+                            {producto.nombre}
+                          </p>
+                          <p className="text-foreground-secondary" style={{ fontSize: '12px' }}>
+                            {producto.sku}
+                          </p>
+                        </div>
                       </div>
                       <div className="text-right">
                         <p className="text-danger" style={{ fontSize: '14px', fontWeight: 600 }}>

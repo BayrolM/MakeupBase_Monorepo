@@ -8,9 +8,7 @@ import { ThemeProvider } from "./lib/theme-context";
 import { AppSidebar } from "./components/AppSidebar";
 import { Dashboard } from "./components/Dashboard";
 import { SidebarProvider } from "./components/ui/sidebar";
-import { ThemeToggle } from "./components/ThemeToggle";
 import { useState, useEffect } from "react";
-import { UsersModule } from "./components/modules/UsersModule";
 import { UsuariosModule } from "./components/modules/UsuariosModule";
 import { ClientesViewModule } from "./components/modules/ClientesViewModule";
 import { ProductsModule } from "./components/modules/ProductsModule";
@@ -36,6 +34,7 @@ import { CheckoutView } from "./components/client/CheckoutView";
 import { FloatingCart } from "./components/client/FloatingCart";
 import { Toaster, toast } from "sonner";
 import { authService } from "./services/authService";
+import { orderService } from "./services/orderService";
 import { productService } from "./services/productService";
 import { categoryService } from "./services/categoryService";
 import { providerService } from "./services/providerService";
@@ -76,6 +75,7 @@ function AppContent() {
     setProveedores,
     setCompras,
     setClientes,
+    setPedidos,
   } = useStore();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -84,11 +84,12 @@ function AppContent() {
   const [currentRoute, setCurrentRoute] = useState<Route>(
     userType === "admin" ? "dashboard" : "inicio",
   );
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   const loadPublicData = async () => {
     try {
-      const categoriesData = await categoryService.getAll();
-      const mappedCategories = categoriesData.map(cat => ({
+      const categoriesData = await categoryService.getAll({ limit: 100 });
+      const mappedCategories = categoriesData.data.map((cat: any) => ({
         id: cat.id_categoria.toString(),
         nombre: cat.nombre,
         descripcion: cat.descripcion || '',
@@ -109,6 +110,7 @@ function AppContent() {
         stock: prod.stock_actual || 0,
         stockMinimo: prod.stock_min || 0,
         stockMaximo: prod.stock_max || 100,
+        imagenUrl: prod.imagen_url || undefined,
         estado: prod.estado ? 'activo' as const : 'inactivo' as const,
         fechaCreacion: new Date().toISOString(),
       }));
@@ -118,55 +120,82 @@ function AppContent() {
     }
   };
 
-  const loadPrivateData = async () => {
+  const loadPrivateData = async (userRol?: string | number) => {
+    // If no role provided, use current or default to cliente
+    const role = userRol || currentUser?.rol || userType;
+    const isAdmin = role === 'admin' || role === 1;
+
     try {
-      const providersData = await providerService.getAll();
-      const mappedProviders = providersData.map(prov => ({
-        id: prov.id_proveedor.toString(),
-        nombre: prov.nombre,
-        email: prov.email || '',
-        telefono: prov.telefono || '',
-        nit: prov.documento_nit || '',
-        direccion: '',
-        estado: prov.estado ? 'activo' as const : 'inactivo' as const,
-        fechaRegistro: new Date().toISOString(),
-      }));
-      setProveedores(mappedProviders);
+      if (isAdmin) {
+        const providersData = await providerService.getAll();
+        const mappedProviders = providersData.map(prov => ({
+          id: prov.id_proveedor.toString(),
+          nombre: prov.nombre,
+          email: prov.email || '',
+          telefono: prov.telefono || '',
+          nit: prov.documento_nit || '',
+          direccion: '',
+          estado: prov.estado ? 'activo' as const : 'inactivo' as const,
+          fechaRegistro: new Date().toISOString(),
+        }));
+        setProveedores(mappedProviders);
 
-      const purchasesData = await purchaseService.getAll();
-      const purchasesArray = Array.isArray(purchasesData) ? purchasesData : (purchasesData as any).data || [];
-      const mappedPurchases = purchasesArray.map((purch: any) => ({
-        id: purch.id_compra.toString(),
-        proveedorId: purch.id_proveedor.toString(),
-        fecha: purch.fecha_compra,
-        total: Number(purch.total),
-        estado: (purch.estado === true || purch.estado === 1) ? 'confirmada' as const : 'anulada' as const,
-        confirmada: !!purch.estado,
-        observaciones: purch.observaciones || '',
-        productos: [],
-      }));
-      setCompras(mappedPurchases);
+        const purchasesData = await purchaseService.getAll();
+        const purchasesArray = Array.isArray(purchasesData) ? purchasesData : (purchasesData as any).data || [];
+        const mappedPurchases = purchasesArray.map((purch: any) => ({
+          id: purch.id_compra.toString(),
+          proveedorId: purch.id_proveedor.toString(),
+          fecha: purch.fecha_compra,
+          total: Number(purch.total),
+          estado: (purch.estado === true || purch.estado === 1) ? 'confirmada' as const : 'anulada' as const,
+          confirmada: !!purch.estado,
+          observaciones: purch.observaciones || '',
+          productos: [],
+        }));
+        setCompras(mappedPurchases);
 
-      // Cargar clientes REALES de la base de datos
-      const clientsData = await userService.getAll({ id_rol: 2 });
-      const mappedClients: Cliente[] = clientsData.data.map(c => {
-        const nombres = c.nombres || c.nombre || '';
-        const apellidos = c.apellidos || c.apellido || '';
-        return {
-          id: c.id_usuario.toString(),
-          nombre: `${nombres} ${apellidos}`.trim() || 'Sin Nombre',
-          nombres: nombres,
-          apellidos: apellidos,
-          email: c.email,
-          telefono: c.telefono || '',
-          documento: c.documento || '',
-          numeroDocumento: c.documento || '',
-          estado: c.estado ? 'activo' as const : 'inactivo' as const,
-          totalCompras: Number(c.total_ventas) || 0,
-          fechaRegistro: c.get_fecha_creacion || c.fecha_creacion || new Date().toISOString(),
-        };
-      });
-      setClientes(mappedClients);
+        // Cargar clientes REALES de la base de datos
+        const clientsData = await userService.getAll({ id_rol: 2 });
+        const mappedClients: Cliente[] = clientsData.data.map((c: any) => {
+          const nombres = c.nombres || c.nombre || '';
+          const apellidos = c.apellidos || c.apellido || '';
+          return {
+            id: c.id_usuario.toString(),
+            nombre: `${nombres} ${apellidos}`.trim() || 'Sin Nombre',
+            nombres: nombres,
+            apellidos: apellidos,
+            email: c.email,
+            telefono: c.telefono || '',
+            documento: c.documento || '',
+            numeroDocumento: c.documento || '',
+            estado: c.estado ? 'activo' as const : 'inactivo' as const,
+            totalCompras: Number(c.total_ventas) || 0,
+            foto_perfil: c.foto_perfil,
+            fechaRegistro: c.get_fecha_creacion || c.fecha_creacion || new Date().toISOString(),
+          };
+        });
+        setClientes(mappedClients);
+      }
+
+      // Cargar Pedidos REALES
+      const ordersData = await orderService.getAll({ limit: 100 });
+      const mappedOrders = ordersData.data.map((o: any) => ({
+        id: o.id_pedido?.toString() || '0',
+        clienteId: (o.id_usuario_cliente || o.id_usuario)?.toString() || '0',
+        fecha: o.fecha_pedido,
+        total: Number(o.total) || 0,
+        subtotal: (Number(o.total) || 0) / 1.19,
+        iva: (Number(o.total) || 0) - ((Number(o.total) || 0) / 1.19),
+        costoEnvio: 0,
+        estado: o.estado as any,
+        direccionEnvio: o.direccion || '',
+        productos: (o.items || []).map((i: any) => ({
+          productoId: (i.id_producto || i.id_detalle_pedido)?.toString() || '0',
+          cantidad: i.cantidad || 0,
+          precioUnitario: Number(i.precio_unitario) || 0
+        }))
+      }));
+      setPedidos(mappedOrders);
     } catch (error) {
       console.error('Error cargando datos privados:', error);
     }
@@ -185,6 +214,8 @@ function AppContent() {
           telefono: profile.telefono,
           direccion: profile.direccion || '',
           ciudad: profile.ciudad || '',
+          id_rol: Number(profile.id_rol),
+          foto_perfil: profile.foto_perfil,
           rol: Number(profile.id_rol) === 1 ? 'admin' as const : 'cliente' as const,
           estado: 'activo' as const,
           tipoDocumento: 'CC' as const,
@@ -196,7 +227,7 @@ function AppContent() {
         setCurrentUser(user);
         setIsAuthenticated(true);
         await loadPublicData();
-        await loadPrivateData();
+        await loadPrivateData(user.rol);
       } catch (error) {
         console.error('Error al verificar autenticación:', error);
         authService.logout();
@@ -239,6 +270,8 @@ function AppContent() {
         telefono: profile.telefono,
         direccion: profile.direccion || '',
         ciudad: profile.ciudad || '',
+        id_rol: Number(profile.id_rol),
+        foto_perfil: profile.foto_perfil,
         rol: Number(profile.id_rol) === 1 ? 'admin' as const : 'cliente' as const,
         estado: 'activo' as const,
         tipoDocumento: 'CC' as const,
@@ -252,7 +285,7 @@ function AppContent() {
       
       // Load public and private data
       await loadPublicData();
-      await loadPrivateData();
+      await loadPrivateData(user.rol);
 
       // Establecer ruta inicial según rol
       if (user.rol === 'cliente') {
@@ -337,6 +370,10 @@ function AppContent() {
       return (
         <InicioView 
           isPublic={true}
+          onNavigate={(route) => {
+            setShowAuthPage(true);
+            setAuthPage(route === "register" ? "register" : "login");
+          }}
           onNavigateToLogin={() => {
             setShowAuthPage(true);
             setAuthPage("login");
@@ -386,7 +423,6 @@ function AppContent() {
   }
 
   const renderContent = () => {
-    // Admin routes - only accessible when userType is 'admin'
     const adminRoutes = [
       "dashboard",
       "usuarios",
@@ -440,13 +476,25 @@ function AppContent() {
       case "roles":
         return <RolesPermisosModule />;
       case "inicio":
-        return <InicioView />;
+        return (
+          <InicioView 
+            onNavigate={(route, catId) => {
+              if (catId) setActiveCategory(catId);
+              setCurrentRoute(route as Route);
+            }} 
+          />
+        );
       case "catalogo":
-        return <CatalogoView />;
+        return (
+          <CatalogoView 
+            initialCategory={activeCategory || 'all'} 
+            onClearCategory={() => setActiveCategory(null)} 
+          />
+        );
       case "favoritos":
-        return <FavoritosView />;
+        return <FavoritosView onNavigate={(route) => setCurrentRoute(route as Route)} />;
       case "mis-pedidos":
-        return <MisPedidosView />;
+        return <MisPedidosView onNavigate={(route) => setCurrentRoute(route as Route)} />;
       case "historial":
         return <HistorialView />;
       case "perfil":
@@ -483,7 +531,10 @@ function AppContent() {
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar
-          onNavigate={(route) => setCurrentRoute(route as Route)}
+          onNavigate={(route) => {
+            if (route === 'catalogo') setActiveCategory(null);
+            setCurrentRoute(route as Route);
+          }}
           currentRoute={currentRoute}
           onLogout={handleLogout}
         />

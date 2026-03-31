@@ -23,6 +23,7 @@ export function CategoriasModule() {
   const [selectedCategoria, setSelectedCategoria] = useState<Categoria | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [formData, setFormData] = useState({
@@ -34,13 +35,19 @@ export function CategoriasModule() {
   const isAdmin = currentUser?.rol === 'admin';
 
   useEffect(() => {
-    refreshCategoriesLocal();
+    refreshCategorias();
   }, []);
 
-  const refreshCategoriesLocal = async () => {
+  const refreshCategorias = async () => {
     try {
-      const data = await categoryService.getAll();
-      const mapped = data.map(cat => ({
+      const response = await categoryService.getAll({
+        page: currentPage,
+        limit: itemsPerPage,
+        q: searchQuery
+      });
+      
+      setTotalItems(response.total || 0);
+      const mapped = (response.data || []).map((cat: any) => ({
         id: cat.id_categoria.toString(),
         nombre: cat.nombre,
         descripcion: cat.descripcion || '',
@@ -49,8 +56,13 @@ export function CategoriasModule() {
       setCategorias(mapped);
     } catch (e) {
       console.error(e);
+      toast.error('Error al cargar categorías');
     }
   };
+
+  useEffect(() => {
+    refreshCategorias();
+  }, [currentPage, itemsPerPage, searchQuery]);
 
   const handleOpenDialog = (categoria?: Categoria) => {
     if (!isAdmin) {
@@ -98,7 +110,7 @@ export function CategoriasModule() {
         toast.success('Categoría creada');
       }
       
-      await refreshCategoriesLocal();
+      await refreshCategorias();
       setIsDialogOpen(false);
     } catch (error: any) {
       toast.error(error.message);
@@ -111,7 +123,7 @@ export function CategoriasModule() {
     if (!selectedCategoria) return;
     try {
       await categoryService.delete(Number(selectedCategoria.id));
-      await refreshCategoriesLocal();
+      await refreshCategorias();
       toast.success('Categoría eliminada');
       setIsDeleteDialogOpen(false);
       setSelectedCategoria(null);
@@ -120,15 +132,14 @@ export function CategoriasModule() {
     }
   };
 
-  const filteredCategorias = categorias.filter(c => 
-    c.nombre.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Pagination logic
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
-  const totalPages = Math.ceil(filteredCategorias.length / itemsPerPage);
-  const paginatedCategorias = filteredCategorias.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  // Reset to page 1 when search changes
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    setCurrentPage(1);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -150,12 +161,12 @@ export function CategoriasModule() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground-secondary" />
               <input
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="w-full h-10 pl-10 pr-10 bg-input-background border border-border rounded-lg text-foreground placeholder:text-foreground-secondary focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="Buscar categorías..."
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2">
+                <button onClick={() => handleSearchChange('')} className="absolute right-3 top-1/2 -translate-y-1/2">
                   <X className="w-4 h-4" />
                 </button>
               )}
@@ -172,45 +183,58 @@ export function CategoriasModule() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedCategorias.map((categoria) => (
-                <TableRow key={categoria.id} className="border-border">
-                  <TableCell className="font-medium text-foreground">{categoria.nombre}</TableCell>
-                  <TableCell className="text-foreground-secondary">{categoria.descripcion || 'Sin descripción'}</TableCell>
-                  <TableCell>
-                    <StatusSwitch 
-                      status={categoria.estado} 
-                      onChange={(newStatus) => {
-                        if (!isAdmin) return;
-                        categoryService.update(Number(categoria.id), { estado: newStatus === 'activo' }).then(refreshCategoriesLocal);
-                      }}
-                      disabled={!isAdmin}
-                    />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => { setSelectedCategoria(categoria); setIsDetailDialogOpen(true); }}>
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" disabled={!isAdmin} onClick={() => handleOpenDialog(categoria)}>
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" disabled={!isAdmin} className="text-danger" onClick={() => { setSelectedCategoria(categoria); setIsDeleteDialogOpen(true); }}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
+              {categorias.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-12">
+                    <p className="text-foreground-secondary">
+                      {searchQuery ? `No se encontraron resultados para "${searchQuery}"` : 'No hay categorías'}
+                    </p>
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                categorias.map((categoria) => (
+                  <TableRow key={categoria.id} className="border-border">
+                    <TableCell className="font-medium text-foreground">{categoria.nombre}</TableCell>
+                    <TableCell className="text-foreground-secondary">{categoria.descripcion || 'Sin descripción'}</TableCell>
+                    <TableCell>
+                      <StatusSwitch 
+                        status={categoria.estado} 
+                        onChange={(newStatus) => {
+                          if (!isAdmin) return;
+                          categoryService.update(Number(categoria.id), { estado: newStatus === 'activo' }).then(refreshCategorias);
+                        }}
+                        disabled={!isAdmin}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => { setSelectedCategoria(categoria); setIsDetailDialogOpen(true); }}>
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" disabled={!isAdmin} onClick={() => handleOpenDialog(categoria)}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" disabled={!isAdmin} className="text-danger" onClick={() => { setSelectedCategoria(categoria); setIsDeleteDialogOpen(true); }}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
 
           {totalPages > 1 && (
-            <div className="p-4 border-t border-border">
+            <div className="p-4 border-t border-border flex justify-between items-center">
+              <p className="text-foreground-secondary" style={{ fontSize: '14px' }}>
+                Mostrando {categorias.length} de {totalItems} categorías
+              </p>
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={setCurrentPage}
-                totalItems={filteredCategorias.length}
+                totalItems={totalItems}
                 itemsPerPage={itemsPerPage}
                 onItemsPerPageChange={setItemsPerPage}
               />

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode, useMemo } from 'react';
+import { createContext, useContext, useState, ReactNode, useMemo, useEffect } from 'react';
 
 // Types
 export type UserRole = 'admin' | 'vendedor' | 'cliente';
@@ -38,6 +38,7 @@ export interface User {
   rolAsignadoId?: string; // ID del rol personalizado asignado
   estado: Status;
   fechaCreacion: string;
+  foto_perfil?: string;
 }
 
 export interface Cliente {
@@ -82,6 +83,7 @@ export interface Producto {
   nombre: string;
   descripcion: string;
   categoriaId: string;
+  marcaId?: string;
   marca: string;
   precioCompra: number;
   precioVenta: number;
@@ -252,8 +254,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<Rol[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userType, setUserType] = useState<'admin' | 'cliente'>('cliente');
-  const [favoritos, setFavoritos] = useState<string[]>([]);
-  const [carrito, setCarrito] = useState<{ productoId: string; cantidad: number }[]>([]);
+  const [favoritos, setFavoritos] = useState<string[]>(() => {
+    const saved = localStorage.getItem('gml_favoritos');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [carrito, setCarrito] = useState<{ productoId: string; cantidad: number }[]>(() => {
+    const saved = localStorage.getItem('gml_carrito');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Persistir favoritos
+  useEffect(() => {
+    localStorage.setItem('gml_favoritos', JSON.stringify(favoritos));
+  }, [favoritos]);
+
+  // Persistir carrito
+  useEffect(() => {
+    localStorage.setItem('gml_carrito', JSON.stringify(carrito));
+  }, [carrito]);
 
   const generateId = () => Math.random().toString(36).substr(2, 9);
   const getCurrentDate = () => new Date().toISOString().split('T')[0];
@@ -345,11 +363,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setCompras(prevCompras => {
         const compra = prevCompras.find(c => c.id === id);
         if (compra && !compra.confirmada) {
-          compra.productos.forEach(p => {
-             // We can't easily call value.updateStock here without causing issues or using refs
-             // But for now let's just update the stock directly in the productos state if needed
-             // or handle it in a more robust way.
-          });
+          // La lógica de actualización de stock se maneja en el backend al cambiar el estado a 'entregado'
           return prevCompras.map(c => 
             c.id === id ? { ...c, confirmada: true, estado: 'confirmada' as const } : c
           );
@@ -432,16 +446,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
     
     addToCarrito: (productoId, cantidad) => {
+      const producto = productos.find(p => p.id === productoId);
+      if (!producto) return;
+
       setCarrito(prev => {
         const existingItem = prev.find(item => item.productoId === productoId);
         if (existingItem) {
+          const newQuantity = existingItem.cantidad + cantidad;
+          if (newQuantity > producto.stock) {
+            return prev.map(item => 
+              item.productoId === productoId 
+                ? { ...item, cantidad: producto.stock }
+                : item
+            );
+          }
           return prev.map(item => 
             item.productoId === productoId 
-              ? { ...item, cantidad: item.cantidad + cantidad }
+              ? { ...item, cantidad: newQuantity }
               : item
           );
         }
-        return [...prev, { productoId, cantidad }];
+        
+        const initialQuantity = Math.min(cantidad, producto.stock);
+        return [...prev, { productoId, cantidad: initialQuantity }];
       });
     },
     
@@ -450,12 +477,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
     
     updateCarritoQuantity: (productoId, cantidad) => {
+      const producto = productos.find(p => p.id === productoId);
+      if (!producto) return;
+
       setCarrito(prev => {
         if (cantidad <= 0) {
           return prev.filter(item => item.productoId !== productoId);
         }
+        
+        const validatedQuantity = Math.min(cantidad, producto.stock);
         return prev.map(item =>
-          item.productoId === productoId ? { ...item, cantidad } : item
+          item.productoId === productoId ? { ...item, cantidad: validatedQuantity } : item
         );
       });
     },

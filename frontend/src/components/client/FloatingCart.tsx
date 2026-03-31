@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useStore } from '../../lib/store';
-import { ShoppingCart, X, Trash2 } from 'lucide-react';
+import { ShoppingCart, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '../ui/sheet';
 import { ThemeToggle } from '../ThemeToggle';
+import { CONFIG } from '../../lib/constants';
+import { productService } from '../../services/productService';
+import { toast } from 'sonner';
 
 interface FloatingCartProps {
   onCheckout: () => void;
@@ -12,6 +15,44 @@ interface FloatingCartProps {
 export function FloatingCart({ onCheckout }: FloatingCartProps) {
   const { carrito, productos, removeFromCarrito, updateCarritoQuantity } = useStore();
   const [isOpen, setIsOpen] = useState(false);
+  const [stockIssues, setStockIssues] = useState<Record<string, { available: number; requested: number }>>({});
+  const [isValidating, setIsValidating] = useState(false);
+
+  const validateStock = useCallback(async () => {
+    if (carrito.length === 0) return;
+    setIsValidating(true);
+    const issues: Record<string, { available: number; requested: number }> = {};
+    try {
+      for (const item of carrito) {
+        try {
+          const freshProduct = await productService.getById(parseInt(item.productoId, 10));
+          const availableStock = freshProduct.stock_actual;
+          if (availableStock <= 0) {
+            issues[item.productoId] = { available: 0, requested: item.cantidad };
+          } else if (item.cantidad > availableStock) {
+            issues[item.productoId] = { available: availableStock, requested: item.cantidad };
+            updateCarritoQuantity(item.productoId, availableStock);
+          }
+        } catch { /* skip if fetch fails */ }
+      }
+      setStockIssues(issues);
+      if (Object.keys(issues).length > 0) {
+        const outOfStock = Object.values(issues).filter(i => i.available === 0).length;
+        const adjusted = Object.values(issues).filter(i => i.available > 0).length;
+        if (outOfStock > 0) toast.warning(`${outOfStock} producto(s) sin stock disponible`);
+        if (adjusted > 0) toast.info(`${adjusted} producto(s) ajustados por stock limitado`);
+      }
+    } finally {
+      setIsValidating(false);
+    }
+  }, [carrito, updateCarritoQuantity]);
+
+  useEffect(() => {
+    if (isOpen && carrito.length > 0) validateStock();
+    if (!isOpen) setStockIssues({});
+  }, [isOpen]);
+
+  const hasBlockingIssues = Object.values(stockIssues).some(i => i.available === 0);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -26,7 +67,7 @@ export function FloatingCart({ onCheckout }: FloatingCartProps) {
     return sum + (producto ? producto.precioVenta * item.cantidad : 0);
   }, 0);
 
-  const shippingCost = 8000;
+  const shippingCost = CONFIG.COSTO_ENVIO;
   const total = cartTotal + shippingCost;
   const itemCount = carrito.reduce((sum, item) => sum + item.cantidad, 0);
 
@@ -83,11 +124,15 @@ export function FloatingCart({ onCheckout }: FloatingCartProps) {
                   if (!producto) return null;
 
                   return (
-                    <div key={item.productoId} className="flex gap-4 p-4 bg-surface rounded-lg">
-                      <div className="w-20 h-20 bg-primary/10 rounded flex items-center justify-center flex-shrink-0">
-                        <span className="text-primary" style={{ fontSize: '12px' }}>
-                          {producto.sku}
-                        </span>
+                    <div key={item.productoId} className={`flex gap-4 p-4 rounded-lg ${stockIssues[item.productoId]?.available === 0 ? 'bg-danger/10 border border-danger/30' : 'bg-surface'}`}>
+                      <div className="w-20 h-20 bg-primary/10 rounded flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {producto.imagenUrl ? (
+                          <img src={producto.imagenUrl} alt={producto.nombre} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-primary" style={{ fontSize: '12px' }}>
+                            {producto.sku}
+                          </span>
+                        )}
                       </div>
                       
                       <div className="flex-1 min-w-0">
@@ -97,6 +142,17 @@ export function FloatingCart({ onCheckout }: FloatingCartProps) {
                         <p className="text-primary" style={{ fontSize: '16px', fontWeight: 600, marginTop: '4px' }}>
                           {formatCurrency(producto.precioVenta)}
                         </p>
+
+                        {stockIssues[item.productoId] && (
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <AlertTriangle className="w-3.5 h-3.5 text-warning flex-shrink-0" />
+                            <span className="text-warning" style={{ fontSize: '12px' }}>
+                              {stockIssues[item.productoId].available === 0
+                                ? 'Producto agotado — retíralo del carrito'
+                                : `Solo quedan ${stockIssues[item.productoId].available} unidades`}
+                            </span>
+                          </div>
+                        )}
                         
                         <div className="flex items-center gap-3 mt-3">
                           <div className="flex items-center gap-2 bg-input-background border border-border rounded px-2">
@@ -112,14 +168,17 @@ export function FloatingCart({ onCheckout }: FloatingCartProps) {
                             <button
                               onClick={() => updateCarritoQuantity(item.productoId, item.cantidad + 1)}
                               className="text-foreground-secondary hover:text-foreground p-1"
-                              disabled={item.cantidad >= producto.stock}
+                              disabled={item.cantidad >= producto.stock || stockIssues[item.productoId]?.available === 0}
                             >
                               +
                             </button>
                           </div>
                           
                           <button
-                            onClick={() => removeFromCarrito(item.productoId)}
+                            onClick={() => {
+                              removeFromCarrito(item.productoId);
+                              setStockIssues(prev => { const next = { ...prev }; delete next[item.productoId]; return next; });
+                            }}
                             className="text-danger hover:text-danger/80 p-1"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -151,15 +210,21 @@ export function FloatingCart({ onCheckout }: FloatingCartProps) {
                   </div>
                 </div>
 
+                {isValidating && (
+                  <div className="flex items-center justify-center gap-2 text-foreground-secondary" style={{ fontSize: '13px' }}>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Verificando disponibilidad...
+                  </div>
+                )}
                 <Button
                   onClick={() => {
                     setIsOpen(false);
                     onCheckout();
                   }}
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-12"
-                  disabled={carrito.length === 0}
+                  disabled={carrito.length === 0 || hasBlockingIssues || isValidating}
                 >
-                  🎀 FINALIZAR COMPRA
+                  {hasBlockingIssues ? '⚠️ RESUELVE LOS PROBLEMAS DE STOCK' : '🎀 FINALIZAR COMPRA'}
                 </Button>
               </div>
             </SheetFooter>

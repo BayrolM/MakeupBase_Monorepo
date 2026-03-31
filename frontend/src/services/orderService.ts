@@ -64,10 +64,13 @@ export const orderService = {
   /**
    * Obtener todas las órdenes
    */
-  async getAll(estado?: string): Promise<Order[]> {
+  async getAll(params: any = {}): Promise<{ total: number, data: Order[] }> {
     try {
-      const response = await api.get("/orders", { params: { estado } });
-      return response.data.data;
+      const response = await api.get("/orders", { params });
+      return {
+        total: response.data.total,
+        data: response.data.data
+      };
     } catch (error: any) {
       throw new Error(
         error.response?.data?.message || "Error al obtener órdenes",

@@ -4,7 +4,11 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
-import { CheckCircle, QrCode, ArrowLeft } from 'lucide-react';
+import { CheckCircle, QrCode, ArrowLeft, Loader2 } from 'lucide-react';
+import { orderService } from '../../services/orderService';
+import { productService } from '../../services/productService';
+import { toast } from 'sonner';
+import { CONFIG } from '../../lib/constants';
 
 interface CheckoutViewProps {
   onBack: () => void;
@@ -12,10 +16,11 @@ interface CheckoutViewProps {
 }
 
 export function CheckoutView({ onBack, onComplete }: CheckoutViewProps) {
-  const { carrito, productos, clientes, currentUser, addPedido, updateStock, clearCarrito } = useStore();
+  const { carrito, productos, currentUser, addPedido, updateStock, clearCarrito } = useStore();
   const [step, setStep] = useState(1); // 1: Cart, 2: QR, 3: Success
-  const [direccionEnvio, setDireccionEnvio] = useState('Calle 31C #89-35, Medellín');
+  const [direccionEnvio, setDireccionEnvio] = useState(currentUser?.direccion || 'Calle 31C #89-35, Medellín');
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [generatedOrderId, setGeneratedOrderId] = useState('');
 
   const formatCurrency = (value: number) => {
@@ -31,8 +36,8 @@ export function CheckoutView({ onBack, onComplete }: CheckoutViewProps) {
     return sum + (producto ? producto.precioVenta * item.cantidad : 0);
   }, 0);
 
-  const iva = Math.round(subtotal * 0.19);
-  const costoEnvio = 12000;
+  const iva = Math.round(subtotal * CONFIG.IVA);
+  const costoEnvio = CONFIG.COSTO_ENVIO;
   const total = subtotal + iva + costoEnvio;
 
   const handleGenerateQR = () => {
@@ -45,19 +50,57 @@ export function CheckoutView({ onBack, onComplete }: CheckoutViewProps) {
     return `P-${year}-${random}`;
   };
 
-  const handleConfirmPayment = () => {
-    // Validate stock before creating order
+  const handleConfirmPayment = async () => {
+    if (!currentUser) return;
+
+    // Validate stock against backend (real-time) before creating order
     for (const item of carrito) {
-      const producto = productos.find(p => p.id === item.productoId);
-      if (!producto || producto.stock < item.cantidad) {
-        alert(`Stock insuficiente para ${producto?.nombre || 'producto'}`);
-        return;
+      try {
+        const freshProduct = await productService.getById(parseInt(item.productoId, 10));
+        if (freshProduct.stock_actual <= 0) {
+          toast.error(`"${freshProduct.nombre}" se agotó mientras comprabas`, {
+            description: 'Retíralo del carrito e inténtalo de nuevo',
+          });
+          setIsProcessing(false);
+          return;
+        }
+        if (item.cantidad > freshProduct.stock_actual) {
+          toast.error(`Solo quedan ${freshProduct.stock_actual} unidades de "${freshProduct.nombre}"`, {
+            description: 'Ajusta la cantidad en tu carrito',
+          });
+          setIsProcessing(false);
+          return;
+        }
+      } catch {
+        // If we can't verify, fall back to local check
+        const producto = productos.find(p => p.id === item.productoId);
+        if (!producto || producto.stock < item.cantidad) {
+          toast.error(`Stock insuficiente para ${producto?.nombre || 'producto'}`);
+          setIsProcessing(false);
+          return;
+        }
       }
     }
 
-    // Create order
-    const currentCliente = clientes.find(c => c.email === currentUser?.email);
-    if (currentCliente) {
+    setIsProcessing(true);
+    try {
+      // 1. Prepare data for backend
+      const orderData = {
+        direccion: direccionEnvio,
+        ciudad: currentUser.ciudad || 'N/A',
+        metodo_pago: 'transferencia',
+        items: carrito.map(item => ({
+          id_producto: parseInt(item.productoId, 10),
+          cantidad: item.cantidad
+        }))
+      };
+
+      console.log('🚀 Enviando orden al backend:', JSON.stringify(orderData, null, 2));
+
+      // 2. Call backend
+      const response = await orderService.create(orderData);
+      
+      // 3. Update local store
       const productosConPrecios = carrito.map(item => {
         const producto = productos.find(p => p.id === item.productoId);
         return {
@@ -67,43 +110,46 @@ export function CheckoutView({ onBack, onComplete }: CheckoutViewProps) {
         };
       });
 
-      const orderId = generateOrderNumber();
-      setGeneratedOrderId(orderId);
+      setGeneratedOrderId(response.id_pedido?.toString() || generateOrderNumber());
 
       addPedido({
-        clienteId: currentCliente.id,
+        clienteId: currentUser.id,
         fecha: new Date().toISOString().split('T')[0],
         productos: productosConPrecios,
         subtotal,
         iva,
         costoEnvio,
         total,
-        estado: 'creado',
+        estado: 'pendiente',
         direccionEnvio,
       });
 
-      // Update stock
+      // Update stock locally
       carrito.forEach(item => {
         updateStock(item.productoId, -item.cantidad);
       });
 
       // Clear cart
       clearCarrito();
+      
+      setShowConfirmDialog(false);
+      setStep(3);
+    } catch (error: any) {
+      console.error('Error creating order:', error);
+      toast.error('Error al procesar el pedido', {
+        description: error.message || 'Inténtalo de de nuevo más tarde'
+      });
+    } finally {
+      setIsProcessing(false);
     }
-
-    setShowConfirmDialog(false);
-    setStep(3);
   };
 
-  const handleFinish = () => {
-    onComplete();
-  };
 
   // Auto-redirect after 3 seconds on success
   useEffect(() => {
     if (step === 3) {
       const timer = setTimeout(() => {
-        onBack(); // Redirect to inicio
+        onComplete(); // Al terminar satisfactoriamente, ir a mis pedidos
       }, 3000);
       return () => clearTimeout(timer);
     }
@@ -227,9 +273,12 @@ export function CheckoutView({ onBack, onComplete }: CheckoutViewProps) {
 
         {/* Confirmation Dialog */}
         <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-          <DialogContent className="bg-card border-border">
+          <DialogContent className="bg-card border-border" aria-describedby="confirm-payment-desc">
             <DialogHeader>
               <DialogTitle className="text-foreground">Confirmar Pago</DialogTitle>
+              <div id="confirm-payment-desc" className="sr-only">
+                Confirmación de pago por transferencia bancaria.
+              </div>
             </DialogHeader>
 
             <div className="py-6">
@@ -248,9 +297,17 @@ export function CheckoutView({ onBack, onComplete }: CheckoutViewProps) {
               </Button>
               <Button
                 onClick={handleConfirmPayment}
+                disabled={isProcessing}
                 className="bg-success hover:bg-success/90 text-background flex-1"
               >
-                ✅ Sí, ya pagué
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    Procesando...
+                  </>
+                ) : (
+                  '✅ Sí, ya pagué'
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -287,14 +344,25 @@ export function CheckoutView({ onBack, onComplete }: CheckoutViewProps) {
                 if (!producto) return null;
 
                 return (
-                  <div key={item.productoId} className="flex justify-between">
-                    <div>
-                      <p className="text-foreground" style={{ fontSize: '14px', fontWeight: 500 }}>
-                        {producto.nombre}
-                      </p>
-                      <p className="text-foreground-secondary" style={{ fontSize: '13px' }}>
-                        Cantidad: {item.cantidad}
-                      </p>
+                  <div key={item.productoId} className="flex justify-between items-center gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-surface rounded flex items-center justify-center flex-shrink-0 overflow-hidden border border-border">
+                        {producto.imagenUrl ? (
+                          <img src={producto.imagenUrl} alt={producto.nombre} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-primary" style={{ fontSize: '10px' }}>
+                            {producto.sku}
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-foreground" style={{ fontSize: '14px', fontWeight: 500 }}>
+                          {producto.nombre}
+                        </p>
+                        <p className="text-foreground-secondary" style={{ fontSize: '13px' }}>
+                          Cantidad: {item.cantidad}
+                        </p>
+                      </div>
                     </div>
                     <p className="text-foreground" style={{ fontSize: '14px' }}>
                       {formatCurrency(producto.precioVenta * item.cantidad)}

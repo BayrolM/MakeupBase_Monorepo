@@ -1,25 +1,19 @@
 import sql from "../config/db.js";
+import * as ventasService from "../services/ventas.service.js";
 
 export const listar = async (req, res) => {
   try {
-    const result = await sql`
-      SELECT 
-        v.*, 
-        u.nombre as nombre_cliente,
-        u.apellido as apellido_cliente,
-        (
-          SELECT json_agg(dv)
-          FROM (
-            SELECT dv.*, p.nombre as nombre_producto 
-            FROM detalle_ventas dv
-            JOIN productos p ON dv.id_producto = p.id_producto
-            WHERE dv.id_venta = v.id_venta
-          ) dv
-        ) as productos
-      FROM ventas v
-      LEFT JOIN usuarios u ON v.id_usuario_cliente = u.id_usuario
-      ORDER BY v.fecha_venta DESC
-    `;
+    const { q, id_cliente, fecha_inicio, fecha_fin, page = 1, limit = 10 } = req.query;
+
+    const result = await ventasService.listarVentas({
+      q,
+      id_cliente,
+      fecha_inicio,
+      fecha_fin,
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10)
+    });
+
     return res.json(result);
   } catch (error) {
     console.error(error);
@@ -45,11 +39,11 @@ export const crear = async (req, res) => {
 
     // Usar transacción para asegurar que todo se guarde bien
     const [venta] = await sql.begin(async (sql) => {
-      // 0. Validar stock antes de empezar
+      // 0. Validar stock antes de empezar (ya debería estar reservado por el pedido)
       for (const prod of productos) {
         const [p] = await sql`SELECT stock_actual, nombre FROM productos WHERE id_producto = ${Number(prod.productoId)}`;
-        if (!p || p.stock_actual < prod.cantidad) {
-          throw new Error(`Stock insuficiente para ${p?.nombre || 'uno de los productos'}`);
+        if (!p) {
+          throw new Error(`Producto ID ${prod.productoId} no encontrado`);
         }
       }
 
@@ -64,20 +58,23 @@ export const crear = async (req, res) => {
         ) RETURNING *
       `;
 
-      // 2. Insertar detalles y actualizar stock
+      // 2. Insertar detalles y reducir stock si es venta directa
       for (const prod of productos) {
         await sql`
           INSERT INTO detalle_ventas (id_venta, id_producto, cantidad, precio_unitario, subtotal)
           VALUES (${nuevaVenta.id_venta}, ${Number(prod.productoId)}, ${prod.cantidad}, ${prod.precioUnitario}, ${prod.cantidad * prod.precioUnitario})
         `;
 
-        // Restar stock
-        console.log(`💰 Reduciendo stock (Venta Directa) para Producto ID ${prod.productoId}: ${p.stock_actual} -> ${p.stock_actual - prod.cantidad}`);
-        await sql`
-          UPDATE productos 
-          SET stock_actual = stock_actual - ${prod.cantidad}
-          WHERE id_producto = ${Number(prod.productoId)}
-        `;
+        // Si es venta directa (sin pedido), debemos restar el stock aquí
+        if (!id_pedido) {
+          const [p] = await sql`SELECT stock_actual, nombre FROM productos WHERE id_producto = ${Number(prod.productoId)}`;
+          if (p.stock_actual < prod.cantidad) {
+            throw new Error(`Stock insuficiente para el producto "${p.nombre}" (Disponible: ${p.stock_actual})`);
+          }
+
+          console.log(`💰 Reduciendo stock (Venta Directa) para Producto ID ${prod.productoId}: ${p.stock_actual} -> ${p.stock_actual - prod.cantidad}`);
+          await sql`UPDATE productos SET stock_actual = stock_actual - ${prod.cantidad} WHERE id_producto = ${Number(prod.productoId)}`;
+        }
       }
 
       return [nuevaVenta];

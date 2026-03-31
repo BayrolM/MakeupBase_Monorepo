@@ -26,13 +26,17 @@ import {
   UserPlus,
   Target,
   Eye,
-  Award
+  Award,
+  Droplets,
+  FlaskConical,
+  Tag
 } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { ThemeToggle } from '../ThemeToggle';
 
 interface InicioViewProps {
   isPublic?: boolean;
+  onNavigate?: (route: string, categoryId?: string) => void;
   onNavigateToLogin?: () => void;
   onNavigateToRegister?: () => void;
 }
@@ -40,8 +44,13 @@ interface InicioViewProps {
 type Section = 'inicio' | 'catalogo' | 'nosotros' | 'contacto';
 
 // GLAMOUR ML - Landing Page / Vista de Inicio para Clientes
-export function InicioView({ isPublic = false, onNavigateToLogin, onNavigateToRegister }: InicioViewProps = {}) {
-  const { productos, categorias, agregarAlCarrito } = useStore();
+export function InicioView({ 
+  isPublic = false, 
+  onNavigate,
+  onNavigateToLogin, 
+  onNavigateToRegister 
+}: InicioViewProps = {}) {
+  const { productos, categorias, addToCarrito } = useStore();
   const [activeSection, setActiveSection] = useState<Section>('inicio');
   const [contactForm, setContactForm] = useState({
     nombre: '',
@@ -58,10 +67,10 @@ export function InicioView({ isPublic = false, onNavigateToLogin, onNavigateToRe
   };
 
   // Get featured products (first 8)
-  const productosDestacados = productos.filter(p => p.estado === 'activo').slice(0, 8);
+  const productosDestacados = productos.filter(p => p.estado === 'activo' && p.stock > 0).slice(0, 8);
 
   // Get all active products for catalog
-  const productosActivos = productos.filter(p => p.estado === 'activo');
+  const productosActivos = productos.filter(p => p.estado === 'activo' && p.stock > 0);
 
   // Get featured categories (first 6)
   const categoriasDestacadas = categorias.slice(0, 6);
@@ -100,7 +109,7 @@ export function InicioView({ isPublic = false, onNavigateToLogin, onNavigateToRe
       });
       return;
     }
-    agregarAlCarrito(productoId, 1);
+    addToCarrito(productoId, 1);
     toast.success('Producto agregado', {
       description: 'El producto se agregó a tu carrito',
     });
@@ -162,7 +171,7 @@ export function InicioView({ isPublic = false, onNavigateToLogin, onNavigateToRe
                     <div className="flex flex-wrap gap-4">
                       <Button 
                         size="lg" 
-                        onClick={() => setActiveSection('catalogo')}
+                        onClick={() => onNavigate ? onNavigate('catalogo') : setActiveSection('catalogo')}
                         className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-base gap-2"
                       >
                         <ShoppingBag className="w-5 h-5" />
@@ -171,10 +180,10 @@ export function InicioView({ isPublic = false, onNavigateToLogin, onNavigateToRe
                       <Button 
                         size="lg" 
                         variant="outline" 
-                        onClick={() => setActiveSection('catalogo')}
+                        onClick={() => onNavigate ? onNavigate('catalogo') : setActiveSection('catalogo')}
                         className="border-border hover:bg-surface px-8 py-6 text-base gap-2"
                       >
-                        Ver Colección
+                        Ver Catálogo
                         <ChevronRight className="w-5 h-5" />
                       </Button>
                     </div>
@@ -183,7 +192,7 @@ export function InicioView({ isPublic = false, onNavigateToLogin, onNavigateToRe
                     <div className="flex flex-wrap gap-8 pt-4">
                       <div>
                         <div className="text-foreground" style={{ fontSize: '32px', fontWeight: 600 }}>
-                          500+
+                          200+
                         </div>
                         <div className="text-foreground-secondary" style={{ fontSize: '14px' }}>
                           Productos
@@ -191,10 +200,10 @@ export function InicioView({ isPublic = false, onNavigateToLogin, onNavigateToRe
                       </div>
                       <div>
                         <div className="text-foreground" style={{ fontSize: '32px', fontWeight: 600 }}>
-                          5K+
+                          1K+
                         </div>
                         <div className="text-foreground-secondary" style={{ fontSize: '14px' }}>
-                          Clientas Felices
+                          Clientes Felices
                         </div>
                       </div>
                       <div>
@@ -202,7 +211,7 @@ export function InicioView({ isPublic = false, onNavigateToLogin, onNavigateToRe
                           98%
                         </div>
                         <div className="text-foreground-secondary" style={{ fontSize: '14px' }}>
-                          Satisfacción
+                          Seguridad
                         </div>
                       </div>
                     </div>
@@ -210,32 +219,12 @@ export function InicioView({ isPublic = false, onNavigateToLogin, onNavigateToRe
 
                   {/* Right Image */}
                   <div className="relative">
-                    <div className="relative aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-primary/20 to-primary-light/20 border border-border shadow-2xl">
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="text-center space-y-4">
-                          <Sparkles className="w-24 h-24 text-primary mx-auto opacity-50" />
-                          <p className="text-foreground-secondary" style={{ fontSize: '16px' }}>
-                            Imagen Hero
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Floating Badge */}
-                    <div className="absolute -top-4 -right-4 bg-card border border-border rounded-2xl p-4 shadow-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Star className="w-6 h-6 text-primary" />
-                        </div>
-                        <div>
-                          <div className="text-foreground" style={{ fontSize: '18px', fontWeight: 600 }}>
-                            4.9/5
-                          </div>
-                          <div className="text-foreground-secondary" style={{ fontSize: '12px' }}>
-                            Calificación
-                          </div>
-                        </div>
-                      </div>
+                    <div className="relative aspect-square rounded-2xl overflow-hidden border border-border shadow-2xl">
+                      <img
+                        src="/images/hero.png"
+                        alt="Hero"
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   </div>
                 </div>
@@ -287,13 +276,20 @@ export function InicioView({ isPublic = false, onNavigateToLogin, onNavigateToRe
                   {categoriasDestacadas.map((categoria) => (
                     <div
                       key={categoria.id}
+                      onClick={() => onNavigate ? onNavigate('catalogo', categoria.id) : setActiveSection('catalogo')}
                       className="group relative bg-card border border-border rounded-2xl p-6 hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden"
                     >
                       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
                       
                       <div className="relative">
                         <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                          <Package className="w-8 h-8 text-primary" />
+                          {(() => {
+                            const nombre = categoria.nombre?.toLowerCase() || '';
+                            if (nombre.includes('maquillaje')) return <Sparkles className="w-8 h-8 text-primary" />;
+                            if (nombre.includes('facial') || nombre.includes('cuidado')) return <Droplets className="w-8 h-8 text-primary" />;
+                            if (nombre.includes('prueba') || nombre.includes('test')) return <FlaskConical className="w-8 h-8 text-primary" />;
+                            return <Tag className="w-8 h-8 text-primary" />;
+                          })()}
                         </div>
 
                         <h3 className="text-foreground mb-2" style={{ fontSize: '20px', fontWeight: 600 }}>
@@ -346,9 +342,17 @@ export function InicioView({ isPublic = false, onNavigateToLogin, onNavigateToRe
                       >
                         {/* Image Container */}
                         <div className="relative aspect-square bg-surface overflow-hidden">
-                          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary-light/10">
-                            <Package className="w-20 h-20 text-primary/30" />
-                          </div>
+                          {producto.imagenUrl ? (
+                            <img
+                              src={producto.imagenUrl}
+                              alt={producto.nombre}
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary-light/10">
+                              <Package className="w-20 h-20 text-primary/30" />
+                            </div>
+                          )}
 
                           {/* Badges */}
                           <div className="absolute top-3 left-3 flex flex-col gap-2">
@@ -431,7 +435,7 @@ export function InicioView({ isPublic = false, onNavigateToLogin, onNavigateToRe
                   <Button 
                     size="lg" 
                     variant="outline" 
-                    onClick={() => setActiveSection('catalogo')}
+                    onClick={() => onNavigate ? onNavigate('catalogo') : setActiveSection('catalogo')}
                     className="border-border hover:bg-card px-8 gap-2"
                   >
                     Ver Todos los Productos
@@ -473,9 +477,17 @@ export function InicioView({ isPublic = false, onNavigateToLogin, onNavigateToRe
                     >
                       {/* Image Container */}
                       <div className="relative aspect-square bg-surface overflow-hidden">
-                        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary-light/10">
-                          <Package className="w-20 h-20 text-primary/30" />
-                        </div>
+                        {producto.imagenUrl ? (
+                          <img
+                            src={producto.imagenUrl}
+                            alt={producto.nombre}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary-light/10">
+                            <Package className="w-20 h-20 text-primary/30" />
+                          </div>
+                        )}
 
                         {/* Stock Badge */}
                         {producto.stock <= producto.stockMinimo && (
@@ -843,11 +855,8 @@ export function InicioView({ isPublic = false, onNavigateToLogin, onNavigateToRe
             <div className="flex h-16 items-center justify-between gap-4">
               {/* Logo */}
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-primary-foreground">
-                    <path d="M12 3L4 9V21H20V9L12 3Z" fill="currentColor" opacity="0.3"/>
-                    <path d="M12 3L4 9M12 3L20 9M12 3V21M4 9V21H20V9M4 9H20" stroke="currentColor" strokeWidth="1.5"/>
-                  </svg>
+                <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center overflow-hidden">
+                  <img src="/logo.png" alt="Glamour ML" className="w-full h-full object-cover" />
                 </div>
                 <span className="text-foreground" style={{ fontSize: '20px', fontWeight: 600 }}>
                   GLAMOUR ML
@@ -1014,8 +1023,8 @@ export function InicioView({ isPublic = false, onNavigateToLogin, onNavigateToRe
             {/* Brand */}
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-primary-foreground" />
+                <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center overflow-hidden">
+                  <img src="/logo.png" alt="Glamour ML" className="w-14 h-14 object-cover" />
                 </div>
                 <span className="text-foreground" style={{ fontSize: '20px', fontWeight: 600 }}>
                   GLAMOUR ML
@@ -1049,7 +1058,7 @@ export function InicioView({ isPublic = false, onNavigateToLogin, onNavigateToRe
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => setActiveSection('catalogo')} className="text-foreground-secondary hover:text-primary transition-colors" style={{ fontSize: '14px' }}>
+                  <button onClick={() => onNavigate ? onNavigate('catalogo') : setActiveSection('catalogo')} className="text-foreground-secondary hover:text-primary transition-colors" style={{ fontSize: '14px' }}>
                     Catálogo
                   </button>
                 </li>
@@ -1074,7 +1083,7 @@ export function InicioView({ isPublic = false, onNavigateToLogin, onNavigateToRe
               <ul className="space-y-3">
                 {categoriasDestacadas.slice(0, 5).map((cat) => (
                   <li key={cat.id}>
-                    <button onClick={() => setActiveSection('catalogo')} className="text-foreground-secondary hover:text-primary transition-colors" style={{ fontSize: '14px' }}>
+                    <button onClick={() => onNavigate ? onNavigate('catalogo', cat.id) : setActiveSection('catalogo')} className="text-foreground-secondary hover:text-primary transition-colors" style={{ fontSize: '14px' }}>
                       {cat.nombre}
                     </button>
                   </li>

@@ -8,10 +8,17 @@ export interface Categoria {
 }
 
 export const categoryService = {
-  async getAll(): Promise<Categoria[]> {
+  async getAll(params: any = {}): Promise<{ total: number, data: Categoria[] }> {
     try {
-      const response = await api.get("/categorias");
-      return response.data;
+      const response = await api.get("/categorias", { params });
+      // Si la respuesta es un array (retrocompatibilidad) devolverlo como data
+      if (Array.isArray(response.data)) {
+        return { total: response.data.length, data: response.data };
+      }
+      return {
+        total: response.data.total,
+        data: response.data.data
+      };
     } catch (error: any) {
       throw new Error(
         error.response?.data?.message || "Error al obtener categorías",

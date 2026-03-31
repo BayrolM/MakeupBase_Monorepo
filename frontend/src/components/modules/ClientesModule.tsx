@@ -24,8 +24,8 @@ export function ClientesModule() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [totalItems, setTotalItems] = useState(0);
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
@@ -35,14 +35,15 @@ export function ClientesModule() {
   });
 
   const fetchClientes = async () => {
-    setIsLoading(true);
     try {
-      // id_rol: 2 suele ser el rol de 'cliente' en tu sistema actual
       const response = await userService.getAll({ 
         id_rol: 2,
-        q: searchQuery.length >= 2 ? searchQuery : undefined 
+        page: currentPage,
+        limit: itemsPerPage,
+        q: searchQuery
       });
       
+      setTotalItems(response.total || 0);
       const mapped: Cliente[] = response.data.map((u: any) => {
         const nombres = u.nombres || u.nombre || '';
         const apellidos = u.apellidos || u.apellido || '';
@@ -55,23 +56,22 @@ export function ClientesModule() {
           telefono: u.telefono || '',
           documento: u.documento || '',
           numeroDocumento: u.documento || '',
-          estado: (u.estado ? 'activo' : 'inactivo') as Status,
+          estado: (u.estado ? 'activo' as const : 'inactivo' as const) as Status,
           totalCompras: Number(u.total_ventas) || 0,
           fechaRegistro: u.fecha_registro || new Date().toISOString(),
+          foto_perfil: u.foto_perfil
         };
       });
       setClientes(mapped);
-    } catch (error: any) {
-      toast.error('Error al cargar clientes', { description: error.message });
-    } finally {
-      setIsLoading(false);
+    } catch (e) {
+      console.error(e);
+      toast.error('Error al cargar clientes');
     }
   };
 
   useEffect(() => {
     fetchClientes();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
+  }, [currentPage, itemsPerPage, searchQuery]);
 
   const handleOpenDialog = (cliente?: Cliente) => {
     if (cliente) {
@@ -154,24 +154,8 @@ export function ClientesModule() {
     }
   };
 
-  // Filter clientes based on search
-  const filteredClientes = clientes.filter(cliente => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      cliente.nombre.toLowerCase().includes(query) ||
-      cliente.email.toLowerCase().includes(query) ||
-      cliente.documento.includes(query) ||
-      cliente.telefono.includes(query)
-    );
-  });
-
   // Pagination logic
-  const totalPages = Math.ceil(filteredClientes.length / itemsPerPage);
-  const paginatedClientes = filteredClientes.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   // Reset to page 1 when search changes
   const handleSearchChange = (query: string) => {
@@ -207,7 +191,7 @@ export function ClientesModule() {
             </div>
             <div>
               <p className="text-foreground-secondary" style={{ fontSize: '14px' }}>
-                Mostrando {filteredClientes.length} de {clientes.length} clientes
+                Mostrando {clientes.length} de {totalItems} clientes
               </p>
             </div>
           </div>
@@ -224,16 +208,16 @@ export function ClientesModule() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredClientes.length === 0 ? (
+              {clientes.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-12">
                     <p className="text-foreground-secondary">
-                      {searchQuery ? `No se encontraron resultados para "${searchQuery}"` : 'No hay clientes'}
+                      {searchQuery ? `No se encontraron resultados para "${searchQuery}"` : 'No hay clientes registrados'}
                     </p>
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedClientes.map((cliente) => (
+                clientes.map((cliente) => (
                   <TableRow key={cliente.id} className="border-border hover:bg-surface/50">
                     <TableCell className="text-foreground">{cliente.documento}</TableCell>
                     <TableCell className="text-foreground">{cliente.nombre}</TableCell>
@@ -285,11 +269,11 @@ export function ClientesModule() {
         </div>
 
         {/* Pagination */}
-        {filteredClientes.length > 0 && (
+        {totalItems > 0 && (
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
-            totalItems={filteredClientes.length}
+            totalItems={totalItems}
             itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
             onItemsPerPageChange={(newItemsPerPage) => {
@@ -377,9 +361,10 @@ export function ClientesModule() {
             </Button>
             <Button
               onClick={handleSave}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              disabled={isSaving}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground min-w-[100px]"
             >
-              {editingCliente ? 'Actualizar' : 'Crear'}
+              {isSaving ? 'Guardando...' : (editingCliente ? 'Actualizar' : 'Crear')}
             </Button>
           </DialogFooter>
         </DialogContent>

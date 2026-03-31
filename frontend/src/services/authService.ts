@@ -27,6 +27,7 @@ export interface UserProfile {
   direccion?: string;
   ciudad?: string;
   id_rol: number;  
+  foto_perfil?: string;
 }
 
 export const authService = {
@@ -91,6 +92,19 @@ export const authService = {
     } catch (error: any) {
       const message =
         error.response?.data?.message || "Error al actualizar perfil";
+      throw new Error(message);
+    }
+  },
+
+  /**
+   * Cambiar contraseña
+   */
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    try {
+      await api.put("/users/profile/password", { currentPassword, newPassword });
+    } catch (error: any) {
+      const message =
+        error.response?.data?.message || "Error al cambiar la contraseña";
       throw new Error(message);
     }
   },

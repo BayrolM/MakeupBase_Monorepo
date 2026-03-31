@@ -4,7 +4,7 @@ import { ProductCard } from './ProductCard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Heart } from 'lucide-react';
 
-export function FavoritosView() {
+export function FavoritosView({ onNavigate }: { onNavigate?: (route: string) => void } = {}) {
   const { favoritos, productos, categorias } = useStore();
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
@@ -45,7 +45,10 @@ export function FavoritosView() {
             <p className="text-foreground-secondary mb-8" style={{ fontSize: '16px' }}>
               Explora nuestro catálogo y guarda los productos que más te gusten
             </p>
-            <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3 rounded-lg transition-all">
+            <button 
+              onClick={() => onNavigate?.('catalogo')}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3 rounded-lg transition-all"
+            >
               Ir al Catálogo
             </button>
           </div>
@@ -71,11 +74,19 @@ export function FavoritosView() {
           
           {selectedProduct && (
             <div className="grid md:grid-cols-2 gap-6 py-4">
-              <div className="aspect-square bg-surface rounded-lg flex items-center justify-center p-12">
-                <div className="text-primary/30 text-center">
-                  <div className="text-6xl mb-4">💄</div>
-                  <p className="text-sm text-foreground-secondary">{selectedProduct.sku}</p>
-                </div>
+              <div className="aspect-square bg-surface rounded-lg flex items-center justify-center overflow-hidden border border-border p-0">
+                {selectedProduct.imagenUrl ? (
+                  <img 
+                    src={selectedProduct.imagenUrl} 
+                    alt={selectedProduct.nombre} 
+                    className="w-full h-full object-cover" 
+                  />
+                ) : (
+                  <div className="text-primary/30 text-center p-12">
+                    <div className="text-6xl mb-4">💄</div>
+                    <p className="text-sm text-foreground-secondary">{selectedProduct.sku}</p>
+                  </div>
+                )}
               </div>
               
               <div className="space-y-4">

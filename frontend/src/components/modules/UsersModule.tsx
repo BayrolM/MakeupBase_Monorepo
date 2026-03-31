@@ -1,5 +1,7 @@
-import { useState } from 'react';
-import { useStore, User, UserRole } from '../../lib/store';
+import { useState, useEffect } from 'react';
+import { useStore, User, UserRole, TipoDocumento } from '../../lib/store';
+import { userService } from '../../services/userService';
+import { toast } from 'sonner';
 import { PageHeader } from '../PageHeader';
 import { StatusBadge } from '../StatusBadge';
 import { StatusSwitch } from '../StatusSwitch';
@@ -13,7 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Plus, Pencil, Trash2, FileDown, Search, Eye } from 'lucide-react';
 
 export function UsersModule() {
-  const { users, addUser, updateUser, deleteUser } = useStore();
+  const { users, setUsers } = useStore();
+  const [totalItems, setTotalItems] = useState(0);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -22,18 +25,53 @@ export function UsersModule() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [formData, setFormData] = useState({
-    nombre: '',
+    nombres: '',
+    apellidos: '',
     email: '',
     telefono: '',
     rol: 'vendedor' as UserRole,
     estado: 'activo' as 'activo' | 'inactivo',
   });
 
+  const fetchUsers = async () => {
+    try {
+      const response = await userService.getAll({
+        page: currentPage,
+        limit: itemsPerPage,
+        q: searchQuery
+      });
+      
+      setTotalItems(response.total || 0);
+      const mapped: User[] = (response.data || []).map((u: any) => ({
+        id: u.id_usuario.toString(),
+        nombres: u.nombres || u.nombre || '',
+        apellidos: u.apellidos || u.apellido || '',
+        email: u.email,
+        telefono: u.telefono || '',
+        rol: (u.nombre_rol?.toLowerCase() || 'vendedor') as UserRole,
+        estado: (u.estado ? 'activo' as const : 'inactivo' as const),
+        fechaCreacion: u.fecha_registro ? u.fecha_registro.split('T')[0] : 'N/A',
+        tipoDocumento: (u.tipo_documento || 'CC') as TipoDocumento,
+        numeroDocumento: u.documento || '',
+        passwordHash: '' // Not exposed
+      }));
+      setUsers(mapped);
+    } catch (e) {
+      console.error(e);
+      toast.error('Error al cargar usuarios');
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, [currentPage, itemsPerPage, searchQuery]);
+
   const handleOpenDialog = (user?: User) => {
     if (user) {
       setEditingUser(user);
       setFormData({
-        nombre: user.nombre,
+        nombres: user.nombres,
+        apellidos: user.apellidos,
         email: user.email,
         telefono: user.telefono,
         rol: user.rol,
@@ -42,7 +80,8 @@ export function UsersModule() {
     } else {
       setEditingUser(null);
       setFormData({
-        nombre: '',
+        nombres: '',
+        apellidos: '',
         email: '',
         telefono: '',
         rol: 'vendedor',
@@ -52,18 +91,41 @@ export function UsersModule() {
     setIsDialogOpen(true);
   };
 
-  const handleSave = () => {
-    if (editingUser) {
-      updateUser(editingUser.id, formData);
-    } else {
-      addUser(formData);
+  const handleSave = async () => {
+    try {
+       const payload = {
+         nombre: formData.nombres,
+         apellido: formData.apellidos,
+         email: formData.email,
+         telefono: formData.telefono,
+         rol_id: formData.rol === 'admin' ? 1 : 2,
+         estado: formData.estado === 'activo'
+       };
+
+       if (editingUser) {
+         await userService.update(editingUser.id, payload);
+         toast.success('Usuario actualizado');
+       } else {
+         await userService.create(payload);
+         toast.success('Usuario creado');
+       }
+       
+       await fetchUsers();
+       setIsDialogOpen(false);
+    } catch (e: any) {
+       toast.error(e.message);
     }
-    setIsDialogOpen(false);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('¿Está seguro de eliminar este usuario?')) {
-      deleteUser(id);
+      try {
+        await userService.deactivate(id);
+        toast.success('Usuario desactivado');
+        await fetchUsers();
+      } catch (e: any) {
+        toast.error(e.message);
+      }
     }
   };
 
@@ -75,7 +137,7 @@ export function UsersModule() {
   const handleExport = () => {
     const csv = [
       ['Nombre', 'Email', 'Teléfono', 'Rol', 'Estado', 'Fecha Creación'],
-      ...users.map(u => [u.nombre, u.email, u.telefono, u.rol, u.estado, u.fechaCreacion])
+      ...users.map(u => [u.nombres + ' ' + u.apellidos, u.email, u.telefono, u.rol, u.estado, u.fechaCreacion])
     ].map(row => row.join(',')).join('\n');
     
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -86,23 +148,8 @@ export function UsersModule() {
     a.click();
   };
 
-  // Filter users based on search
-  const filteredUsers = users.filter(user => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      user.nombre.toLowerCase().includes(query) ||
-      user.email.toLowerCase().includes(query) ||
-      user.telefono.includes(query)
-    );
-  });
-
   // Pagination logic
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-  const paginatedUsers = filteredUsers.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   // Reset to page 1 when search changes
   const handleSearchChange = (query: string) => {
@@ -146,7 +193,7 @@ export function UsersModule() {
             </div>
             <div>
               <p className="text-foreground-secondary" style={{ fontSize: '14px' }}>
-                Mostrando {filteredUsers.length} de {users.length} usuarios
+                Mostrando {users.length} de {totalItems} usuarios
               </p>
             </div>
           </div>
@@ -164,16 +211,18 @@ export function UsersModule() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredUsers.length === 0 ? (
+              {users.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-12">
-                    <p className="text-foreground-secondary">No se encontraron resultados</p>
+                    <p className="text-foreground-secondary">
+                      {searchQuery ? `No se encontraron resultados para "${searchQuery}"` : 'No hay usuarios certificados'}
+                    </p>
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedUsers.map((user) => (
+                users.map((user) => (
                 <TableRow key={user.id} className="border-border hover:bg-surface/50">
-                  <TableCell className="text-foreground">{user.nombre}</TableCell>
+                  <TableCell className="text-foreground">{user.nombres} {user.apellidos}</TableCell>
                   <TableCell className="text-foreground-secondary">{user.email}</TableCell>
                   <TableCell className="text-foreground-secondary">{user.telefono}</TableCell>
                   <TableCell>
@@ -182,7 +231,10 @@ export function UsersModule() {
                   <TableCell>
                     <StatusSwitch 
                       status={user.estado} 
-                      onChange={(newStatus) => updateUser(user.id, { estado: newStatus })}
+                      onChange={async (newStatus) => {
+                         await userService.update(user.id, { estado: newStatus === 'activo' });
+                         await fetchUsers();
+                      }}
                     />
                   </TableCell>
                   <TableCell className="text-foreground-secondary">{user.fechaCreacion}</TableCell>
@@ -224,11 +276,11 @@ export function UsersModule() {
         </div>
 
         {/* Pagination */}
-        {filteredUsers.length > 0 && (
+        {totalItems > 0 && (
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
-            totalItems={filteredUsers.length}
+            totalItems={totalItems}
             itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
             onItemsPerPageChange={(newItemsPerPage) => {
@@ -262,7 +314,7 @@ export function UsersModule() {
                       Nombre Completo
                     </p>
                     <p className="text-foreground" style={{ fontSize: '14px', fontWeight: 500 }}>
-                      {viewingUser.nombre}
+                      {viewingUser.nombres} {viewingUser.apellidos}
                     </p>
                   </div>
                   <div className="p-4 bg-surface rounded-lg border border-border">
@@ -324,10 +376,10 @@ export function UsersModule() {
                   </div>
                   <div className="p-4 bg-surface rounded-lg border border-border">
                     <p className="text-foreground-secondary" style={{ fontSize: '12px', marginBottom: '4px' }}>
-                      Última Actualización
+                      Cédula / NIT
                     </p>
                     <p className="text-foreground" style={{ fontSize: '14px', fontWeight: 500 }}>
-                      {viewingUser.fechaActualizacion || 'N/A'}
+                      {viewingUser.numeroDocumento}
                     </p>
                   </div>
                 </div>
@@ -359,15 +411,27 @@ export function UsersModule() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="nombre" className="text-foreground">Nombre</Label>
-              <Input
-                id="nombre"
-                value={formData.nombre}
-                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                className="bg-input-background border-border text-foreground"
-                placeholder="Nombre completo"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="nombres" className="text-foreground">Nombres</Label>
+                <Input
+                  id="nombres"
+                  value={formData.nombres}
+                  onChange={(e) => setFormData({ ...formData, nombres: e.target.value })}
+                  className="bg-input-background border-border text-foreground"
+                  placeholder="Nombres"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="apellidos" className="text-foreground">Apellidos</Label>
+                <Input
+                  id="apellidos"
+                  value={formData.apellidos}
+                  onChange={(e) => setFormData({ ...formData, apellidos: e.target.value })}
+                  className="bg-input-background border-border text-foreground"
+                  placeholder="Apellidos"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">

@@ -13,7 +13,8 @@ export const getProfile = async (req, res) => {
         telefono,
         direccion,
         ciudad,
-        id_rol 
+        id_rol,
+        foto_perfil
       FROM usuarios 
       WHERE id_usuario = ${req.user.id_usuario}
         `;
@@ -35,22 +36,57 @@ export const getProfile = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { nombres, apellidos, telefono, direccion, ciudad } = req.body;
+    const { nombres, apellidos, telefono, direccion, ciudad, foto_perfil } = req.body;
 
     await sql`
-            UPDATE usuarios
-            SET nombre = ${nombres},
-                apellido = ${apellidos},
-                telefono = ${telefono},
-                direccion = ${direccion},
-                ciudad = ${ciudad}
-            WHERE id_usuario = ${req.user.id_usuario}
-        `;
+      UPDATE usuarios
+      SET nombre = ${nombres !== undefined ? nombres : sql`nombre`},
+          apellido = ${apellidos !== undefined ? apellidos : sql`apellido`},
+          telefono = ${telefono !== undefined ? telefono : sql`telefono`},
+          direccion = ${direccion !== undefined ? direccion : sql`direccion`},
+          ciudad = ${ciudad !== undefined ? ciudad : sql`ciudad`},
+          foto_perfil = ${foto_perfil !== undefined ? foto_perfil : sql`foto_perfil`}
+      WHERE id_usuario = ${req.user.id_usuario}
+    `;
 
     return res.json({ message: 'Perfil actualizado correctamente' });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Error en el servidor' });
+  }
+};
+
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    const result = await sql`
+      SELECT password_hash FROM usuarios 
+      WHERE id_usuario = ${req.user.id_usuario}
+    `;
+
+    if (result.length === 0) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, result[0].password_hash);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'La contraseña actual es incorrecta' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await sql`
+      UPDATE usuarios
+      SET password_hash = ${hashedPassword}
+      WHERE id_usuario = ${req.user.id_usuario}
+    `;
+
+    return res.json({ message: 'Contraseña actualizada correctamente' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Error al cambiar la contraseña' });
   }
 };
 
@@ -104,7 +140,8 @@ export const listarUsuarios = async (req, res) => {
         u.telefono,
         u.direccion,
         u.ciudad,
-        u.estado
+        u.estado,
+        u.foto_perfil
       FROM usuarios u
       LEFT JOIN roles r ON u.id_rol = r.id_rol
       ${whereClause}
@@ -156,6 +193,7 @@ export const crearUsuario = async (req, res) => {
       direccion,
       ciudad,
       password_hash,
+      foto_perfil,
       estado = true
     } = req.body;
 
@@ -195,13 +233,13 @@ export const crearUsuario = async (req, res) => {
     const nuevoUsuario = await sql`
       INSERT INTO usuarios (
         id_rol, tipo_documento, documento, nombre, apellido,
-        email, telefono, direccion, ciudad, password_hash, estado
+        email, telefono, direccion, ciudad, password_hash, estado, foto_perfil
       )
       VALUES (
         ${id_rol}, ${tipo_documento || 'CC'}, ${documento || ''}, 
         ${nombres}, ${apellidos}, ${email}, ${telefono || ''}, 
         ${direccion || ''}, ${ciudad || ''}, ${hashedPassword}, 
-        ${estado}
+        ${estado}, ${foto_perfil || null}
       )
       RETURNING id_usuario, email, nombre as nombres, apellido as apellidos
     `;
@@ -241,7 +279,8 @@ export const obtenerUsuario = async (req, res) => {
                 u.telefono,
                 u.direccion,
                 u.ciudad,
-                u.estado
+                u.estado,
+                u.foto_perfil
             FROM usuarios u
             LEFT JOIN roles r ON u.id_rol = r.id_rol
             WHERE u.id_usuario = ${id}
@@ -310,6 +349,9 @@ export const actualizarUsuario = async (req, res) => {
                 },
                 estado = ${
                   estado !== undefined ? estado : usuarioExiste[0].estado
+                },
+                foto_perfil = ${
+                  req.body.foto_perfil !== undefined ? req.body.foto_perfil : usuarioExiste[0].foto_perfil
                 }
             WHERE id_usuario = ${id}
             RETURNING *

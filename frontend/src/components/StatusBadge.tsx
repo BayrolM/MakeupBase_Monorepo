@@ -1,7 +1,7 @@
 import { Status, OrderStatus } from '../lib/store';
 
 interface StatusBadgeProps {
-  status: Status | OrderStatus | 'pendiente' | 'confirmada' | 'anulada' | 'aprobada' | 'rechazada' | 'en_revision';
+  status: Status | OrderStatus | 'pendiente' | 'confirmada' | 'anulada' | 'anulado' | 'aprobada' | 'rechazada' | 'en_revision' | 'creado' | 'preparado' | 'procesando' | 'en_proceso' | 'despachado' | 'cancelado' | 'enviado';
   size?: 'sm' | 'md';
 }
 
@@ -13,23 +13,34 @@ export function StatusBadge({ status, size = 'md' }: StatusBadgeProps) {
       case 'aprobada':
       case 'entregado':
         return { bg: '#3FC27A', text: '#0B0B0B', label: status === 'activo' ? 'Activo' : status === 'confirmada' ? 'Confirmada' : status === 'aprobada' ? 'Aprobada' : 'Entregado' };
+      
       case 'inactivo':
         return { bg: '#BFA1A6', text: '#0B0B0B', label: 'Inactivo' };
+      
       case 'pendiente':
       case 'creado':
         return { bg: '#FFB86B', text: '#0B0B0B', label: status === 'pendiente' ? 'Pendiente' : 'Creado' };
+      
       case 'anulado':
       case 'anulada':
       case 'rechazada':
-        return { bg: '#FF6B6B', text: '#F3EAEA', label: status === 'anulada' ? 'Anulada' : status === 'rechazada' ? 'Rechazada' : 'Anulado' };
+      case 'cancelado':
+        return { bg: '#FF6B6B', text: '#F3EAEA', label: (status === 'anulada' || status === 'anulado' || status === 'cancelado') ? 'Cancelado' : 'Rechazada' };
+      
       case 'en_proceso':
+      case 'preparado':
+      case 'procesando':
         return { bg: '#E7BFC5', text: '#0B0B0B', label: 'En Proceso' };
+      
       case 'en_revision':
         return { bg: '#4A90E2', text: '#F3EAEA', label: 'En Revisión' };
+      
       case 'despachado':
-        return { bg: '#C87A88', text: '#F3EAEA', label: 'Despachado' };
+      case 'enviado':
+        return { bg: '#C87A88', text: '#F3EAEA', label: 'En Camino' };
+      
       default:
-        return { bg: '#BFA1A6', text: '#0B0B0B', label: status };
+        return { bg: '#BFA1A6', text: '#0B0B0B', label: String(status) };
     }
   };
 
