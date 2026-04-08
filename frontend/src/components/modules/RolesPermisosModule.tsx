@@ -12,7 +12,7 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Checkbox } from '../ui/checkbox';
 import { Plus, Pencil, Trash2, Eye, Search, Users as UsersIcon, Shield, AlertTriangle } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 export function RolesPermisosModule() {
   const { roles, users, addRol, updateRol, deleteRol } = useStore();
@@ -62,7 +62,7 @@ export function RolesPermisosModule() {
         nombre: rol.nombre,
         descripcion: rol.descripcion,
         estado: rol.estado,
-        permisos: rol.permisos,
+        permisos: rol.permisos as any,
       });
     } else {
       setEditingRol(null);
@@ -142,7 +142,7 @@ export function RolesPermisosModule() {
   };
 
   // Función para cambiar permisos directamente desde la matriz
-  const handleMatrizPermisoChange = (rolId: string, modulo: string, tipo: 'ver' | 'crear' | 'editar' | 'eliminar', value: boolean) => {
+  const handleMatrizPermisoChange = (rolId: string, modulo: string, tipo: 'ver' | 'crear' | 'editar' | 'eliminar', value: any) => {
     const rol = roles.find(r => r.id === rolId);
     if (!rol) return;
 
@@ -259,34 +259,28 @@ export function RolesPermisosModule() {
                       />
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
+                      <div className="flex items-center justify-end gap-1">
+                        <button
                           onClick={() => handleViewDetail(rol)}
-                          className="h-8 w-8 p-0 text-foreground-secondary hover:text-primary hover:bg-primary/10"
+                          className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-150"
                           title="Ver detalle"
                         >
                           <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
+                        </button>
+                        <button
                           onClick={() => handleOpenDialog(rol)}
-                          className="h-8 w-8 p-0 text-foreground-secondary hover:text-primary hover:bg-primary/10"
+                          className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-all duration-150"
                           title="Editar"
                         >
                           <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
+                        </button>
+                        <button
                           onClick={() => handleDeleteClick(rol.id)}
-                          className="h-8 w-8 p-0 text-foreground-secondary hover:text-danger hover:bg-danger/10"
+                          className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-all duration-150"
                           title="Eliminar"
                         >
                           <Trash2 className="w-4 h-4" />
-                        </Button>
+                        </button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -365,7 +359,7 @@ export function RolesPermisosModule() {
                             <div className="flex items-center justify-center py-3">
                               <Checkbox
                                 checked={permisos?.ver || false}
-                                onCheckedChange={(checked) =>
+                                onCheckedChange={(checked: boolean) =>
                                   handleMatrizPermisoChange(rol.id, modulo.key, 'ver', checked as boolean)
                                 }
                               />
@@ -373,7 +367,7 @@ export function RolesPermisosModule() {
                             <div className="flex items-center justify-center py-3">
                               <Checkbox
                                 checked={permisos?.crear || false}
-                                onCheckedChange={(checked) =>
+                                onCheckedChange={(checked: boolean) =>
                                   handleMatrizPermisoChange(rol.id, modulo.key, 'crear', checked as boolean)
                                 }
                               />
@@ -381,7 +375,7 @@ export function RolesPermisosModule() {
                             <div className="flex items-center justify-center py-3">
                               <Checkbox
                                 checked={permisos?.editar || false}
-                                onCheckedChange={(checked) =>
+                                onCheckedChange={(checked: boolean) =>
                                   handleMatrizPermisoChange(rol.id, modulo.key, 'editar', checked as boolean)
                                 }
                               />
@@ -389,7 +383,7 @@ export function RolesPermisosModule() {
                             <div className="flex items-center justify-center py-3">
                               <Checkbox
                                 checked={permisos?.eliminar || false}
-                                onCheckedChange={(checked) =>
+                                onCheckedChange={(checked: boolean) =>
                                   handleMatrizPermisoChange(rol.id, modulo.key, 'eliminar', checked as boolean)
                                 }
                               />
@@ -490,7 +484,7 @@ export function RolesPermisosModule() {
                         <TableCell className="text-center">
                           <Checkbox
                             checked={formData.permisos[modulo.key as keyof typeof formData.permisos]?.ver || false}
-                            onCheckedChange={(checked) =>
+                            onCheckedChange={(checked: boolean) =>
                               handlePermisoChange(modulo.key, 'ver', checked as boolean)
                             }
                             className="mx-auto"
@@ -499,7 +493,7 @@ export function RolesPermisosModule() {
                         <TableCell className="text-center">
                           <Checkbox
                             checked={formData.permisos[modulo.key as keyof typeof formData.permisos]?.crear || false}
-                            onCheckedChange={(checked) =>
+                            onCheckedChange={(checked: boolean) =>
                               handlePermisoChange(modulo.key, 'crear', checked as boolean)
                             }
                             className="mx-auto"
@@ -508,7 +502,7 @@ export function RolesPermisosModule() {
                         <TableCell className="text-center">
                           <Checkbox
                             checked={formData.permisos[modulo.key as keyof typeof formData.permisos]?.editar || false}
-                            onCheckedChange={(checked) =>
+                            onCheckedChange={(checked: boolean) =>
                               handlePermisoChange(modulo.key, 'editar', checked as boolean)
                             }
                             className="mx-auto"
@@ -517,7 +511,7 @@ export function RolesPermisosModule() {
                         <TableCell className="text-center">
                           <Checkbox
                             checked={formData.permisos[modulo.key as keyof typeof formData.permisos]?.eliminar || false}
-                            onCheckedChange={(checked) =>
+                            onCheckedChange={(checked: boolean) =>
                               handlePermisoChange(modulo.key, 'eliminar', checked as boolean)
                             }
                             className="mx-auto"
@@ -684,7 +678,7 @@ export function RolesPermisosModule() {
                     {getUsersForRole(viewingRol.id).map((user) => (
                       <div key={user.id} className="p-4 bg-surface rounded-lg border border-border">
                         <p className="text-foreground" style={{ fontSize: '14px', fontWeight: 500 }}>
-                          {user.nombre}
+                          {user.nombres} {user.apellidos}
                         </p>
                         <p className="text-foreground-secondary" style={{ fontSize: '12px' }}>
                           {user.email}

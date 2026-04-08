@@ -37,8 +37,7 @@ export function ProductCard({ producto, onViewDetail }: ProductCardProps) {
           />
         ) : (
           <div className="text-primary/30 text-center">
-            <div className="text-4xl mb-2">💄</div>
-            <p className="text-xs text-foreground-secondary">{producto.sku}</p>
+            <div className="text-4xl">💄</div>
           </div>
         )}
         

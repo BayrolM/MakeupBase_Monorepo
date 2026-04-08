@@ -31,7 +31,6 @@ export const obtenerCarrito = async (id_usuario) => {
       dp.precio_unitario,
       dp.subtotal,
       p.nombre,
-      p.sku,
       p.stock_actual
     FROM detalle_pedido dp
     INNER JOIN productos p ON dp.id_producto = p.id_producto

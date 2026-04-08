@@ -50,7 +50,7 @@ export function InicioView({
   onNavigateToLogin, 
   onNavigateToRegister 
 }: InicioViewProps = {}) {
-  const { productos, categorias, addToCarrito } = useStore();
+  const { productos, categorias, addToCarrito, pedidos, clientes, currentUser } = useStore();
   const [activeSection, setActiveSection] = useState<Section>('inicio');
   const [contactForm, setContactForm] = useState({
     nombre: '',
@@ -74,6 +74,10 @@ export function InicioView({
 
   // Get featured categories (first 6)
   const categoriasDestacadas = categorias.slice(0, 6);
+
+  // Get user info
+  const currentCliente = clientes?.find((c: any) => c.email === currentUser?.email);
+  const myId = currentCliente?.id || currentUser?.id;
 
   const handleContactFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,18 +158,28 @@ export function InicioView({
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
                       <Sparkles className="w-4 h-4 text-primary" />
                       <span className="text-primary" style={{ fontSize: '14px', fontWeight: 500 }}>
-                        Belleza y Elegancia en Medellín
+                        {isPublic ? 'Belleza y Elegancia en Medellín' : 'Tu Espacio Personal'}
                       </span>
                     </div>
 
                     <h1 className="text-foreground" style={{ fontSize: '56px', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
-                      Realza tu belleza
-                      <span className="block text-primary mt-2">con estilo único</span>
+                      {isPublic ? (
+                        <>
+                          Realza tu belleza
+                          <span className="block text-primary mt-2">con estilo único</span>
+                        </>
+                      ) : (
+                        <>
+                          Hola, {currentUser?.nombres?.split(' ')[0] || 'Cliente'}
+                          <span className="block text-primary mt-2">Bienvenido de vuelta</span>
+                        </>
+                      )}
                     </h1>
 
                     <p className="text-foreground-secondary max-w-xl" style={{ fontSize: '18px', lineHeight: 1.7 }}>
-                      Descubre productos de alta calidad seleccionados especialmente para ti. 
-                      Maquillaje, cuidado de la piel y accesorios que realzan tu belleza natural.
+                      {isPublic 
+                        ? 'Descubre productos de alta calidad seleccionados especialmente para ti. Maquillaje, cuidado de la piel y accesorios que realzan tu belleza natural.'
+                        : 'Accede rápidamente a tus pedidos recientes, descubre nuevos productos y gestiona tu cuenta desde aquí.'}
                     </p>
 
                     <div className="flex flex-wrap gap-4">
@@ -175,46 +189,88 @@ export function InicioView({
                         className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-base gap-2"
                       >
                         <ShoppingBag className="w-5 h-5" />
-                        Comprar Ahora
+                        {isPublic ? 'Comprar Ahora' : 'Catálogo'}
                       </Button>
-                      <Button 
-                        size="lg" 
-                        variant="outline" 
-                        onClick={() => onNavigate ? onNavigate('catalogo') : setActiveSection('catalogo')}
-                        className="border-border hover:bg-surface px-8 py-6 text-base gap-2"
-                      >
-                        Ver Catálogo
-                        <ChevronRight className="w-5 h-5" />
-                      </Button>
+                      
+                      {isPublic ? (
+                        <Button 
+                          size="lg" 
+                          variant="outline" 
+                          onClick={onNavigateToLogin || (() => onNavigate?.('login'))}
+                          className="border-border hover:bg-primary/5 hover:border-gray-300 hover:text-primary px-8 py-6 text-base gap-2 transition-all"
+                        >
+                          <LogIn className="w-5 h-5" />
+                          Iniciar Sesión
+                        </Button>
+                      ) : (
+                        <Button 
+                          size="lg" 
+                          variant="outline" 
+                          onClick={() => onNavigate?.('pedidos')}
+                          className="border-border hover:bg-primary/5 hover:border-gray-300 hover:text-primary px-8 py-6 text-base gap-2 transition-all"
+                        >
+                          <Package className="w-5 h-5" />
+                          Ver mis pedidos
+                        </Button>
+                      )}
                     </div>
 
-                    {/* Stats */}
-                    <div className="flex flex-wrap gap-8 pt-4">
-                      <div>
-                        <div className="text-foreground" style={{ fontSize: '32px', fontWeight: 600 }}>
-                          200+
+                    {/* Stats or Acciones Rapidas */}
+                    {isPublic ? (
+                      <div className="flex flex-wrap gap-8 pt-4">
+                        <div>
+                          <div className="text-foreground" style={{ fontSize: '32px', fontWeight: 600 }}>
+                            200+
+                          </div>
+                          <div className="text-foreground-secondary" style={{ fontSize: '14px' }}>
+                            Productos
+                          </div>
                         </div>
-                        <div className="text-foreground-secondary" style={{ fontSize: '14px' }}>
-                          Productos
+                        <div>
+                          <div className="text-foreground" style={{ fontSize: '32px', fontWeight: 600 }}>
+                            1K+
+                          </div>
+                          <div className="text-foreground-secondary" style={{ fontSize: '14px' }}>
+                            Clientes Felices
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-foreground" style={{ fontSize: '32px', fontWeight: 600 }}>
+                            98%
+                          </div>
+                          <div className="text-foreground-secondary" style={{ fontSize: '14px' }}>
+                            Seguridad
+                          </div>
                         </div>
                       </div>
-                      <div>
-                        <div className="text-foreground" style={{ fontSize: '32px', fontWeight: 600 }}>
-                          1K+
+                    ) : (
+                      <div className="flex flex-wrap gap-4 pt-4">
+                        <div 
+                          onClick={() => onNavigate?.('catalogo')}
+                          className="flex items-center gap-3 bg-card border border-border p-3 rounded-xl cursor-pointer hover:border-gray-300 hover:shadow-sm transition-all"
+                        >
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <Heart className="w-5 h-5 text-primary" />
+                          </div>
+                          <div>
+                            <div className="text-foreground" style={{ fontSize: '14px', fontWeight: 600 }}>Mis Favoritos</div>
+                            <div className="text-foreground-secondary" style={{ fontSize: '12px' }}>Ver tus favoritos</div>
+                          </div>
                         </div>
-                        <div className="text-foreground-secondary" style={{ fontSize: '14px' }}>
-                          Clientes Felices
+                        <div 
+                          onClick={() => onNavigate?.('perfil')}
+                          className="flex items-center gap-3 bg-card border border-border p-3 rounded-xl cursor-pointer hover:border-gray-300 hover:shadow-sm transition-all"
+                        >
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <Target className="w-5 h-5 text-primary" />
+                          </div>
+                          <div>
+                            <div className="text-foreground" style={{ fontSize: '14px', fontWeight: 600 }}>Mi Perfil</div>
+                            <div className="text-foreground-secondary" style={{ fontSize: '12px' }}>Ajustes de cuenta</div>
+                          </div>
                         </div>
                       </div>
-                      <div>
-                        <div className="text-foreground" style={{ fontSize: '32px', fontWeight: 600 }}>
-                          98%
-                        </div>
-                        <div className="text-foreground-secondary" style={{ fontSize: '14px' }}>
-                          Seguridad
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Right Image */}
@@ -277,7 +333,7 @@ export function InicioView({
                     <div
                       key={categoria.id}
                       onClick={() => onNavigate ? onNavigate('catalogo', categoria.id) : setActiveSection('catalogo')}
-                      className="group relative bg-card border border-border rounded-2xl p-6 hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden"
+                      className="group relative bg-card border border-border rounded-2xl p-6 hover:shadow-lg hover:border-gray-300 transition-all duration-300 cursor-pointer overflow-hidden"
                     >
                       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
                       
@@ -311,7 +367,7 @@ export function InicioView({
               </div>
             </section>
 
-            {/* PRODUCTOS DESTACADOS */}
+              {/* PRODUCTOS DESTACADOS */}
             <section className="py-20 bg-surface">
               <div className="max-w-7xl mx-auto px-6 lg:px-8">
                 <div className="text-center max-w-2xl mx-auto mb-12">
@@ -338,7 +394,7 @@ export function InicioView({
                     return (
                       <div
                         key={producto.id}
-                        className="group bg-card border border-border rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300"
+                        className="group bg-card border border-border rounded-2xl overflow-hidden hover:shadow-xl hover:border-gray-300 transition-all duration-300"
                       >
                         {/* Image Container */}
                         <div className="relative aspect-square bg-surface overflow-hidden">
@@ -436,7 +492,7 @@ export function InicioView({
                     size="lg" 
                     variant="outline" 
                     onClick={() => onNavigate ? onNavigate('catalogo') : setActiveSection('catalogo')}
-                    className="border-border hover:bg-card px-8 gap-2"
+                    className="border-border hover:bg-primary/5 hover:border-gray-300 hover:text-primary px-8 gap-2 transition-all"
                   >
                     Ver Todos los Productos
                     <ChevronRight className="w-5 h-5" />
@@ -473,7 +529,7 @@ export function InicioView({
                   return (
                     <div
                       key={producto.id}
-                      className="group bg-card border border-border rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300"
+                      className="group bg-card border border-border rounded-2xl overflow-hidden hover:shadow-xl hover:border-gray-300 transition-all duration-300"
                     >
                       {/* Image Container */}
                       <div className="relative aspect-square bg-surface overflow-hidden">

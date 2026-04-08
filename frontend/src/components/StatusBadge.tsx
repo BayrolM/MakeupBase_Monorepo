@@ -12,35 +12,35 @@ export function StatusBadge({ status, size = 'md' }: StatusBadgeProps) {
       case 'confirmada':
       case 'aprobada':
       case 'entregado':
-        return { bg: '#3FC27A', text: '#0B0B0B', label: status === 'activo' ? 'Activo' : status === 'confirmada' ? 'Confirmada' : status === 'aprobada' ? 'Aprobada' : 'Entregado' };
+        return { bg: '#f0fdf4', text: '#16a34a', border: '1px solid #bbf7d0', label: status === 'activo' ? 'Activo' : status === 'confirmada' ? 'Confirmada' : status === 'aprobada' ? 'Aprobada' : 'Entregado' };
       
       case 'inactivo':
-        return { bg: '#BFA1A6', text: '#0B0B0B', label: 'Inactivo' };
+        return { bg: '#f1f5f9', text: '#64748b', border: '1px solid #e2e8f0', label: 'Inactivo' };
       
       case 'pendiente':
       case 'creado':
-        return { bg: '#FFB86B', text: '#0B0B0B', label: status === 'pendiente' ? 'Pendiente' : 'Creado' };
+        return { bg: '#fff7ed', text: '#ea580c', border: '1px solid #fed7aa', label: status === 'pendiente' ? 'Pendiente' : 'Creado' };
       
       case 'anulado':
       case 'anulada':
       case 'rechazada':
       case 'cancelado':
-        return { bg: '#FF6B6B', text: '#F3EAEA', label: (status === 'anulada' || status === 'anulado' || status === 'cancelado') ? 'Cancelado' : 'Rechazada' };
+        return { bg: '#fef2f2', text: '#dc2626', border: '1px solid #fecaca', label: (status === 'anulada' || status === 'anulado' || status === 'cancelado') ? 'Cancelado' : 'Rechazada' };
       
       case 'en_proceso':
       case 'preparado':
       case 'procesando':
-        return { bg: '#E7BFC5', text: '#0B0B0B', label: 'En Proceso' };
+        return { bg: '#f3e8ff', text: '#9333ea', border: '1px solid #e9d5ff', label: 'En Proceso' };
       
       case 'en_revision':
-        return { bg: '#4A90E2', text: '#F3EAEA', label: 'En Revisión' };
+        return { bg: '#e0f2fe', text: '#0284c7', border: '1px solid #bae6fd', label: 'En Revisión' };
       
       case 'despachado':
       case 'enviado':
-        return { bg: '#C87A88', text: '#F3EAEA', label: 'En Camino' };
+        return { bg: '#eff6ff', text: '#2563eb', border: '1px solid #bfdbfe', label: 'En Camino' };
       
       default:
-        return { bg: '#BFA1A6', text: '#0B0B0B', label: String(status) };
+        return { bg: '#f1f5f9', text: '#64748b', border: '1px solid #e2e8f0', label: String(status) };
     }
   };
 
@@ -55,10 +55,11 @@ export function StatusBadge({ status, size = 'md' }: StatusBadgeProps) {
       style={{
         backgroundColor: config.bg,
         color: config.text,
+        border: config.border,
         height,
         padding,
         fontSize,
-        fontWeight: 500,
+        fontWeight: 600,
       }}
     >
       {config.label}

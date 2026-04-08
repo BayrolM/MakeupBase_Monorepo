@@ -222,8 +222,7 @@ export function CatalogoView({
                   />
                 ) : (
                   <div className="text-primary/30 text-center">
-                    <div className="text-6xl mb-4">💄</div>
-                    <p className="text-sm text-foreground-secondary">{selectedProduct.sku}</p>
+                    <div className="text-6xl">💄</div>
                   </div>
                 )}
               </div>
@@ -250,9 +249,6 @@ export function CatalogoView({
                   </p>
                 </div>
 
-                <p className="text-foreground-secondary" style={{ fontSize: '13px' }}>
-                  SKU: {selectedProduct.sku}
-                </p>
 
                 <div className="pt-6 border-t border-border flex flex-col gap-4">
                   <div className="flex items-center gap-4">

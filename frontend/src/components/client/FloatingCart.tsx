@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useStore } from '../../lib/store';
 import { ShoppingCart, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '../ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../ui/sheet';
 import { ThemeToggle } from '../ThemeToggle';
 import { CONFIG } from '../../lib/constants';
 import { productService } from '../../services/productService';
@@ -81,154 +80,168 @@ export function FloatingCart({ onCheckout }: FloatingCartProps) {
         {/* Cart Button */}
         <button
           onClick={() => setIsOpen(true)}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full p-4 shadow-lg transition-all relative"
-          style={{ width: '56px', height: '56px' }}
+          style={{
+            width: '56px', height: '56px',
+            background: 'linear-gradient(135deg, #c47b96 0%, #a85d77 100%)',
+            borderRadius: '50%', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(176,96,128,0.3)', position: 'relative',
+            color: '#fff'
+          }}
         >
-          <ShoppingCart className="w-6 h-6" />
+          <ShoppingCart style={{ width: 22, height: 22 }} />
           {itemCount > 0 && (
             <span
-              className="absolute -top-1 -right-1 bg-danger text-foreground rounded-full flex items-center justify-center"
-              style={{ width: '24px', height: '24px', fontSize: '12px', fontWeight: 600 }}
-            >
-              {itemCount > 99 ? '99+' : itemCount}
-            </span>
+              style={{
+                position: 'absolute', top: '14px', right: '14px',
+                width: '8px', height: '8px', background: '#fff',
+                borderRadius: '50%', boxShadow: '0 0 0 2px #b06080'
+              }}
+            />
           )}
         </button>
       </div>
 
       {/* Cart Sheet */}
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetContent className="bg-card border-border w-full sm:max-w-lg">
-          <SheetHeader className="border-b border-border pb-4">
-            <SheetTitle className="text-foreground flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5" />
-              Mi Carrito ({itemCount} {itemCount === 1 ? 'producto' : 'productos'})
-            </SheetTitle>
-          </SheetHeader>
+        <SheetContent className="" style={{ background: '#fff', borderLeft: '1px solid #f0e0e8', width: '100%', maxWidth: '440px', padding: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            
+            <SheetHeader style={{ padding: '24px', borderBottom: '1px solid #f0e0e8' }}>
+              <SheetTitle style={{ color: '#1a1a1a', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px', margin: 0 }}>
+                <ShoppingCart style={{ width: 18, height: 18, color: '#b06080' }} />
+                Mi Carrito <span style={{ color: '#777', fontWeight: 400, fontSize: '14px' }}>({itemCount} {itemCount === 1 ? 'producto' : 'productos'})</span>
+              </SheetTitle>
+            </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto py-6 space-y-4" style={{ maxHeight: 'calc(100vh - 200px)' }}>
-            {carrito.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <ShoppingCart className="w-16 h-16 text-foreground-secondary opacity-30 mb-4" />
-                <p className="text-foreground-secondary text-center" style={{ fontSize: '15px' }}>
-                  Tu carrito está vacío
-                </p>
-                <p className="text-foreground-secondary text-center mt-2" style={{ fontSize: '13px' }}>
-                  Agrega productos desde el catálogo
-                </p>
-              </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+              {carrito.length === 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0' }}>
+                  <ShoppingCart style={{ width: 48, height: 48, color: '#f0e0e8', marginBottom: '16px' }} />
+                  <p style={{ fontSize: '15px', color: '#1a1a1a', fontWeight: 600, margin: 0 }}>Tu carrito está vacío</p>
+                  <p style={{ fontSize: '13px', color: '#888', marginTop: '4px' }}>Agrega productos desde el catálogo</p>
+                </div>
             ) : (
-              <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {carrito.map((item) => {
                   const producto = productos.find(p => p.id === item.productoId);
                   if (!producto) return null;
 
+                  const hasStockIssue = stockIssues[item.productoId]?.available === 0;
+
                   return (
-                    <div key={item.productoId} className={`flex gap-4 p-4 rounded-lg ${stockIssues[item.productoId]?.available === 0 ? 'bg-danger/10 border border-danger/30' : 'bg-surface'}`}>
-                      <div className="w-20 h-20 bg-primary/10 rounded flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    <div key={item.productoId} style={{ display: 'flex', gap: '16px', background: hasStockIssue ? '#fff5f5' : '#fff', border: `1px solid ${hasStockIssue ? '#fca5a5' : '#e0c0cc'}`, borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(176,96,128,0.04)' }}>
+                      <div style={{ width: '64px', height: '64px', borderRadius: '8px', background: '#fafafa', border: '1px solid #f0e0e8', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
                         {producto.imagenUrl ? (
-                          <img src={producto.imagenUrl} alt={producto.nombre} className="w-full h-full object-cover" />
+                          <img src={producto.imagenUrl} alt={producto.nombre} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         ) : (
-                          <span className="text-primary" style={{ fontSize: '12px' }}>
-                            {producto.sku}
-                          </span>
+                          <span style={{ fontSize: '10px', color: '#b06080' }}>Imagen</span>
                         )}
                       </div>
                       
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-foreground truncate" style={{ fontSize: '14px', fontWeight: 500 }}>
-                          {producto.nombre}
-                        </h4>
-                        <p className="text-primary" style={{ fontSize: '16px', fontWeight: 600, marginTop: '4px' }}>
-                          {formatCurrency(producto.precioVenta)}
-                        </p>
-
-                        {stockIssues[item.productoId] && (
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <AlertTriangle className="w-3.5 h-3.5 text-warning flex-shrink-0" />
-                            <span className="text-warning" style={{ fontSize: '12px' }}>
-                              {stockIssues[item.productoId].available === 0
-                                ? 'Producto agotado — retíralo del carrito'
-                                : `Solo quedan ${stockIssues[item.productoId].available} unidades`}
-                            </span>
-                          </div>
-                        )}
-                        
-                        <div className="flex items-center gap-3 mt-3">
-                          <div className="flex items-center gap-2 bg-input-background border border-border rounded px-2">
-                            <button
-                              onClick={() => updateCarritoQuantity(item.productoId, item.cantidad - 1)}
-                              className="text-foreground-secondary hover:text-foreground p-1"
-                            >
-                              -
-                            </button>
-                            <span className="text-foreground min-w-[20px] text-center" style={{ fontSize: '14px' }}>
-                              {item.cantidad}
-                            </span>
-                            <button
-                              onClick={() => updateCarritoQuantity(item.productoId, item.cantidad + 1)}
-                              className="text-foreground-secondary hover:text-foreground p-1"
-                              disabled={item.cantidad >= producto.stock || stockIssues[item.productoId]?.available === 0}
-                            >
-                              +
-                            </button>
-                          </div>
-                          
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                          <h4 style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a1a', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {producto.nombre}
+                          </h4>
                           <button
                             onClick={() => {
                               removeFromCarrito(item.productoId);
                               setStockIssues(prev => { const next = { ...prev }; delete next[item.productoId]; return next; });
                             }}
-                            className="text-danger hover:text-danger/80 p-1"
+                            style={{ background: 'none', border: 'none', padding: '6px', cursor: 'pointer' }}
+                            className="text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 style={{ width: 16, height: 16 }} />
                           </button>
+                        </div>
+                        
+                        <p style={{ fontSize: '14px', fontWeight: 700, color: '#b06080', margin: '4px 0 0 0' }}>
+                          {formatCurrency(producto.precioVenta)}
+                        </p>
+
+                        {stockIssues[item.productoId] && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                            <AlertTriangle style={{ width: 12, height: 12, color: '#d97706' }} />
+                            <span style={{ fontSize: '11px', color: '#d97706' }}>
+                              {stockIssues[item.productoId].available === 0
+                                ? 'Agotado — retíralo'
+                                : `Solo quedan ${stockIssues[item.productoId].available}`}
+                            </span>
+                          </div>
+                        )}
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', marginTop: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '6px' }}>
+                            <button
+                              onClick={() => updateCarritoQuantity(item.productoId, item.cantidad - 1)}
+                              style={{ width: '28px', height: '28px', border: 'none', background: 'none', cursor: 'pointer', color: '#555', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                            >
+                              -
+                            </button>
+                            <span style={{ fontSize: '13px', color: '#1a1a1a', width: '20px', textAlign: 'center' }}>
+                              {item.cantidad}
+                            </span>
+                            <button
+                              onClick={() => updateCarritoQuantity(item.productoId, item.cantidad + 1)}
+                              disabled={item.cantidad >= producto.stock || hasStockIssue}
+                              style={{ width: '28px', height: '28px', border: 'none', background: 'none', cursor: 'pointer', color: '#555', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, opacity: (item.cantidad >= producto.stock || hasStockIssue) ? 0.4 : 1 }}
+                            >
+                              +
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
                   );
                 })}
-              </>
+              </div>
             )}
-          </div>
+            </div>
 
-          {carrito.length > 0 && (
-            <SheetFooter className="border-t border-border pt-4">
-              <div className="w-full space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-foreground-secondary" style={{ fontSize: '14px' }}>
+            {carrito.length > 0 && (
+              <div style={{ padding: '24px', borderTop: '1px solid #f0e0e8', background: '#fff' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#666' }}>
                     <span>Subtotal:</span>
                     <span>{formatCurrency(cartTotal)}</span>
                   </div>
-                  <div className="flex items-center justify-between text-foreground-secondary" style={{ fontSize: '14px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#666' }}>
                     <span>Envío:</span>
                     <span>{formatCurrency(shippingCost)}</span>
                   </div>
-                  <div className="flex items-center justify-between text-foreground pt-2 border-t border-border" style={{ fontSize: '18px', fontWeight: 600 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: 700, color: '#1a1a1a', paddingTop: '12px', borderTop: '1px dashed #e5e7eb', marginTop: '4px' }}>
                     <span>Total:</span>
-                    <span className="text-primary">{formatCurrency(total)}</span>
+                    <span style={{ color: '#b06080' }}>{formatCurrency(total)}</span>
                   </div>
                 </div>
 
                 {isValidating && (
-                  <div className="flex items-center justify-center gap-2 text-foreground-secondary" style={{ fontSize: '13px' }}>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Verificando disponibilidad...
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '12px', color: '#888', marginBottom: '16px' }}>
+                    <Loader2 style={{ width: 14, height: 14 }} className="animate-spin" />
+                    Verificando stock...
                   </div>
                 )}
-                <Button
+                
+                <button
                   onClick={() => {
                     setIsOpen(false);
                     onCheckout();
                   }}
-                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-12"
                   disabled={carrito.length === 0 || hasBlockingIssues || isValidating}
+                  style={{
+                    width: '100%', height: '48px', borderRadius: '10px',
+                    background: hasBlockingIssues ? '#e5e7eb' : 'linear-gradient(135deg, #c47b96 0%, #a85d77 100%)',
+                    color: hasBlockingIssues ? '#9ca3af' : '#fff',
+                    border: 'none', cursor: hasBlockingIssues ? 'not-allowed' : 'pointer',
+                    fontSize: '13px', fontWeight: 700, letterSpacing: '0.5px'
+                  }}
                 >
-                  {hasBlockingIssues ? '⚠️ RESUELVE LOS PROBLEMAS DE STOCK' : '🎀 FINALIZAR COMPRA'}
-                </Button>
+                  {hasBlockingIssues ? '⚠️ PROBLEMAS DE STOCK' : '🎀 FINALIZAR COMPRA'}
+                </button>
               </div>
-            </SheetFooter>
-          )}
+            )}
+          </div>
         </SheetContent>
       </Sheet>
     </>

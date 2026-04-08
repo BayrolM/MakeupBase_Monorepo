@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useMemo, useEffect } from 'react';
 
-// Types
 export type UserRole = 'admin' | 'vendedor' | 'cliente';
 export type OrderStatus = 'pendiente' | 'preparado' | 'procesando' | 'enviado' | 'entregado' | 'cancelado' | 'carrito';
 export type Status = 'activo' | 'inactivo';
@@ -35,6 +34,7 @@ export interface User {
   ciudad?: string;
   pais?: string;
   rol: UserRole;
+  id_rol?: number; // Numeric ID of the role
   rolAsignadoId?: string; // ID del rol personalizado asignado
   estado: Status;
   fechaCreacion: string;
@@ -79,7 +79,6 @@ export interface Categoria {
 
 export interface Producto {
   id: string;
-  sku: string;
   nombre: string;
   descripcion: string;
   categoriaId: string;
@@ -133,6 +132,8 @@ export interface Pedido {
   total: number;
   estado: OrderStatus; // pendiente, preparado, entregado, cancelado
   direccionEnvio: string;
+  pago_confirmado: boolean;
+  comprobante_url?: string;
   motivoAnulacion?: string;
 }
 

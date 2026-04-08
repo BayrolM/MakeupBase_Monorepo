@@ -2,7 +2,6 @@ import api from "../lib/api";
 
 export interface Product {
   id_producto: number;
-  sku: string;
   nombre: string;
   descripcion?: string;
   id_marca: number;

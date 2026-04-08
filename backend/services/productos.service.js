@@ -31,9 +31,7 @@ export const listarProductos = async (filters = {}) => {
     WHERE 1=1
     ${
       q
-        ? sql`AND (p.nombre ILIKE ${"%" + q + "%"} OR p.sku ILIKE ${
-            "%" + q + "%"
-          } OR p.descripcion ILIKE ${"%" + q + "%"})`
+        ? sql`AND (p.nombre ILIKE ${"%" + q + "%"} OR p.descripcion ILIKE ${"%" + q + "%"})`
         : sql``
     }
     ${marca ? sql`AND p.id_marca = ${marca}` : sql``}
@@ -55,7 +53,7 @@ export const listarProductos = async (filters = {}) => {
   // Obtener datos
   const items = await sql`
     SELECT
-      p.id_producto, p.sku, p.nombre, p.descripcion, p.id_marca, p.id_categoria,
+      p.id_producto, p.nombre, p.descripcion, p.id_marca, p.id_categoria,
       p.costo_promedio, p.precio_venta, p.stock_actual, p.stock_max, p.stock_min,
       p.imagen_url, p.estado, m.nombre as nombre_marca, c.nombre as nombre_categoria
     FROM productos p
@@ -72,7 +70,7 @@ export const listarProductos = async (filters = {}) => {
 export const obtenerProductoPorId = async (id) => {
   const result = await sql`
       SELECT
-        p.id_producto, p.sku, p.nombre, p.descripcion, p.id_marca, p.id_categoria,
+        p.id_producto, p.nombre, p.descripcion, p.id_marca, p.id_categoria,
         p.costo_promedio, p.precio_venta, p.stock_actual, p.stock_max, p.stock_min,
         p.imagen_url, p.estado
       FROM productos p
@@ -83,7 +81,6 @@ export const obtenerProductoPorId = async (id) => {
 
 export const crearProducto = async (data) => {
   const {
-    sku,
     nombre,
     id_marca,
     id_categoria,
@@ -99,9 +96,9 @@ export const crearProducto = async (data) => {
 
   const result = await sql`
       INSERT INTO productos
-        (sku, nombre, id_marca, id_categoria, descripcion, costo_promedio, precio_venta, stock_actual, stock_max, stock_min, imagen_url, estado)
+        (nombre, id_marca, id_categoria, descripcion, costo_promedio, precio_venta, stock_actual, stock_max, stock_min, imagen_url, estado)
       VALUES
-        (${sku}, ${nombre}, ${id_marca}, ${id_categoria}, ${descripcion}, ${costo_promedio}, ${precio_venta}, ${stock_actual}, ${stock_max}, ${stock_min}, ${imagen_url}, ${estado})
+        (${nombre}, ${id_marca}, ${id_categoria}, ${descripcion}, ${costo_promedio}, ${precio_venta}, ${stock_actual}, ${stock_max}, ${stock_min}, ${imagen_url}, ${estado})
       RETURNING id_producto
     `;
 
@@ -110,7 +107,6 @@ export const crearProducto = async (data) => {
 
 export const actualizarProducto = async (id, data) => {
   const {
-    sku,
     nombre,
     id_marca,
     id_categoria,
@@ -126,7 +122,6 @@ export const actualizarProducto = async (id, data) => {
 
   // Construir objeto de actualización
   const updateData = {};
-  if (sku !== undefined) updateData.sku = sku;
   if (nombre !== undefined) updateData.nombre = nombre;
   if (id_marca !== undefined) updateData.id_marca = id_marca;
   if (id_categoria !== undefined) updateData.id_categoria = id_categoria;
@@ -158,7 +153,7 @@ export const eliminarProducto = async (id) => {
 export const productosDestacados = async (limit = 10) => {
   const items = await sql`
       SELECT
-        id_producto, sku, nombre, descripcion, id_marca, id_categoria,
+        id_producto, nombre, descripcion, id_marca, id_categoria,
         costo_promedio, precio_venta, stock_actual, stock_max, stock_min, imagen_url, estado
       FROM productos
       WHERE estado = 1

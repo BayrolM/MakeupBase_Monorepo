@@ -1,15 +1,14 @@
 import { useState } from 'react';
-import { useStore, Compra, Producto } from '../../lib/store';
+import { useStore, Compra } from '../../lib/store';
 import { PageHeader } from '../PageHeader';
 import { Pagination } from '../Pagination';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Button } from '../ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
-import { Textarea } from '../ui/textarea';
-import { Plus, Eye, FileText, Trash2, Search, X } from 'lucide-react';
+import { Plus, Eye, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { purchaseService } from '../../services/purchaseService';
 import { productService } from '../../services/productService';
@@ -54,7 +53,6 @@ export function ComprasModule() {
       const productsResp = await productService.getAll({ limit: 100 });
       const mappedProducts = productsResp.data.map(prod => ({
         id: prod.id_producto.toString(),
-        sku: prod.sku,
         nombre: prod.nombre,
         descripcion: prod.descripcion || '',
         categoriaId: prod.id_categoria.toString(),
@@ -188,9 +186,13 @@ export function ComprasModule() {
                   <TableCell className="text-primary font-semibold">{formatCurrency(compra.total)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => { setSelectedCompra(compra); setIsDetailDialogOpen(true); }}>
+                      <button 
+                        onClick={() => { setSelectedCompra(compra); setIsDetailDialogOpen(true); }}
+                        className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-150"
+                        title="Ver detalles"
+                      >
                         <Eye className="w-4 h-4" />
-                      </Button>
+                      </button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -219,7 +221,7 @@ export function ComprasModule() {
           <div className="grid grid-cols-2 gap-4 py-4">
             <div className="space-y-2">
               <Label>Proveedor</Label>
-              <Select value={formData.proveedorId} onValueChange={v => setFormData({...formData, proveedorId: v})}>
+              <Select value={formData.proveedorId} onValueChange={(v: string) => setFormData({...formData, proveedorId: v})}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                 <SelectContent>
                   {proveedores.map(p => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
@@ -240,7 +242,7 @@ export function ComprasModule() {
                 <Select value={selectedProductId} onValueChange={setSelectedProductId}>
                   <SelectTrigger><SelectValue placeholder="Buscar producto" /></SelectTrigger>
                   <SelectContent>
-                    {productos.map(p => <SelectItem key={p.id} value={p.id}>{p.nombre} ({p.sku})</SelectItem>)}
+                    {productos.map(p => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

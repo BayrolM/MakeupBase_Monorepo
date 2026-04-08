@@ -7,7 +7,6 @@ export interface CartItem {
   precio_unitario: number;
   subtotal: number;
   nombre?: string;
-  sku?: string;
 }
 
 export interface Cart {

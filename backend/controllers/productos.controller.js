@@ -51,9 +51,7 @@ export const obtener = async (req, res) => {
 export const crear = async (req, res) => {
   try {
     const payload = req.body;
-    // Validaciones básicas
     if (
-      !payload.sku ||
       !payload.nombre ||
       !payload.id_marca ||
       !payload.id_categoria ||
@@ -62,7 +60,7 @@ export const crear = async (req, res) => {
       return res.status(400).json({
         ok: false,
         message:
-          "Faltan campos requeridos: sku, nombre, id_marca, id_categoria, precio_venta",
+          "Faltan campos requeridos: nombre, id_marca, id_categoria, precio_venta",
       });
     }
 
@@ -76,7 +74,7 @@ export const crear = async (req, res) => {
     if (err?.code === "23505") {
       return res
         .status(400)
-        .json({ ok: false, message: "SKU o campo único ya existe" });
+        .json({ ok: false, message: "Error de restricción única en la base de datos" });
     }
     return res.status(500).json({ ok: false, message: "Error interno" });
   }

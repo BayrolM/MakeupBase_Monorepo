@@ -16,7 +16,6 @@ export interface DashboardData {
   productos_mas_vendidos: Array<{
     id_producto: number;
     nombre: string;
-    sku: string;
     total_vendido: string;
   }>;
 }

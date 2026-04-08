@@ -57,13 +57,12 @@ export const obtenerDashboard = async () => {
     SELECT 
       p.id_producto,
       p.nombre,
-      p.sku,
       SUM(dv.cantidad) as total_vendido
     FROM detalle_ventas dv
     INNER JOIN productos p ON dv.id_producto = p.id_producto
     INNER JOIN ventas v ON dv.id_venta = v.id_venta
     WHERE v.estado = true
-    GROUP BY p.id_producto, p.nombre, p.sku
+    GROUP BY p.id_producto, p.nombre
     ORDER BY total_vendido DESC
     LIMIT 10
   `;
@@ -160,7 +159,6 @@ export const obtenerReporteStock = async () => {
   const productos = await sql`
     SELECT
       p.id_producto,
-      p.sku,
       p.nombre,
       p.stock_actual,
       p.stock_max,
@@ -241,7 +239,6 @@ export const obtenerDetalleVenta = async (id_venta) => {
       dv.precio_unitario,
       dv.subtotal,
       p.nombre,
-      p.sku,
       p.descripcion
     FROM detalle_ventas dv
     INNER JOIN productos p ON dv.id_producto = p.id_producto

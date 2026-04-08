@@ -10,6 +10,7 @@ export interface Order {
   estado: string;
   id_venta?: number;
   metodo_pago?: string;
+  pago_confirmado?: boolean;
   nombre_usuario?: string;
   email_usuario?: string;
   items?: any[];
@@ -95,12 +96,40 @@ export const orderService = {
   /**
    * Actualizar estado de orden
    */
-  async updateStatus(id: number, estado: string, motivo?: string): Promise<any> {
+  async updateStatus(id: number, estado: string, motivo?: string, shippingData?: any): Promise<any> {
     try {
-      const response = await api.put(`/orders/${id}/status`, { estado, motivo });
+      const response = await api.put(`/orders/${id}/status`, { estado, motivo, shippingData });
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || "Error al actualizar estado");
+    }
+  },
+
+  /**
+   * Confirmar pago de orden
+   */
+  async confirmPayment(id: number, pago_confirmado: boolean): Promise<any> {
+    try {
+      const response = await api.put(`/orders/${id}/pago`, { pago_confirmado });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Error al confirmar pago");
+    }
+  },
+
+  /**
+   * Subir comprobante de pago
+   */
+  async uploadComprobante(id: number, formData: FormData): Promise<any> {
+    try {
+      const response = await api.put(`/orders/${id}/comprobante`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Error al subir el comprobante");
     }
   }
 };

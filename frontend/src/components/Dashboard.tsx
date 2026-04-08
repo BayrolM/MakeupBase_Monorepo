@@ -3,15 +3,24 @@ import { useStore } from '../lib/store';
 import { PageHeader } from './PageHeader';
 import { ThemeToggle } from './ThemeToggle';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { TrendingUp, Package, ShoppingCart, RotateCcw, AlertTriangle, Loader2 } from 'lucide-react';
+import { TrendingUp, Package, ShoppingCart, RotateCcw, AlertTriangle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { reportService, DashboardData } from '../services/reportService';
 import { toast } from 'sonner';
 
 export function Dashboard() {
   const { pedidos, productos } = useStore();
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<DashboardData | null>({
+    resumen: {
+      total_ventas: 0,
+      total_ordenes: 0,
+      total_productos: 0,
+      total_usuarios: 0,
+      productos_bajo_stock: 0
+    },
+    productos_mas_vendidos: [],
+    ventas_por_mes: []
+  });
 
   useEffect(() => {
     fetchDashboardData();
@@ -19,14 +28,11 @@ export function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      setLoading(true);
       const res = await reportService.getDashboard();
       setData(res);
     } catch (error: any) {
       console.error(error);
       toast.error('Error al cargar datos del dashboard');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -38,25 +44,21 @@ export function Dashboard() {
     }).format(value);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto mb-4" />
-          <p className="text-foreground-secondary">Cargando datos reales...</p>
-        </div>
-      </div>
-    );
-  }
+  // El Dashboard ahora carga en segundo plano sin bloquear la vista.
 
-  if (!data) return null;
+  // No bloqueamos si data es null, usamos valores iniciales
+  const safeData = data || { 
+    ventas_por_mes: [], 
+    resumen: { total_ventas: 0, total_ordenes: 0, total_usuarios: 0, productos_bajo_stock: 0 },
+    productos_mas_vendidos: []
+  };
 
   // Process data for charts
-  const salesByMonth = [...data.ventas_por_mes]
+  const salesByMonth = [...safeData.ventas_por_mes]
     .reverse()
     .map(v => ({
       mes: v.mes,
-      ventas: parseFloat(v.total)
+      ventas: parseFloat(v.total) || 0
     }));
 
   const ordersByStatus = [
@@ -92,7 +94,7 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-foreground" style={{ fontSize: '28px', fontWeight: 600 }}>
-                {formatCurrency(data.resumen.total_ventas)}
+                {formatCurrency(safeData.resumen.total_ventas)}
               </div>
               <p className="text-success" style={{ fontSize: '12px', marginTop: '4px' }}>
                 Total acumulado de ventas activas
@@ -109,7 +111,7 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-foreground" style={{ fontSize: '28px', fontWeight: 600 }}>
-                {data.resumen.total_ordenes}
+                {safeData.resumen.total_ordenes}
               </div>
               <p className="text-foreground-secondary" style={{ fontSize: '12px', marginTop: '4px' }}>
                 {pedidos.filter(p => p.estado === 'pendiente' || p.estado === 'procesando').length} pendientes por entregar
@@ -126,7 +128,7 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-foreground" style={{ fontSize: '28px', fontWeight: 600 }}>
-                {data.resumen.total_usuarios}
+                {safeData.resumen.total_usuarios}
               </div>
               <p className="text-warning" style={{ fontSize: '12px', marginTop: '4px' }}>
                 Clientes y empleados registrados
@@ -143,7 +145,7 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-foreground" style={{ fontSize: '28px', fontWeight: 600 }}>
-                {data.resumen.productos_bajo_stock}
+                {safeData.resumen.productos_bajo_stock}
               </div>
               <p className="text-danger" style={{ fontSize: '12px', marginTop: '4px' }}>
                 Productos requieren reposición
@@ -213,7 +215,7 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {data.productos_mas_vendidos.map((producto, index) => (
+                {safeData.productos_mas_vendidos.map((producto, index) => (
                   <div key={producto.id_producto} className="flex items-center justify-between p-3 rounded-lg bg-surface">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded overflow-hidden border border-border bg-card flex items-center justify-center flex-shrink-0">
@@ -230,9 +232,6 @@ export function Dashboard() {
                       <div>
                         <p className="text-foreground" style={{ fontSize: '14px', fontWeight: 500 }}>
                           {producto.nombre}
-                        </p>
-                        <p className="text-foreground-secondary" style={{ fontSize: '12px' }}>
-                          {producto.sku}
                         </p>
                       </div>
                     </div>
@@ -275,9 +274,6 @@ export function Dashboard() {
                         <div>
                           <p className="text-foreground" style={{ fontSize: '14px', fontWeight: 500 }}>
                             {producto.nombre}
-                          </p>
-                          <p className="text-foreground-secondary" style={{ fontSize: '12px' }}>
-                            {producto.sku}
                           </p>
                         </div>
                       </div>

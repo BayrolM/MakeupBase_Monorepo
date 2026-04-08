@@ -201,6 +201,8 @@ export const obtenerOrdenes = async (id_usuario, rol = null, options = {}) => {
       p.total,
       p.estado,
       p.motivo_anulacion,
+      p.pago_confirmado,
+      p.comprobante_url,
       v.id_venta,
       v.metodo_pago,
       CONCAT(COALESCE(u.nombre, ''), ' ', COALESCE(u.apellido, '')) as nombre_usuario,
@@ -248,6 +250,12 @@ export const obtenerDetalleOrden = async (
         p.total,
         p.estado,
         p.motivo_anulacion,
+        p.pago_confirmado,
+        p.transportadora,
+        p.numero_guia,
+        p.tracking_link,
+        p.fecha_envio,
+        p.fecha_estimada,
         v.id_venta,
         v.metodo_pago,
         CONCAT(COALESCE(u.nombre, ''), ' ', COALESCE(u.apellido, '')) as nombre_usuario,
@@ -269,6 +277,11 @@ export const obtenerDetalleOrden = async (
         p.ciudad,
         p.total,
         p.estado,
+        p.transportadora,
+        p.numero_guia,
+        p.tracking_link,
+        p.fecha_envio,
+        p.fecha_estimada,
         v.id_venta,
         v.metodo_pago
       FROM pedidos p
@@ -290,8 +303,7 @@ export const obtenerDetalleOrden = async (
       dp.cantidad,
       dp.precio_unitario,
       dp.subtotal,
-      p.nombre,
-      p.sku
+      p.nombre
     FROM detalle_pedido dp
     INNER JOIN productos p ON dp.id_producto = p.id_producto
     WHERE dp.id_pedido = ${id_pedido}
@@ -308,7 +320,7 @@ export const obtenerDetalleOrden = async (
 /**
  * Actualizar el estado de un pedido
  */
-export const actualizarEstadoPedido = async (id_pedido, estado, motivo = null) => {
+export const actualizarEstadoPedido = async (id_pedido, estado, motivo = null, shippingData = null) => {
   return await sql.begin(async (sql) => {
     // 1. Obtener datos del pedido
     const [pedido] = await sql`SELECT * FROM pedidos WHERE id_pedido = ${id_pedido}`;
@@ -328,8 +340,12 @@ export const actualizarEstadoPedido = async (id_pedido, estado, motivo = null) =
       await sql`UPDATE ventas SET estado = false WHERE id_pedido = ${id_pedido}`;
     }
 
-    // 3. Si el nuevo estado es 'entregado', crear la venta si no existe
+    // 3. Si el nuevo estado es 'entregado', crear la venta si no existe Y el pedido ya está pago
     if (estado === 'entregado') {
+      if (!pedido.pago_confirmado) {
+        throw new Error('No se puede marcar como Entregado un pedido que no ha sido marcado como Pagado.');
+      }
+
       const ventaExistente = await sql`SELECT id_venta FROM ventas WHERE id_pedido = ${id_pedido} AND estado = true`;
       
       if (ventaExistente.length === 0) {
@@ -356,11 +372,21 @@ export const actualizarEstadoPedido = async (id_pedido, estado, motivo = null) =
       }
     }
 
-    // 4. Actualizar el estado del pedido
+    // 4. Actualizar el estado del pedido y shipping info si aplica
+    let setClause = sql`estado = ${estado}, motivo_anulacion = ${motivo}`;
+    
+    if (estado === 'enviado' && shippingData) {
+      setClause = sql`${setClause}, 
+        transportadora = ${shippingData.transportadora},
+        numero_guia = ${shippingData.numero_guia},
+        tracking_link = ${shippingData.tracking_link},
+        fecha_envio = ${shippingData.fecha_envio},
+        fecha_estimada = ${shippingData.fecha_estimada}`;
+    }
+
     const [updatedPedido] = await sql`
       UPDATE pedidos 
-      SET estado = ${estado},
-          motivo_anulacion = ${motivo}
+      SET ${setClause}
       WHERE id_pedido = ${id_pedido}
       RETURNING *
     `;
@@ -410,3 +436,27 @@ export const cancelarOrden = async (id_pedido, motivo) => {
     return pedidoCancelado;
   });
 };
+
+/**
+ * Confirmar o desconfirmar el pago de un pedido
+ */
+export const confirmarPago = async (id_pedido, pago_confirmado) => {
+  const [updatedPedido] = await sql`
+    UPDATE pedidos 
+    SET pago_confirmado = ${pago_confirmado}
+    WHERE id_pedido = ${id_pedido}
+    RETURNING *
+  `;
+  if (!updatedPedido) throw new Error('Pedido no encontrado');
+  return updatedPedido;
+};
+
+export const actualizarComprobante = async (id_pedido, url) => {
+  const [updatedPedido] = await sql`
+  UPDATE pedidos
+  SET comprobante_url = ${url}
+  WHERE id_pedido = ${id_pedido}
+  RETURNING *
+  `;
+  return updatedPedido;
+}

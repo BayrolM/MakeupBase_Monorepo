@@ -9,10 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Checkbox } from '../ui/checkbox';
-import { Plus, Eye, FileText, Edit, Search, Calendar, XCircle, X } from 'lucide-react';
+import { Plus, Eye, FileText, Edit, Search, Calendar, X } from 'lucide-react';
 
 export function DevolucionesModule() {
-  const { devoluciones, ventas, clientes, productos, compras, addDevolucion, updateDevolucion, updateStock } = useStore();
+  const { devoluciones, ventas, clientes, productos, addDevolucion, updateDevolucion, updateStock } = useStore();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
@@ -164,14 +164,13 @@ export function DevolucionesModule() {
 
     // Create devolucion
     addDevolucion({
-      compraId: formData.ventaId,
       ventaId: formData.ventaId,
       clienteId: ventaData.clienteId || '',
       fecha: formData.fechaDevolucion,
       motivo: formData.motivo,
       productos: productosSeleccionados.map(p => ({
         productoId: p.productoId,
-        cantidad: p.cantidadADevolver
+        cantidad: p.cantidad
       })),
       estado: formData.estado === 'Procesada' ? 'aprobada' : formData.estado === 'Rechazada' ? 'rechazada' : 'pendiente',
       evidencias: [],
@@ -223,7 +222,7 @@ export function DevolucionesModule() {
     }
 
     updateDevolucion(selectedDevolucion.id, { 
-      estado: newEstado,
+      estado: newEstado as any,
       motivoDecision: (newEstado === 'aprobada' || newEstado === 'rechazada') ? motivoDecision : undefined
     });
     setEstadoDialogOpen(false);
@@ -410,35 +409,29 @@ export function DevolucionesModule() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
+                      <div className="flex items-center justify-end gap-1">
+                        <button
                           onClick={() => handleViewPDF(devolucion)}
-                          className="h-8 w-8 p-0 text-foreground-secondary hover:text-primary hover:bg-primary/10"
+                          className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-all duration-150"
                           title="Ver PDF"
                         >
                           <FileText className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
+                        </button>
+                        <button
                           onClick={() => handleViewDetail(devolucion)}
-                          className="h-8 w-8 p-0 text-foreground-secondary hover:text-primary hover:bg-primary/10"
+                          className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-150"
                           title="Ver Detalle"
                         >
                           <Eye className="w-4 h-4" />
-                        </Button>
+                        </button>
                         {canAnularDevolucion(devolucion.estado) && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
+                          <button
                             onClick={() => handleOpenAnularDialog(devolucion)}
-                            className="h-8 w-8 p-0 text-danger hover:text-danger/80 hover:bg-danger/10"
+                            className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-all duration-150"
                             title="Anular Devolución"
                           >
                             <X className="w-4 h-4" />
-                          </Button>
+                          </button>
                         )}
                       </div>
                     </TableCell>
@@ -594,16 +587,13 @@ export function DevolucionesModule() {
                           <div className="flex items-center gap-4">
                             <Checkbox
                               checked={isSelected}
-                              onCheckedChange={() => handleToggleProducto(index)}
+                              onCheckedChange={(checked: boolean) => handleToggleProducto(index)}
                               className="border-border"
                             />
                             <div className="flex-1 grid grid-cols-4 gap-4 items-center">
                               <div>
                                 <p className="text-foreground" style={{ fontSize: '14px', fontWeight: 500 }}>
                                   {producto?.nombre || 'N/A'}
-                                </p>
-                                <p className="text-foreground-secondary" style={{ fontSize: '12px' }}>
-                                  SKU: {producto?.sku || 'N/A'}
                                 </p>
                               </div>
                               <div className="text-center">
@@ -770,7 +760,6 @@ export function DevolucionesModule() {
                       <div key={i} className="p-3 bg-surface rounded-lg flex items-center justify-between">
                         <div>
                           <p className="text-foreground">{producto?.nombre || 'N/A'}</p>
-                          <p className="text-foreground-secondary" style={{ fontSize: '12px' }}>SKU: {producto?.sku || 'N/A'}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-foreground-secondary" style={{ fontSize: '12px' }}>Cantidad</p>
@@ -877,8 +866,7 @@ export function DevolucionesModule() {
                 <div className="bg-primary text-primary-foreground px-4 py-2 rounded-t-lg">
                   <div className="grid grid-cols-12 gap-4">
                     <p className="col-span-8" style={{ fontSize: '12px', fontWeight: 600 }}>PRODUCTO</p>
-                    <p className="col-span-2 text-center" style={{ fontSize: '12px', fontWeight: 600 }}>CANT.</p>
-                    <p className="col-span-2 text-right" style={{ fontSize: '12px', fontWeight: 600 }}>SKU</p>
+                    <p className="col-span-4 text-right" style={{ fontSize: '12px', fontWeight: 600 }}>CANT.</p>
                   </div>
                 </div>
                 <div className="border border-t-0 border-border rounded-b-lg">
@@ -892,8 +880,7 @@ export function DevolucionesModule() {
                         }`}
                       >
                         <p className="col-span-8 text-foreground">{producto?.nombre || 'N/A'}</p>
-                        <p className="col-span-2 text-center text-foreground-secondary">{p.cantidad}</p>
-                        <p className="col-span-2 text-right text-foreground-secondary">{producto?.sku || 'N/A'}</p>
+                        <p className="col-span-4 text-right text-foreground-secondary">{p.cantidad}</p>
                       </div>
                     );
                   })}

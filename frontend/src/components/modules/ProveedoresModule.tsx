@@ -192,16 +192,28 @@ export function ProveedoresModule() {
                     />
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => { setSelectedProveedor(proveedor); setIsDetailDialogOpen(true); }}>
+                    <div className="flex justify-end gap-1">
+                      <button 
+                        onClick={() => { setSelectedProveedor(proveedor); setIsDetailDialogOpen(true); }}
+                        className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-150"
+                        title="Ver detalles"
+                      >
                         <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(proveedor)}>
+                      </button>
+                      <button 
+                        onClick={() => handleOpenDialog(proveedor)}
+                        className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-all duration-150"
+                        title="Editar proveedor"
+                      >
                         <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="text-danger" onClick={() => { setSelectedProveedor(proveedor); setIsDeleteDialogOpen(true); }}>
+                      </button>
+                      <button 
+                        onClick={() => { setSelectedProveedor(proveedor); setIsDeleteDialogOpen(true); }}
+                        className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-all duration-150"
+                        title="Eliminar proveedor"
+                      >
                         <Trash2 className="w-4 h-4" />
-                      </Button>
+                      </button>
                     </div>
                   </TableCell>
                 </TableRow>

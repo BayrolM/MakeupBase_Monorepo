@@ -5,37 +5,37 @@
   --font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   
   /* GLAMOUR ML Brand Colors - Light Theme */
-  --background: #FFFFFF;
-  --surface: #F8F8F8;
-  --primary: #C87A88;
-  --primary-light: #E7BFC5;
-  --foreground: #0B0B0B;
-  --foreground-secondary: #6B6B6B;
-  --success: #3FC27A;
-  --danger: #FF6B6B;
-  --warning: #FFB86B;
-  --info: #60A5FA;
-  --pending: #FBBF24;
+  --background: #f8f7f8;
+  --surface: #ffffff;
+  --primary: #c47b96;
+  --primary-light: #fdf4f7;
+  --foreground: #111827;
+  --foreground-secondary: #4b5563;
+  --success: #16a34a;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --info: #3b82f6;
+  --pending: #ea580c;
   
   /* Component Tokens */
-  --card: #FFFFFF;
-  --card-foreground: #0B0B0B;
-  --popover: #FFFFFF;
-  --popover-foreground: #0B0B0B;
-  --primary-foreground: #FFFFFF;
-  --secondary: #F5F5F5;
-  --secondary-foreground: #0B0B0B;
-  --muted: #F5F5F5;
-  --muted-foreground: #6B6B6B;
-  --accent: #C87A88;
-  --accent-foreground: #FFFFFF;
-  --destructive: #FF6B6B;
-  --destructive-foreground: #FFFFFF;
-  --border: rgba(200, 122, 136, 0.3);
-  --input: rgba(200, 122, 136, 0.3);
-  --input-background: #F8F8F8;
-  --switch-background: #E0E0E0;
-  --ring: #C87A88;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+  --primary-foreground: #ffffff;
+  --secondary: #ffffff;
+  --secondary-foreground: #374151;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+  --accent: #c47b96;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #e5e7eb;
+  --input: #e5e7eb;
+  --input-background: #ffffff;
+  --switch-background: #e5e7eb;
+  --ring: #c47b96;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
   

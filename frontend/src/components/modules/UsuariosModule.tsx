@@ -511,24 +511,24 @@ export function UsuariosModule() {
                       />
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => handleOpenDetailDialog(user)}
-                          className="w-8 h-8 flex items-center justify-center rounded-md text-primary-light hover:text-primary hover:bg-surface/80 transition-all"
+                          className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-150"
                           title="Ver detalles"
                         >
                           <Eye className="w-5 h-5" />
                         </button>
                         <button
                           onClick={() => handleOpenDialog(user)}
-                          className="w-8 h-8 flex items-center justify-center rounded-md text-primary-light hover:text-primary hover:bg-surface/80 transition-all"
+                          className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-all duration-150"
                           title="Editar usuario"
                         >
                           <Pencil className="w-5 h-5" />
                         </button>
                         <button
                           onClick={() => handleOpenDeleteDialog(user)}
-                          className="w-8 h-8 flex items-center justify-center rounded-md text-danger hover:text-danger/80 hover:bg-danger/10 transition-all"
+                          className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-all duration-150"
                           title="Eliminar usuario"
                         >
                           <Trash2 className="w-5 h-5" />

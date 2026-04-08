@@ -1,17 +1,15 @@
 import { useStore } from '../lib/store';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from './ui/sidebar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import { Button } from './ui/button';
 import {
   LayoutDashboard,
@@ -43,24 +41,37 @@ export function AppSidebar({ onNavigate, currentRoute, onLogout }: AppSidebarPro
   const { currentUser, userType } = useStore();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
-  // Admin menu - visible for admin, vendedor, bodeguero roles
-  const adminMenuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', route: 'dashboard' },
-    { icon: Users, label: 'Usuarios', route: 'usuarios' },
-    { icon: UserCircle, label: 'Clientes', route: 'clientes-view' },
-    { icon: Package, label: 'Productos', route: 'productos' },
-    { icon: FolderKanban, label: 'Categorías', route: 'categorias' },
-    { icon: ShoppingCart, label: 'Ventas', route: 'ventas' },
-    { icon: Truck, label: 'Pedidos', route: 'pedidos' },
-    { icon: RotateCcw, label: 'Devoluciones', route: 'devoluciones' },
-    { icon: Building, label: 'Proveedores', route: 'proveedores' },
-    { icon: ShoppingBag, label: 'Compras', route: 'compras' },
-    { icon: Shield, label: 'Roles y Permisos', route: 'roles' },
-    { icon: Settings, label: 'Configuración', route: 'configuracion' },
+  const adminGroups = [
+    {
+      label: 'GENERAL',
+      items: [
+        { icon: LayoutDashboard, label: 'Dashboard', route: 'dashboard' },
+        { icon: Users, label: 'Usuarios', route: 'usuarios' },
+        { icon: UserCircle, label: 'Clientes', route: 'clientes-view' },
+      ]
+    },
+    {
+      label: 'CATÁLOGO',
+      items: [
+        { icon: Package, label: 'Productos', route: 'productos' },
+        { icon: FolderKanban, label: 'Categorías', route: 'categorias' },
+      ]
+    },
+    {
+      label: 'OPERACIONES',
+      items: [
+        { icon: ShoppingCart, label: 'Ventas', route: 'ventas' },
+        { icon: Truck, label: 'Pedidos', route: 'pedidos' },
+        { icon: RotateCcw, label: 'Devoluciones', route: 'devoluciones' },
+        { icon: Building, label: 'Proveedores', route: 'proveedores' },
+        { icon: ShoppingBag, label: 'Compras', route: 'compras' },
+        { icon: Shield, label: 'Roles y Permisos', route: 'roles' },
+        { icon: Settings, label: 'Configuración', route: 'configuracion' },
+      ]
+    }
   ];
 
-  // Client menu - visible for cliente role
-  const clienteMenuItems = [
+  const clienteItems = [
     { icon: Home, label: 'Inicio', route: 'inicio' },
     { icon: Store, label: 'Catálogo', route: 'catalogo' },
     { icon: Heart, label: 'Favoritos', route: 'favoritos' },
@@ -69,122 +80,217 @@ export function AppSidebar({ onNavigate, currentRoute, onLogout }: AppSidebarPro
     { icon: UserCircle, label: 'Mi Perfil', route: 'perfil' },
   ];
 
-  // Determine menu items based on userType (which is set automatically based on user role)
-  const menuItems = userType === 'admin' ? adminMenuItems : clienteMenuItems;
+  const renderItems = (items: {icon: any, label: string, route: string}[]) => (
+    <SidebarMenu>
+      {items.map((item) => {
+        const active = currentRoute === item.route;
+
+        return (
+          <SidebarMenuItem key={item.route}>
+            <SidebarMenuButton
+              onClick={() => onNavigate(item.route)}
+              className="relative flex items-center gap-3 px-6 py-2 transition-all group"
+              onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
+                if (!active) (e.currentTarget as HTMLElement).style.background = 'rgba(160,80,110,0.12)';
+              }}
+              onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
+                if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent';
+              }}
+            >
+              {active && (
+                <div
+                  className="absolute inset-0"
+                  style={{ background: 'rgba(160,80,110,0.18)' }}
+                />
+              )}
+
+              {active && (
+                <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-[#e0a0be] to-[#b06080]" />
+              )}
+
+              <item.icon
+                className="w-[14px] h-[14px] relative z-10 transition-all"
+                style={{
+                  color: active
+                    ? '#e0a8c0'
+                    : 'rgba(215,150,175,0.4)',
+                }}
+              />
+
+              <span
+                className="relative z-10"
+                style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontWeight: active ? 500 : 400,
+                  fontSize: '12px',
+                  letterSpacing: '0.3px',
+                  color: active
+                    ? '#ffffff'
+                    : 'rgba(240,205,220,0.48)',
+                  textShadow: active
+                    ? `
+                      0 0 9px rgba(225,155,178,0.88),
+                      0 0 18px rgba(160,80,110,0.45),
+                      1px 1px 0 rgba(20,0,8,0.98),
+                      -1px -1px 0 rgba(20,0,8,0.98),
+                      1px -1px 0 rgba(20,0,8,0.85),
+                      -1px 1px 0 rgba(20,0,8,0.85)
+                    `
+                    : 'none',
+                }}
+              >
+                {item.label}
+              </span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        );
+      })}
+    </SidebarMenu>
+  );
 
   return (
-    <Sidebar className="border-r border-sidebar-border" style={{ width: '280px' }}>
-      <SidebarHeader className="border-b border-sidebar-border p-6">
-        <div className="flex items-center justify-center gap-3">
-          <div className="w-13 h-13 rounded-full overflow-hidden flex items-center justify-center bg-black">
-            <img src="/logo.png" alt="Glamour ML Logo" className="w-20 h-20 object-cover" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-foreground" style={{ fontSize: '18px', fontWeight: 500, lineHeight: 1 }}>
-              GLAMOUR ML
-            </span>
-            <span className="text-foreground-secondary" style={{ fontSize: '11px', opacity: 0.7 }}>
-              {userType === 'admin' ? 'Panel Admin' : 'Cliente'}
-            </span>
-          </div>
-        </div>
-      </SidebarHeader>
+    <Sidebar 
+      className="border-none overflow-hidden"
+      style={{ '--sidebar-width': '280px' } as React.CSSProperties}
+    >
 
-      <SidebarContent className="px-3 py-4">
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.route}>
-                  <SidebarMenuButton
-                    onClick={() => onNavigate(item.route)}
-                    isActive={currentRoute === item.route}
-                    className={`
-                      h-11 px-3 gap-3 rounded-lg transition-all relative
-                      ${currentRoute === item.route 
-                        ? 'bg-primary/20 text-foreground hover:bg-primary/25' 
-                        : 'text-foreground-secondary hover:bg-sidebar-accent hover:text-foreground'
-                      }
-                    `}
-                    style={currentRoute === item.route ? {
-                      borderLeft: '3px solid #C87A88',
-                      paddingLeft: 'calc(0.75rem - 3px)',
-                    } : {}}
-                  >
-                    <item.icon className={`w-5 h-5 ${currentRoute === item.route ? 'text-primary' : ''}`} />
-                    <span style={{ fontSize: '14px' }}>{item.label}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
+      {/* Fondo */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `
+            radial-gradient(ellipse at 80% 8%, rgba(140,70,90,0.5) 0%, transparent 50%),
+            radial-gradient(ellipse at 12% 65%, rgba(80,25,40,0.55) 0%, transparent 50%),
+            radial-gradient(ellipse at 55% 92%, rgba(110,45,65,0.35) 0%, transparent 45%),
+            linear-gradient(158deg, #2e1020 0%, #3d1828 38%, #4a2035 62%, #2e1020 100%)
+          `
+        }}
+      />
 
-      <SidebarFooter className="p-4 border-t border-sidebar-border">
-        <div className="flex items-center gap-3 mb-3 px-2">
-          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden border border-primary/10">
-            {currentUser?.foto_perfil ? (
-              <img src={currentUser.foto_perfil} alt="PFP" className="w-full h-full object-cover" />
-            ) : (
-              <UserCircle className="w-6 h-6 text-primary" />
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-foreground truncate" style={{ fontSize: '14px', fontWeight: 500 }}>
-              {currentUser?.nombres || 'Usuario'}
-            </p>
-            <p className="text-foreground-secondary truncate" style={{ fontSize: '12px' }}>
-              {currentUser?.rol === 'admin' ? 'Administrador' : 
-               currentUser?.rol === 'vendedor' ? 'Vendedor' : 
-               currentUser?.rol === 'cliente' ? 'Cliente' : 'Sin rol'}
-            </p>
-          </div>
-        </div>
-        
-        <button
-          onClick={() => setShowLogoutDialog(true)}
-          className="w-full h-10 px-3 flex items-center justify-center gap-2 rounded-lg text-danger hover:bg-danger/10 transition-colors"
-          style={{ fontSize: '14px', fontWeight: 500 }}
-        >
-          <LogOut className="w-4 h-4" />
-          Cerrar sesión
-        </button>
-      </SidebarFooter>
+      <div className="relative z-10 flex flex-col h-full">
 
-      {/* Logout Dialog */}
-      <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-        <DialogContent className="bg-card border-border">
-          <DialogHeader>
-            <DialogTitle className="text-foreground">Cerrar Sesión</DialogTitle>
-            <DialogDescription className="sr-only">
-              Confirmación para cerrar sesión del sistema
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4">
-            <p className="text-foreground text-center">
-              ¿Estás seguro de que quieres cerrar sesión?
-            </p>
+        <SidebarHeader className="p-6 flex flex-col items-center border-none">
+          <div
+            className="w-20 h-20 rounded-full flex items-center justify-center"
+            style={{
+              background: 'radial-gradient(circle at 40% 35%, #3a1525, #160810)',
+              border: '1.5px solid rgba(210,140,165,0.5)',
+              boxShadow: '0 0 16px rgba(140,60,90,0.4)',
+            }}
+          >
+            <img src="/logo.png" className="w-14 h-14 object-contain" />
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowLogoutDialog(false)}
-              className="border-border text-foreground hover:bg-surface flex-1"
-            >
-              ❌ Cancelar
-            </Button>
-            <Button
-              onClick={() => {
-                setShowLogoutDialog(false);
-                onLogout?.();
+          <div className="text-center mt-2">
+            <h2
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontSize: '14px',
+                fontWeight: 600,
+                letterSpacing: '2.5px',
+                color: '#fff',
+                textTransform: 'uppercase',
+                textShadow: `
+                  0 0 10px rgba(225,155,178,0.9),
+                  0 0 22px rgba(160,80,110,0.6),
+                  1px 1px 0 rgba(20,0,8,0.95),
+                  -1px -1px 0 rgba(20,0,8,0.95),
+                  1px -1px 0 rgba(20,0,8,0.85),
+                  -1px 1px 0 rgba(20,0,8,0.85)
+                `,
               }}
-              className="bg-danger hover:bg-danger/90 text-foreground flex-1"
             >
-              ✅ Sí, cerrar sesión
-            </Button>
+              GLAMOUR ML
+            </h2>
+
+            <p style={{
+              fontSize: '9px',
+              color: 'rgba(220,160,180,0.58)',
+              letterSpacing: '1.5px',
+              textTransform: 'uppercase'
+            }}>
+              {userType === 'admin' ? 'Panel Admin' : 'Cliente'}
+            </p>
+          </div>
+        </SidebarHeader>
+
+        {/* 🔥 AQUÍ ESTÁ EL CAMBIO */}
+        <SidebarContent className="flex-1 bg-transparent overflow-y-auto no-scrollbar">
+          {userType === 'admin' ? (
+            adminGroups.map((group) => (
+              <div key={group.label}>
+                <h3
+                  style={{
+                    fontSize: '8px',
+                    letterSpacing: '1.8px',
+                    color: 'rgba(200,130,155,0.45)',
+                    padding: '8px 18px',
+                    textTransform: 'uppercase'
+                  }}
+                >
+                  {group.label}
+                </h3>
+                {renderItems(group.items)}
+              </div>
+            ))
+          ) : (
+            renderItems(clienteItems)
+          )}
+        </SidebarContent>
+
+        <SidebarFooter className="p-4 border-t border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-[#6a2840] flex items-center justify-center text-white text-xs">
+              {currentUser?.nombres?.charAt(0) || 'U'}
+            </div>
+
+            <div>
+              <p style={{
+                fontSize: '11px',
+                color: '#fff',
+                textShadow: '0 0 7px rgba(220,150,175,0.5)'
+              }}>
+                {currentUser?.nombres || 'Usuario'}
+              </p>
+              <p style={{
+                fontSize: '9px',
+                color: 'rgba(215,150,175,0.5)'
+              }}>
+                {currentUser?.rol || 'Admin'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowLogoutDialog(true)}
+            className="mt-3 flex items-center gap-2 text-[11px]"
+            style={{ color: 'rgba(215,150,175,0.45)' }}
+          >
+            <LogOut className="w-3 h-3" />
+            Cerrar sesión
+          </button>
+        </SidebarFooter>
+      </div>
+
+      <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <DialogContent 
+          className="text-white border border-white/10"
+          style={{
+            backgroundColor: '#1e0a15',
+            boxShadow: '0 0 40px rgba(0,0,0,0.8)'
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-[#e092b2]">Cerrar Sesión</DialogTitle>
+          </DialogHeader>
+
+          <p className="text-center text-sm text-white/60">
+            ¿Estás seguro?
+          </p>
+
+          <DialogFooter>
+            <Button onClick={() => setShowLogoutDialog(false)}>Cancelar</Button>
+            <Button onClick={() => { setShowLogoutDialog(false); onLogout?.(); }}>Salir</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

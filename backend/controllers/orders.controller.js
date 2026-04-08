@@ -127,13 +127,13 @@ export const obtenerDetalleOrden = async (req, res) => {
 export const actualizarEstado = async (req, res) => {
   try {
     const { id } = req.params;
-    const { estado, motivo } = req.body;
+    const { estado, motivo, shippingData } = req.body;
 
     if (!estado) {
       return res.status(400).json({ ok: false, message: "El estado es requerido" });
     }
 
-    const orden = await ordersService.actualizarEstadoPedido(parseInt(id, 10), estado, motivo);
+    const orden = await ordersService.actualizarEstadoPedido(parseInt(id, 10), estado, motivo, shippingData);
 
     return res.json({ ok: true, message: "Estado actualizado exitosamente", data: orden });
   } catch (error) {
@@ -164,5 +164,45 @@ export const cancelarOrden = async (req, res) => {
       return res.status(400).json({ ok: false, message: error.message });
     }
     return res.status(500).json({ ok: false, message: "Error en el servidor" });
+  }
+};
+
+export const confirmarPago = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { pago_confirmado } = req.body;
+
+    const orden = await ordersService.confirmarPago(parseInt(id, 10), pago_confirmado);
+
+    return res.json({ 
+      ok: true, 
+      message: pago_confirmado ? "Pago confirmado exitosamente" : "Confirmación de pago removida", 
+      data: orden 
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ ok: false, message: "Error en el servidor" });
+  }
+};
+
+export const subirComprobante = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!req.file) {
+      return res.status(400).json({ ok: false, message: 'No se subió ninguna imagen' });
+    }
+
+    const comprobanteUrl = `/uploads/comprobantes/${req.file.filename}`;
+    const orden = await ordersService.actualizarComprobante(parseInt(id, 10), comprobanteUrl);
+
+    return res.json({ 
+      ok: true, 
+      message: 'Comprobante subido exitosamente', 
+      data: orden 
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ ok: false, message: 'Error al subir comprobante' });
   }
 };

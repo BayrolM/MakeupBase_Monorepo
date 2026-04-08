@@ -83,8 +83,7 @@ export function FavoritosView({ onNavigate }: { onNavigate?: (route: string) => 
                   />
                 ) : (
                   <div className="text-primary/30 text-center p-12">
-                    <div className="text-6xl mb-4">💄</div>
-                    <p className="text-sm text-foreground-secondary">{selectedProduct.sku}</p>
+                    <div className="text-6xl">💄</div>
                   </div>
                 )}
               </div>
@@ -116,9 +115,6 @@ export function FavoritosView({ onNavigate }: { onNavigate?: (route: string) => 
                     Disponibilidad: <span className={selectedProduct.stock > 0 ? 'text-success' : 'text-danger'}>
                       {selectedProduct.stock > 0 ? `${selectedProduct.stock} unidades` : 'Agotado'}
                     </span>
-                  </p>
-                  <p className="text-foreground-secondary" style={{ fontSize: '13px' }}>
-                    SKU: {selectedProduct.sku}
                   </p>
                 </div>
               </div>
