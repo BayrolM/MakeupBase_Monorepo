@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useStore, Categoria } from "../../lib/store";
-import { PageHeader } from "../PageHeader";
+
 import { StatusSwitch } from "../StatusSwitch";
 import { Pagination } from "../Pagination";
 import {
@@ -30,14 +30,11 @@ import {
   Trash2,
   Search,
   X,
-  Layers,
   Archive,
-  Package,
   FolderTree,
   Hash,
   AlertCircle,
-  Activity,
-  Folders,
+  Layers,
 } from "lucide-react";
 import { toast } from "sonner";
 import { categoryService } from "../../services/categoryService";
@@ -275,12 +272,7 @@ export function CategoriasModule() {
                     Descripción
                   </div>
                 </TableHead>
-                <TableHead className="text-gray-700 font-semibold text-xs uppercase tracking-wider py-3">
-                  <div className="flex items-center gap-1.5">
-                    <Package className="w-3.5 h-3.5" />
-                    Productos
-                  </div>
-                </TableHead>
+
                 <TableHead className="text-gray-700 font-semibold text-xs uppercase tracking-wider py-3">
                   <div className="flex items-center gap-1.5">
                     <Layers className="w-3.5 h-3.5" />
@@ -296,7 +288,7 @@ export function CategoriasModule() {
             <TableBody>
               {categorias.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-20">
+                  <TableCell colSpan={5} className="text-center py-20">
                     <div className="flex flex-col items-center gap-4">
                       <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#fff0f5] to-[#fce8f0] flex items-center justify-center">
                         <FolderTree className="w-10 h-10 text-[#c47b96]" />
@@ -354,19 +346,7 @@ export function CategoriasModule() {
                           )}
                         </span>
                       </TableCell>
-                      <TableCell className="py-2.5">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${
-                            hasProducts
-                              ? "bg-[#c47b96]/10 text-[#c47b96]"
-                              : "bg-gray-100 text-gray-400"
-                          }`}
-                        >
-                          <Package className="w-3 h-3" />
-                          {productCount}{" "}
-                          {productCount === 1 ? "producto" : "productos"}
-                        </span>
-                      </TableCell>
+
                       <TableCell className="py-2.5">
                         <StatusSwitch
                           status={categoria.estado}
@@ -545,85 +525,76 @@ export function CategoriasModule() {
 
       {/* ==================== DIALOG DE DETALLE ==================== */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent
-          className="text-white border border-white/10 w-[95vw] sm:max-w-[600px] !max-w-[600px] p-0 overflow-hidden rounded-[2rem] shadow-2xl"
-          style={{
-            background:
-              "linear-gradient(158deg, #2e1020 0%, #3d1828 38%, #4a2035 62%, #2e1020 100%)",
-            backgroundColor: "#2e1020",
-          }}
-        >
-          {/* Header Accent Bar */}
-          <div className="h-1.5 w-full bg-gradient-to-r from-[#b06080] via-[#e0a0be] to-[#b06080]" />
+        <DialogContent className="outline outline-4 outline-yellow-400">
+          {/* CONTENEDOR INTERNO */}
+          <div
+            className="rounded-[2rem] overflow-hidden text-white shadow-2xl"
+            style={{
+              background:
+                "linear-gradient(158deg, #2e1020 0%, #3d1828 38%, #4a2035 62%, #2e1020 100%)",
+            }}
+          >
+            {/* Header Accent Bar */}
+            <div className="h-1.5 w-full bg-gradient-to-r from-[#b06080] via-[#e0a0be] to-[#b06080]" />
 
-          {selectedCategoria && (
-            <div className="flex flex-col h-full max-h-[90vh] overflow-hidden">
-              {/* Header */}
-              <div className="p-8 border-b border-white/10 flex items-center justify-between bg-black/20">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#c47b96] to-[#e092b2] flex items-center justify-center text-white font-black text-3xl shadow-xl border border-white/20">
-                    {selectedCategoria.nombre.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <DialogTitle className="text-2xl font-black text-white leading-tight tracking-tight">
-                      {selectedCategoria.nombre}
-                    </DialogTitle>
-                    <p className="text-white/40 text-[10px] uppercase font-bold tracking-widest mt-1">
-                      GESTIÓN DE CATEGORÍA <span className="text-[#e092b2]">#{selectedCategoria.id.slice(0, 8).toUpperCase()}</span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Body - Scrollable */}
-              <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
-                <div className="space-y-6">
-                  {/* Category Description */}
-                  <div className="space-y-3">
-                    <Label className="text-white/30 text-[9px] uppercase font-bold tracking-widest flex items-center gap-2">
-                       <Archive className="w-3 h-3" /> Descripción Editorial
-                    </Label>
-                    <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
-                      <p className="text-white/70 text-sm leading-relaxed italic">
-                        {selectedCategoria.descripcion || (
-                          <span className="text-white/20 NOT-italic">Sin descripción detallada registrada para esta categoría comercial.</span>
-                        )}
+            {selectedCategoria && (
+              <div className="flex flex-col h-full max-h-[90vh] overflow-hidden">
+                {/* Header */}
+                <div className="p-8 border-b border-white/10 flex items-center justify-between bg-black/20">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#c47b96] to-[#e092b2] flex items-center justify-center text-white font-black text-3xl shadow-xl border border-white/20">
+                      {selectedCategoria.nombre.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <DialogTitle className="text-2xl font-black text-white leading-tight tracking-tight">
+                        {selectedCategoria.nombre}
+                      </DialogTitle>
+                      <p className="text-white/40 text-[10px] uppercase font-bold tracking-widest mt-1">
+                        GESTIÓN DE CATEGORÍA{" "}
+                        <span className="text-[#e092b2]">
+                          #{selectedCategoria.id.slice(0, 8).toUpperCase()}
+                        </span>
                       </p>
                     </div>
                   </div>
+                </div>
 
-                  {/* Impact Summary */}
-                  <div className="space-y-3">
-                    <Label className="text-white/30 text-[9px] uppercase font-bold tracking-widest flex items-center gap-2">
-                       <Activity className="w-3 h-3" /> Impacto en el Catálogo
-                    </Label>
-                    <div className="p-8 rounded-3xl bg-gradient-to-br from-[#e092b2]/10 to-transparent border border-[#e092b2]/20 flex items-center justify-between">
-                       <div>
-                          <p className="text-[#e092b2]/60 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Productos Vinculados</p>
-                          <p className="text-5xl font-black text-white tracking-tighter">
-                             {productos.filter(p => p.categoriaId === selectedCategoria.id).length}
-                          </p>
-                       </div>
-                       <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center">
-                          <Folders className="w-8 h-8 text-[#e092b2]/40" />
-                       </div>
+                {/* Body */}
+                <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+                  <div className="space-y-6">
+                    {/* Category Description */}
+                    <div className="space-y-3">
+                      <Label className="text-white/30 text-[9px] uppercase font-bold tracking-widest flex items-center gap-2">
+                        <Archive className="w-3 h-3" /> Descripción Editorial
+                      </Label>
+
+                      <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
+                        <p className="text-white/70 text-sm leading-relaxed italic">
+                          {selectedCategoria.descripcion || (
+                            <span className="text-white/20 italic">
+                              Sin descripción detallada registrada para esta
+                              categoría comercial.
+                            </span>
+                          )}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Footer */}
-              <div className="p-8 border-t border-white/10 bg-black/10 flex justify-end">
-                <Button
-                  onClick={() => setIsDetailDialogOpen(false)}
-                  variant="ghost"
-                  className="px-8 h-12 rounded-xl text-white/60 hover:text-white hover:bg-white/10 border border-white/10 transition-all font-bold uppercase text-[10px] tracking-widest"
-                >
-                  Regresar a Categorías
-                </Button>
+                {/* Footer */}
+                <div className="p-8 border-t border-white/10 bg-black/10 flex justify-end">
+                  <Button
+                    onClick={() => setIsDetailDialogOpen(false)}
+                    variant="ghost"
+                    className="px-8 h-12 rounded-xl text-white/60 hover:text-white hover:bg-white/10 border border-white/10 transition-all font-bold uppercase text-[10px] tracking-widest"
+                  >
+                    Regresar a Categorías
+                  </Button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 

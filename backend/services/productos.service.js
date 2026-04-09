@@ -31,7 +31,7 @@ export const listarProductos = async (filters = {}) => {
     WHERE 1=1
     ${
       q
-        ? sql`AND (p.nombre ILIKE ${"%" + q + "%"} OR p.descripcion ILIKE ${"%" + q + "%"})`
+        ? sql`AND (p.nombre ILIKE ${"%" + q + "%"} OR p.descripcion ILIKE ${"%" + q + "%"} OR m.nombre ILIKE ${"%" + q + "%"} OR c.nombre ILIKE ${"%" + q + "%"})`
         : sql``
     }
     ${marca ? sql`AND p.id_marca = ${marca}` : sql``}
@@ -45,9 +45,9 @@ export const listarProductos = async (filters = {}) => {
     }
   `;
 
-  // Contar total
+  // Contar total (Necesitamos los joins si filtramos por marca o categoría en 'q')
   const countResult =
-    await sql`SELECT COUNT(1) AS total FROM productos p ${whereFragment}`;
+    await sql`SELECT COUNT(1) AS total FROM productos p LEFT JOIN marcas m ON p.id_marca = m.id_marca LEFT JOIN categorias c ON p.id_categoria = c.id_categoria ${whereFragment}`;
   const total = parseInt(countResult[0].total, 10);
 
   // Obtener datos

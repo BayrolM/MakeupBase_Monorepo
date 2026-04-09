@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useStore, Producto } from "../../lib/store";
-import { PageHeader } from "../PageHeader";
+
 import { StatusSwitch } from "../StatusSwitch";
 import { Pagination } from "../Pagination";
 import {
@@ -68,7 +68,7 @@ export function ProductsModule() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [imagePreview, setImagePreview] = useState<string>("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [formData, setFormData] = useState({
     nombre: "",
     descripcion: "",
@@ -171,43 +171,7 @@ export function ProductsModule() {
     setIsDialogOpen(true);
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("La imagen no puede superar los 5MB");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        let { width, height } = img;
-        const MAX_SIZE = 800;
 
-        if (width > height && width > MAX_SIZE) {
-          height = Math.round((height * MAX_SIZE) / width);
-          width = MAX_SIZE;
-        } else if (height > MAX_SIZE) {
-          width = Math.round((width * MAX_SIZE) / height);
-          height = MAX_SIZE;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressedBase64 = canvas.toDataURL("image/webp", 0.8);
-          setImagePreview(compressedBase64);
-          setFormData((prev) => ({ ...prev, imagenUrl: compressedBase64 }));
-        }
-      };
-      img.src = event.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-  };
 
   const handleSave = async () => {
     if (
@@ -480,16 +444,16 @@ export function ProductsModule() {
                           {product.nombre}
                         </span>
                       </TableCell>
-                      <TableCell className="py-2.5">
-                        <span className="text-gray-600 text-sm">
-                          {product.marca}
-                        </span>
-                      </TableCell>
                       <TableCell className="py-4">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#c47b96]/5 text-gray-600 text-xs">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#c47b96]/5 text-gray-600 text-xs text-center justify-center min-w-[100px]">
                           <Layers className="w-3 h-3" />
                           {categorias.find((c) => c.id === product.categoriaId)
                             ?.nombre || "Sin cat."}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-2.5">
+                        <span className="text-gray-600 text-sm">
+                          {product.marca}
                         </span>
                       </TableCell>
                       <TableCell className="py-4">
@@ -785,64 +749,55 @@ export function ProductsModule() {
               </div>
 
               {/* Imagen - ocupa ambas columnas */}
-              <div className="col-span-2 space-y-2">
+              <div className="col-span-2 space-y-4">
                 <Label className="text-gray-700 font-semibold text-sm flex items-center gap-2">
                   <Upload className="w-3.5 h-3.5 text-[#c47b96]" />
-                  Imagen del Producto
+                  Imagen del Producto (URL)
                 </Label>
-                <div
-                  className="relative border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-[#c47b96]/50 transition-all bg-gray-50 hover:bg-gray-100"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/png, image/jpeg, image/webp"
-                    className="hidden"
-                    onChange={handleImageChange}
-                  />
-                  {imagePreview ? (
-                    <div className="flex items-center gap-4">
-                      <div className="w-20 h-20 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0 shadow-sm">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="md:col-span-3">
+                    <Input
+                      value={formData.imagenUrl}
+                      onChange={(e) => {
+                        setFormData({ ...formData, imagenUrl: e.target.value });
+                        setImagePreview(e.target.value);
+                      }}
+                      className="bg-gray-50 border-gray-200 text-gray-800 rounded-xl focus:ring-[#c47b96]/20 focus:border-[#c47b96] transition-all h-11"
+                      placeholder="https://ejemplo.com/imagen.jpg"
+                    />
+                    <p className="text-[11px] text-gray-400 mt-2 px-1">
+                      Pegue la dirección URL de la imagen. Se recomienda usar enlaces directos de alta calidad.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 h-[110px] overflow-hidden group hover:border-[#c47b96]/30 transition-all">
+                    {imagePreview ? (
+                      <div className="relative w-full h-full flex items-center justify-center p-2">
                         <img
                           src={imagePreview}
                           alt="Preview"
-                          className="w-full h-full object-cover"
+                          className="max-w-full max-h-full object-contain rounded-lg shadow-sm group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://placehold.co/400x400?text=Error+de+URL';
+                          }}
                         />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImagePreview("");
+                            setFormData({ ...formData, imagenUrl: "" });
+                          }}
+                          className="absolute -top-1 -right-1 bg-rose-500 text-white rounded-full p-1 shadow-lg hover:bg-rose-600 transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
                       </div>
-                      <div className="text-left">
-                        <p className="text-gray-800 font-medium text-sm">
-                          Imagen seleccionada
-                        </p>
-                        <p className="text-gray-400 text-xs mt-1">
-                          Haz clic para cambiarla
-                        </p>
+                    ) : (
+                      <div className="flex flex-col items-center gap-1 text-gray-300">
+                        <Package className="w-8 h-8 opacity-20" />
+                        <span className="text-[10px] font-medium uppercase tracking-widest opacity-40">Sin Vista Previa</span>
                       </div>
-                      <button
-                        type="button"
-                        className="ml-auto text-gray-400 hover:text-rose-500 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setImagePreview("");
-                          setFormData((prev) => ({ ...prev, imagenUrl: "" }));
-                        }}
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="w-12 h-12 rounded-full bg-[#c47b96]/10 flex items-center justify-center">
-                        <Upload className="w-6 h-6 text-[#c47b96]" />
-                      </div>
-                      <p className="text-gray-700 font-medium text-sm">
-                        Arrastra una imagen o haz clic para seleccionar
-                      </p>
-                      <p className="text-gray-400 text-xs">
-                        PNG, JPG o WebP · Máx 5MB
-                      </p>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
