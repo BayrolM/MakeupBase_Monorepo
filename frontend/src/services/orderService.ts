@@ -94,8 +94,36 @@ export const orderService = {
   },
   
   /**
-   * Actualizar estado de orden
+   * Cancelar pedido por el cliente
    */
+  async cancelByClient(id: number): Promise<any> {
+    try {
+      const response = await api.put(`/orders/${id}/cancel-client`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Error al cancelar el pedido");
+    }
+  },
+
+  /**
+   * Actualizar dirección por el cliente
+   */
+  async updateDireccion(id: number, direccion: string): Promise<any> {
+    try {
+      const response = await api.put(`/orders/${id}/direccion`, { direccion });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Error al actualizar la dirección");
+    }
+  },
+  async update(id: number, data: { direccion?: string; id_cliente?: number; items?: Array<{ id_producto: number; cantidad: number }> }): Promise<any> {
+    try {
+      const response = await api.put(`/orders/${id}`, data);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Error al actualizar el pedido");
+    }
+  },
   async updateStatus(id: number, estado: string, motivo?: string, shippingData?: any): Promise<any> {
     try {
       const response = await api.put(`/orders/${id}/status`, { estado, motivo, shippingData });

@@ -460,3 +460,97 @@ export const actualizarComprobante = async (id_pedido, url) => {
   `;
   return updatedPedido;
 }
+
+/**
+ * Actualizar datos de un pedido (dirección, cliente, productos)
+ * - pendiente: permite cambiar dirección, cliente y productos
+ * - preparado/procesando: solo dirección
+ */
+export const actualizarPedido = async (id_pedido, { direccion, id_cliente, items }) => {
+  const [pedido] = await sql`SELECT * FROM pedidos WHERE id_pedido = ${id_pedido}`;
+  if (!pedido) throw new Error('Pedido no encontrado');
+
+  const estadosEditables = ['pendiente', 'preparado', 'procesando'];
+  if (!estadosEditables.includes(pedido.estado)) {
+    throw new Error(`Solo se puede editar un pedido en estado pendiente, preparado o procesando. Estado actual: ${pedido.estado}`);
+  }
+
+  return await sql.begin(async (sql) => {
+    // Actualizar dirección siempre que se envíe
+    if (direccion !== undefined) {
+      await sql`UPDATE pedidos SET direccion = ${direccion} WHERE id_pedido = ${id_pedido}`;
+    }
+
+    // Cambiar cliente (solo pendiente)
+    if (id_cliente !== undefined && pedido.estado === 'pendiente') {
+      await sql`UPDATE pedidos SET id_usuario_cliente = ${id_cliente} WHERE id_pedido = ${id_pedido}`;
+    }
+
+    // Cambiar productos (solo pendiente)
+    if (items && Array.isArray(items) && items.length > 0 && pedido.estado === 'pendiente') {
+      // 1. Devolver stock de los items actuales
+      const itemsActuales = await sql`SELECT id_producto, cantidad FROM detalle_pedido WHERE id_pedido = ${id_pedido}`;
+      for (const item of itemsActuales) {
+        await sql`UPDATE productos SET stock_actual = stock_actual + ${item.cantidad} WHERE id_producto = ${item.id_producto}`;
+      }
+
+      // 2. Eliminar detalles actuales
+      await sql`DELETE FROM detalle_pedido WHERE id_pedido = ${id_pedido}`;
+
+      // 3. Insertar nuevos items y reservar stock
+      let nuevoTotal = 0;
+      for (const item of items) {
+        const [p] = await sql`SELECT precio_venta, stock_actual FROM productos WHERE id_producto = ${item.id_producto}`;
+        if (!p) throw new Error(`Producto ID ${item.id_producto} no encontrado`);
+        if (p.stock_actual < item.cantidad) throw new Error(`Stock insuficiente para el producto ID ${item.id_producto}`);
+
+        const subtotal = p.precio_venta * item.cantidad;
+        nuevoTotal += subtotal;
+
+        await sql`
+          INSERT INTO detalle_pedido (id_pedido, id_producto, cantidad, precio_unitario, subtotal)
+          VALUES (${id_pedido}, ${item.id_producto}, ${item.cantidad}, ${p.precio_venta}, ${subtotal})
+        `;
+        await sql`UPDATE productos SET stock_actual = stock_actual - ${item.cantidad} WHERE id_producto = ${item.id_producto}`;
+      }
+
+      // 4. Actualizar total del pedido
+      await sql`UPDATE pedidos SET total = ${nuevoTotal} WHERE id_pedido = ${id_pedido}`;
+    }
+
+    const [updated] = await sql`SELECT * FROM pedidos WHERE id_pedido = ${id_pedido}`;
+    return updated;
+  });
+};
+
+/**
+ * Cancelar pedido por el cliente — solo si le pertenece y está en 'pendiente'
+ */
+export const cancelarOrdenCliente = async (id_pedido, id_usuario) => {
+  const [pedido] = await sql`SELECT * FROM pedidos WHERE id_pedido = ${id_pedido}`;
+  if (!pedido) throw new Error('Pedido no encontrado');
+  if (pedido.id_usuario_cliente !== id_usuario) throw new Error('No tienes permiso para cancelar este pedido');
+  if (pedido.estado !== 'pendiente') throw new Error('Solo puedes cancelar pedidos en estado pendiente');
+
+  return await sql.begin(async (sql) => {
+    const items = await sql`SELECT id_producto, cantidad FROM detalle_pedido WHERE id_pedido = ${id_pedido}`;
+    for (const item of items) {
+      await sql`UPDATE productos SET stock_actual = stock_actual + ${item.cantidad} WHERE id_producto = ${item.id_producto}`;
+    }
+    const [updated] = await sql`UPDATE pedidos SET estado = 'cancelado', motivo_anulacion = 'Cancelado por el cliente' WHERE id_pedido = ${id_pedido} RETURNING *`;
+    return updated;
+  });
+};
+
+/**
+ * Actualizar dirección de un pedido por el cliente — solo si le pertenece y está en 'pendiente'
+ */
+export const actualizarDireccionCliente = async (id_pedido, id_usuario, direccion) => {
+  const [pedido] = await sql`SELECT * FROM pedidos WHERE id_pedido = ${id_pedido}`;
+  if (!pedido) throw new Error('Pedido no encontrado');
+  if (pedido.id_usuario_cliente !== id_usuario) throw new Error('No tienes permiso para editar este pedido');
+  if (!['pendiente', 'preparado'].includes(pedido.estado)) throw new Error('Solo puedes cambiar la dirección si el pedido está en pendiente o preparado');
+
+  const [updated] = await sql`UPDATE pedidos SET direccion = ${direccion} WHERE id_pedido = ${id_pedido} RETURNING *`;
+  return updated;
+};

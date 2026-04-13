@@ -1,5 +1,33 @@
 import * as ordersService from "../services/orders.service.js";
 
+// Controlador para que el cliente cancele su propio pedido
+export const cancelarOrdenPorCliente = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const id_usuario = req.user.id_usuario;
+    const orden = await ordersService.cancelarOrdenCliente(parseInt(id, 10), id_usuario);
+    return res.json({ ok: true, message: "Pedido cancelado correctamente", data: orden });
+  } catch (error) {
+    console.error(error);
+    return res.status(400).json({ ok: false, message: error.message || "Error al cancelar el pedido" });
+  }
+};
+
+// Controlador para que el cliente cambie la dirección de su pedido
+export const actualizarDireccionPorCliente = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { direccion } = req.body;
+    const id_usuario = req.user.id_usuario;
+    if (!direccion?.trim()) return res.status(400).json({ ok: false, message: "La dirección es obligatoria" });
+    const orden = await ordersService.actualizarDireccionCliente(parseInt(id, 10), id_usuario, direccion.trim());
+    return res.json({ ok: true, message: "Dirección actualizada correctamente", data: orden });
+  } catch (error) {
+    console.error(error);
+    return res.status(400).json({ ok: false, message: error.message || "Error al actualizar la dirección" });
+  }
+};
+
 // Controlador para crear una nueva orden
 export const crearOrden = async (req, res) => {
   try {
@@ -118,6 +146,24 @@ export const obtenerDetalleOrden = async (req, res) => {
     console.error(error);
     if (error.message === "Orden no encontrada") {
       return res.status(404).json({ ok: false, message: error.message });
+    }
+    return res.status(500).json({ ok: false, message: "Error en el servidor" });
+  }
+};
+
+// Controlador para actualizar datos de un pedido (dirección, cliente, productos)
+export const actualizarPedido = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { direccion, id_cliente, items } = req.body;
+
+    const orden = await ordersService.actualizarPedido(parseInt(id, 10), { direccion, id_cliente, items });
+
+    return res.json({ ok: true, message: "Pedido actualizado exitosamente", data: orden });
+  } catch (error) {
+    console.error(error);
+    if (error.message.includes("no encontrado") || error.message.includes("Solo se puede")) {
+      return res.status(400).json({ ok: false, message: error.message });
     }
     return res.status(500).json({ ok: false, message: "Error en el servidor" });
   }

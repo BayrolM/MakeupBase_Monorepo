@@ -18,7 +18,7 @@ interface VentaData {
   }[];
 }
 
-export const generateSalePDF = (
+export const generateSalePDF = async (
   venta: VentaData,
   cliente: Cliente | undefined,
   productosDestino: Producto[],
@@ -26,96 +26,161 @@ export const generateSalePDF = (
   try {
     const doc = new jsPDF() as any;
 
-    // Header principal
-    doc.setFontSize(22);
-    doc.setTextColor(255, 105, 180);
-    doc.text("GLAMOUR ML", 105, 20, { align: "center" });
+    // COLORES (mismos que pedidos)
+    const cPrimary = [46, 16, 32];      // #2e1020
+    const cSecondary = [224, 146, 178]; // #e092b2
+    const cBorder = [220, 220, 220];
+    const cText = [40, 40, 40];
+    const cLightGray = [248, 248, 248];
 
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text("NIT: 900.XXX.XXX-X | Medellín, Colombia", 105, 28, {
-      align: "center",
-    });
+    const formatP = (v: number) =>
+      new Intl.NumberFormat("es-CO", {
+        style: "currency",
+        currency: "COP",
+        minimumFractionDigits: 0,
+      }).format(isNaN(v) ? 0 : v);
 
-    doc.setDrawColor(200);
-    doc.line(20, 35, 190, 35);
+    // 1. BARRA SUPERIOR
+    doc.setFillColor(cPrimary[0], cPrimary[1], cPrimary[2]);
+    doc.rect(0, 0, 210, 4, "F");
 
-    // Detalles Venta
-    doc.setFontSize(14);
-    doc.setTextColor(0);
-    doc.text("FACTURA DE VENTA", 20, 45);
-    doc.setFontSize(10);
-    doc.text(`No. FACTURA: ${venta.id}`, 20, 52);
-    doc.text(`FECHA: ${venta.fecha}`, 20, 57);
-    doc.text(`MÉTODO DE PAGO: ${venta.metodoPago || "N/A"}`, 20, 62);
+    // Logo
+    try {
+      const img = new Image();
+      img.src = "/logo.png";
+      await new Promise((resolve) => {
+        img.onload = () => { doc.addImage(img, "PNG", 20, 12, 18, 18); resolve(true); };
+        img.onerror = () => resolve(false);
+      });
+    } catch (e) {}
 
-    // Datos Cliente
-    doc.setFontSize(12);
-    doc.text("DATOS DEL CLIENTE", 120, 45);
-    doc.setFontSize(10);
-    doc.text(`NOMBRE: ${cliente?.nombre || "N/A"}`, 120, 52);
-    doc.text(
-      `DOC: ${cliente?.documento || cliente?.numeroDocumento || "N/A"}`,
-      120,
-      57,
-    );
-    doc.text(`TEL: ${cliente?.telefono || "N/A"}`, 120, 62);
-
-    // Tabla Header
-    doc.setFillColor(255, 105, 180);
-    doc.rect(20, 70, 170, 8, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(9);
-    doc.text("PRODUCTO", 22, 75.5);
-    doc.text("CANT.", 100, 75.5);
-    doc.text("PRECIO", 130, 75.5);
-    doc.text("SUBTOTAL", 160, 75.5);
-
-    // Tabla Body
-    doc.setTextColor(0);
-    let listY = 85;
-
-    const safeCurrency = (val: any) => {
-      if (typeof val !== "number" || isNaN(val)) return formatCurrency(0);
-      return formatCurrency(val);
-    };
-
-    (venta.productos || []).forEach((p: any) => {
-      const prod = productosDestino.find(
-        (pr: Producto) => pr.id === p.productoId,
-      );
-      const prodName = doc.splitTextToSize(
-        prod?.nombre || "Producto Desconocido",
-        70,
-      );
-
-      doc.text(prodName, 22, listY);
-      doc.text(String(p.cantidad || 0), 100, listY);
-      doc.text(safeCurrency(p.precioUnitario), 130, listY);
-      doc.text(
-        safeCurrency((p.cantidad || 0) * (p.precioUnitario || 0)),
-        160,
-        listY,
-      );
-
-      listY += prodName.length * 5 + 3;
-    });
-
-    // Totales
-    const finalY = listY + 10;
-    doc.text(`SUBTOTAL: ${safeCurrency(venta.subtotal)}`, 140, finalY);
-    doc.text(`IVA (19%): ${safeCurrency(venta.iva)}`, 140, finalY + 7);
-    doc.setFontSize(14);
-    doc.setTextColor(255, 105, 180);
-    doc.text(`TOTAL: ${safeCurrency(venta.total)}`, 140, finalY + 15);
-
-    // Footer
+    // Nombre empresa
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.setTextColor(cPrimary[0], cPrimary[1], cPrimary[2]);
+    doc.text("GLAMOUR ML", 45, 20);
     doc.setFontSize(8);
-    doc.setTextColor(150);
-    doc.text("¡Gracias por su compra!", 105, 280, { align: "center" });
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(120);
+    doc.text("TIENDA DE BELLEZA & CUIDADO PERSONAL", 45, 25);
 
-    doc.save(`factura_${venta.id}.pdf`);
-    toast.success("El PDF ha sido generado y la descarga ha iniciado");
+    // Número de factura (derecha)
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(cPrimary[0], cPrimary[1], cPrimary[2]);
+    doc.text("FACTURA DE VENTA", 190, 20, { align: "right" });
+    doc.setFontSize(10);
+    doc.setTextColor(cSecondary[0], cSecondary[1], cSecondary[2]);
+    doc.text(`#${venta.id.slice(0, 8).toUpperCase()}`, 190, 26, { align: "right" });
+
+    // 2. LÍNEA DIVISORA + INFO CLIENTE
+    doc.setDrawColor(cBorder[0], cBorder[1], cBorder[2]);
+    doc.line(20, 40, 190, 40);
+
+    doc.setFontSize(9);
+    doc.setTextColor(150);
+    doc.text("CLIENTE:", 20, 50);
+    doc.text("INFORMACIÓN DE CONTACTO:", 110, 50);
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(cText[0], cText[1], cText[2]);
+    doc.text(cliente?.nombre || "Consumidor Final", 20, 56);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(`Doc: ${cliente?.documento || cliente?.numeroDocumento || "N/A"}`, 20, 62);
+
+    doc.setFont("helvetica", "bold");
+    doc.text(cliente?.email || "N/A", 110, 56);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Tel: ${cliente?.telefono || "N/A"}`, 110, 62);
+    doc.text(`Fecha: ${venta.fecha}`, 110, 68);
+    doc.text(`Método de pago: ${venta.metodoPago || "N/A"}`, 110, 74);
+
+    // 3. TABLA DE PRODUCTOS
+    let tableY = 86;
+
+    // Header tabla
+    doc.setFillColor(cPrimary[0], cPrimary[1], cPrimary[2]);
+    doc.rect(20, tableY, 170, 10, "F");
+    doc.setTextColor(255);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text("PRODUCTO / DESCRIPCIÓN", 25, tableY + 6.5);
+    doc.text("CANT", 115, tableY + 6.5, { align: "center" });
+    doc.text("PRECIO UNIT.", 148, tableY + 6.5, { align: "center" });
+    doc.text("TOTAL", 185, tableY + 6.5, { align: "right" });
+
+    tableY += 10;
+    doc.setTextColor(cText[0], cText[1], cText[2]);
+    doc.setFont("helvetica", "normal");
+
+    (venta.productos || []).forEach((p: any, i: number) => {
+      const prod = productosDestino.find((pr: Producto) => pr.id === p.productoId);
+      const nameLines = doc.splitTextToSize(prod?.nombre || "Producto", 80);
+      const rowHeight = nameLines.length * 5 + 6;
+
+      // Fondo alternado
+      if (i % 2 !== 0) {
+        doc.setFillColor(cLightGray[0], cLightGray[1], cLightGray[2]);
+        doc.rect(20, tableY, 170, rowHeight, "F");
+      }
+
+      // Bordes
+      doc.setDrawColor(cBorder[0], cBorder[1], cBorder[2]);
+      doc.setLineWidth(0.1);
+      doc.line(20, tableY + rowHeight, 190, tableY + rowHeight);
+      doc.line(20, tableY, 20, tableY + rowHeight);
+      doc.line(190, tableY, 190, tableY + rowHeight);
+
+      doc.text(nameLines, 25, tableY + 6);
+      doc.text(String(p.cantidad || 0), 115, tableY + 6, { align: "center" });
+      doc.text(formatP(p.precioUnitario || 0), 148, tableY + 6, { align: "center" });
+      doc.setFont("helvetica", "bold");
+      doc.text(formatP((p.cantidad || 0) * (p.precioUnitario || 0)), 185, tableY + 6, { align: "right" });
+      doc.setFont("helvetica", "normal");
+
+      tableY += rowHeight;
+    });
+
+    // 4. TOTALES
+    const footerY = Math.max(tableY + 15, 185);
+
+    doc.setDrawColor(cPrimary[0], cPrimary[1], cPrimary[2]);
+    doc.setLineWidth(0.5);
+    doc.line(120, footerY, 190, footerY);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(120);
+    doc.text("Subtotal:", 125, footerY + 10);
+    doc.text(`IVA (${Math.round((venta.iva / (venta.subtotal || 1)) * 100)}%):`, 125, footerY + 16);
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(cPrimary[0], cPrimary[1], cPrimary[2]);
+    doc.text("TOTAL:", 125, footerY + 26);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(cText[0], cText[1], cText[2]);
+    doc.text(formatP(venta.subtotal), 185, footerY + 10, { align: "right" });
+    doc.text(formatP(venta.iva), 185, footerY + 16, { align: "right" });
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(cPrimary[0], cPrimary[1], cPrimary[2]);
+    doc.text(formatP(venta.total), 185, footerY + 26, { align: "right" });
+
+    // 5. FOOTER
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(150);
+    doc.text("Gracias por su compra. Este comprobante no representa una factura fiscal legal.", 20, 275);
+    doc.text("GLAMOUR ML - Medellín, Colombia", 20, 280);
+
+    doc.save(`GlamourML_Factura_${venta.id.slice(0, 8)}.pdf`);
+    toast.success("Factura generada correctamente");
   } catch (error) {
     console.error("Error generando PDF:", error);
     toast.error("Ocurrió un error al intentar generar el PDF");

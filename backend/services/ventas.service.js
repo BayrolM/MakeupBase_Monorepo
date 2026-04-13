@@ -12,10 +12,19 @@ export const listarVentas = async (filters = {}) => {
 
   const offset = (page - 1) * limit;
 
+  // Detectar si la búsqueda es por estado
+  let estadoBool = null;
+  if (q) {
+    const qLower = q.toLowerCase().trim();
+    if (qLower === 'activo' || qLower === 'activa') estadoBool = true;
+    else if (qLower === 'anulada' || qLower === 'anulado' || qLower === 'inactivo') estadoBool = false;
+  }
+
   // Fragmento WHERE dinámico
   const whereFragment = sql`
     WHERE 1=1
-    ${q ? sql`AND (u.nombre ILIKE ${'%' + q + '%'} OR u.apellido ILIKE ${'%' + q + '%'} OR v.id_venta::text ILIKE ${'%' + q + '%'})` : sql``}
+    ${q && estadoBool === null ? sql`AND (u.nombre ILIKE ${'%' + q + '%'} OR u.apellido ILIKE ${'%' + q + '%'} OR v.id_venta::text ILIKE ${'%' + q + '%'})` : sql``}
+    ${estadoBool !== null ? sql`AND v.estado = ${estadoBool}` : sql``}
     ${id_cliente ? sql`AND v.id_usuario_cliente = ${id_cliente}` : sql``}
     ${fecha_inicio ? sql`AND v.fecha_venta >= ${fecha_inicio}` : sql``}
     ${fecha_fin ? sql`AND v.fecha_venta <= ${fecha_fin}` : sql``}

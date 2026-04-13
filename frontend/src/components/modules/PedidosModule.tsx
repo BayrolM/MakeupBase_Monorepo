@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "../ui/table";
 import { Button } from "../ui/button";
-import { Dialog, DialogContent, DialogTitle } from "../ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "../ui/dialog";
 // Removed unused Select imports
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
@@ -66,6 +66,13 @@ export function PedidosModule() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingPedido, setEditingPedido] = useState<any>(null);
+  const [editFormData, setEditFormData] = useState({
+    clienteId: "",
+    direccionEnvio: "",
+    productos: [] as { productoId: string; cantidad: number; precioUnitario: number; maxStock: number }[],
+  });
   const [selectedPedido, setSelectedPedido] = useState<any>(null);
   const [newStatus, setNewStatus] = useState<OrderStatus>("pendiente");
   const [motivoAnulacion, setMotivoAnulacion] = useState("");
@@ -146,10 +153,16 @@ export function PedidosModule() {
 
   const refreshPedidos = async () => {
     try {
+      // Detectar si el query es un estado conocido para enviarlo como filtro de estado
+      const ESTADOS_VALIDOS = ['pendiente', 'preparado', 'procesando', 'enviado', 'entregado', 'cancelado'];
+      const qLower = searchQuery.toLowerCase().trim();
+      const esEstado = ESTADOS_VALIDOS.includes(qLower);
+
       const response = await orderService.getAll({
         page: currentPage,
         limit: itemsPerPage,
-        q: searchQuery,
+        q: esEstado ? undefined : searchQuery || undefined,
+        estado: esEstado ? qLower : undefined,
       });
 
       setTotalItems(response.total || 0);
@@ -200,15 +213,10 @@ export function PedidosModule() {
 
   const handleOpenDialog = () => {
     setFormData({
-      clienteId: clientes[0]?.id || "",
+      clienteId: "",
       direccionEnvio: "",
       productos: [
-        {
-          productoId: productos[0]?.id || "",
-          cantidad: 1,
-          precioUnitario: productos[0]?.precioVenta || 0,
-          maxStock: productos[0]?.stock || 0,
-        },
+        { productoId: "", cantidad: 1, precioUnitario: 0, maxStock: 0 },
       ],
     });
     setIsDialogOpen(true);
@@ -220,10 +228,10 @@ export function PedidosModule() {
       productos: [
         ...formData.productos,
         {
-          productoId: productos[0]?.id || "",
+          productoId: "",
           cantidad: 1,
-          precioUnitario: productos[0]?.precioVenta || 0,
-          maxStock: productos[0]?.stock || 0,
+          precioUnitario: 0,
+          maxStock: 0,
         },
       ],
     });
@@ -243,43 +251,141 @@ export function PedidosModule() {
     prodObj?: any,
   ) => {
     const newProductos = [...formData.productos];
+
     if (field === "productoId") {
+      // Evitar duplicados: si ya existe en otra línea, fusionar cantidades
+      const existingIndex = newProductos.findIndex(
+        (p, i) => i !== index && p.productoId === value
+      );
+      if (existingIndex !== -1 && value) {
+        const ms = newProductos[existingIndex].maxStock || prodObj?.stock || 0;
+        const nuevaCantidad = newProductos[existingIndex].cantidad + (newProductos[index].cantidad || 1);
+        const cantidadFinal = ms > 0 ? Math.min(nuevaCantidad, ms) : nuevaCantidad;
+        if (ms > 0 && nuevaCantidad > ms) {
+          toast.warning(`Stock limitado. Se ajustó al máximo disponible: ${ms}`);
+        } else {
+          toast.info("Producto ya agregado. Se actualizó la cantidad.");
+        }
+        newProductos[existingIndex] = { ...newProductos[existingIndex], cantidad: cantidadFinal };
+        const filtered = newProductos.filter((_, i) => i !== index);
+        setFormData({ ...formData, productos: filtered });
+        return;
+      }
+
       const producto = productos.find((p) => p.id === value);
       newProductos[index] = {
         ...newProductos[index],
         productoId: value,
         precioUnitario: prodObj?.precioVenta || producto?.precioVenta || 0,
         maxStock: prodObj?.stock || producto?.stock || 0,
+        cantidad: Math.min(newProductos[index].cantidad || 1, prodObj?.stock || producto?.stock || 999) || 1,
       };
+
+    } else if (field === "cantidad") {
+      const ms = newProductos[index].maxStock || 0;
+      const parsed = parseInt(value) || 1;
+
+      if (parsed <= 0) {
+        toast.warning("La cantidad debe ser mayor a 0");
+        newProductos[index] = { ...newProductos[index], cantidad: 1 };
+        setFormData({ ...formData, productos: newProductos });
+        return;
+      }
+      if (ms > 0 && parsed > ms) {
+        toast.warning(`Stock insuficiente. Máximo disponible: ${ms}`);
+        newProductos[index] = { ...newProductos[index], cantidad: ms };
+        setFormData({ ...formData, productos: newProductos });
+        return;
+      }
+      newProductos[index] = { ...newProductos[index], cantidad: parsed };
+
+    } else if (field === "precioUnitario") {
+      const parsed = parseFloat(value);
+      if (!isNaN(parsed) && parsed < 0) {
+        toast.warning("El precio no puede ser negativo");
+        newProductos[index] = { ...newProductos[index], precioUnitario: 0 };
+        setFormData({ ...formData, productos: newProductos });
+        return;
+      }
+      newProductos[index] = { ...newProductos[index], precioUnitario: isNaN(parsed) ? 0 : parsed };
+
     } else {
       newProductos[index] = { ...newProductos[index], [field]: value };
     }
+
     setFormData({ ...formData, productos: newProductos });
   };
 
   const handleSave = async () => {
+    // Cliente obligatorio
+    if (!formData.clienteId) {
+      toast.error("Debe seleccionar un cliente.");
+      return;
+    }
+
+    // Dirección obligatoria
+    if (!formData.direccionEnvio.trim()) {
+      toast.error("La dirección de envío es obligatoria.");
+      return;
+    }
+
+    // Al menos un producto válido
+    if (formData.productos.length === 0 || !formData.productos[0].productoId) {
+      toast.error("Debes agregar al menos un producto válido.");
+      return;
+    }
+
+    const productosInvalidos = formData.productos.some(
+      (p) => !p.productoId || isNaN(Number(p.productoId))
+    );
+    if (productosInvalidos) {
+      toast.error("Todos los productos deben ser válidos.");
+      return;
+    }
+
+    // Cantidades > 0
+    const cantidadesInvalidas = formData.productos.some((p) => !p.cantidad || p.cantidad <= 0);
+    if (cantidadesInvalidas) {
+      toast.error("La cantidad de cada producto debe ser mayor a 0.");
+      return;
+    }
+
+    // Cantidades ≤ stock disponible
+    const stockExcedido = formData.productos.some(
+      (p) => p.maxStock > 0 && p.cantidad > p.maxStock
+    );
+    if (stockExcedido) {
+      toast.error("Uno o más productos superan el stock disponible.");
+      return;
+    }
+
+    // Precios ≥ 0
+    const preciosInvalidos = formData.productos.some(
+      (p) => isNaN(p.precioUnitario) || p.precioUnitario < 0
+    );
+    if (preciosInvalidos) {
+      toast.error("Los precios no pueden ser negativos.");
+      return;
+    }
+
+    // Total > 0
+    const subtotal = formData.productos.reduce(
+      (sum, p) => sum + p.cantidad * p.precioUnitario, 0
+    );
+    if (subtotal <= 0) {
+      toast.error("El total del pedido debe ser mayor a 0.");
+      return;
+    }
+
     setIsSaving(true);
     try {
-      if (!formData.clienteId) {
-        toast.error("Debe seleccionar un cliente.");
-        setIsSaving(false);
-        return;
-      }
-      if (
-        formData.productos.length === 0 ||
-        !formData.productos[0].productoId
-      ) {
-        toast.error("Debes agregar al menos un producto válido.");
-        setIsSaving(false);
-        return;
-      }
-
-      // Format payload for endpoint
+      // Estado inicial siempre "pendiente"
       const payload = {
         id_cliente: Number(formData.clienteId),
-        direccion: formData.direccionEnvio || "N/A",
-        ciudad: "Bello", // default city just in case
+        direccion: formData.direccionEnvio.trim(),
+        ciudad: "Bello",
         metodo_pago: "efectivo",
+        estado: "pendiente",
         items: formData.productos.map((p) => ({
           id_producto: Number(p.productoId),
           cantidad: p.cantidad,
@@ -287,13 +393,100 @@ export function PedidosModule() {
       };
 
       await orderService.createDirect(payload);
-      toast.success("Pedido creado en la Base de Datos exitosamente.");
+      toast.success("Pedido creado exitosamente.");
       await refreshPedidos();
-      await refreshDependencies(); // Para refrescar los stocks
+      await refreshDependencies();
       setIsDialogOpen(false);
     } catch (error: any) {
       console.error("Error creating order", error);
       toast.error(error.message || "Ocurrió un error al crear el pedido.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleOpenEditDialog = async (pedido: any) => {
+    try {
+      const fullOrder = await orderService.getById(Number(pedido.id));
+      setEditingPedido(pedido);
+      setEditFormData({
+        clienteId: pedido.clienteId || "",
+        direccionEnvio: pedido.direccionEnvio || "",
+        productos: (fullOrder.items || []).map((i: any) => {
+          const productoId = i.id_producto.toString();
+          const prodEnStore = productos.find(p => p.id === productoId);
+          return {
+            productoId,
+            cantidad: Number(i.cantidad),
+            precioUnitario: Number(i.precio_unitario) || 0,
+            maxStock: prodEnStore?.stock || 0,
+          };
+        }),
+      });
+      setIsEditDialogOpen(true);
+    } catch (e) {
+      toast.error("Error al cargar el pedido para editar");
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingPedido) return;
+    const estado = editingPedido.estado;
+
+    // Enviado o posterior: solo lectura
+    if (['enviado', 'entregado', 'cancelado'].includes(estado)) {
+      toast.error("Este pedido no puede ser modificado en su estado actual.");
+      return;
+    }
+
+    if (!editFormData.direccionEnvio.trim()) {
+      toast.error("La dirección de envío es obligatoria.");
+      return;
+    }
+
+    // Validaciones de productos (solo en pendiente)
+    if (estado === 'pendiente') {
+      if (!editFormData.clienteId) { toast.error("Debe seleccionar un cliente."); return; }
+
+      // Producto obligatorio en cada línea
+      const sinProducto = editFormData.productos.some(p => !p.productoId);
+      if (sinProducto) { toast.error("Todos los productos deben ser seleccionados."); return; }
+
+      // Cantidad > 0
+      const cantidadInvalida = editFormData.productos.some(p => !p.cantidad || p.cantidad <= 0);
+      if (cantidadInvalida) { toast.error("La cantidad de cada producto debe ser mayor a 0."); return; }
+
+      // Cantidad ≤ stock
+      const stockExcedido = editFormData.productos.some(p => p.maxStock > 0 && p.cantidad > p.maxStock);
+      if (stockExcedido) { toast.error("Uno o más productos superan el stock disponible."); return; }
+
+      // Precio ≥ 0
+      const precioInvalido = editFormData.productos.some(p => isNaN(p.precioUnitario) || p.precioUnitario < 0);
+      if (precioInvalido) { toast.error("Los precios no pueden ser negativos."); return; }
+
+      // Total > 0
+      const total = editFormData.productos.reduce((s, p) => s + p.cantidad * p.precioUnitario, 0);
+      if (total <= 0) { toast.error("El total del pedido debe ser mayor a 0."); return; }
+    }
+
+    setIsSaving(true);
+    try {
+      const payload: any = { direccion: editFormData.direccionEnvio.trim() };
+
+      if (estado === 'pendiente') {
+        payload.id_cliente = Number(editFormData.clienteId);
+        payload.items = editFormData.productos.map(p => ({
+          id_producto: Number(p.productoId),
+          cantidad: p.cantidad,
+        }));
+      }
+
+      await orderService.update(Number(editingPedido.id), payload);
+      toast.success("Pedido actualizado correctamente.");
+      await refreshPedidos();
+      setIsEditDialogOpen(false);
+    } catch (error: any) {
+      toast.error(error.message || "Error al actualizar el pedido.");
     } finally {
       setIsSaving(false);
     }
@@ -537,7 +730,9 @@ export function PedidosModule() {
 
   // Reset to page 1 when search changes
   const handleSearchChange = (query: string) => {
-    setSearchQuery(query);
+    // Sanitizar: solo letras, números, espacios y guiones
+    const sanitized = query.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s\-#]/g, "");
+    setSearchQuery(sanitized);
     setCurrentPage(1);
   };
 
@@ -606,7 +801,7 @@ export function PedidosModule() {
                   value={searchQuery}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   className="w-full h-10 pl-10 pr-4 bg-white border border-gray-200 rounded-lg text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#c47b96] focus:ring-2 focus:ring-[#c47b96]/20 transition-all duration-150"
-                  placeholder="Buscar pedidos por ID, cliente o estado..."
+                  placeholder="Buscar por ID, cliente o estado (pendiente, enviado, entregado...)"
                 />
               </div>
             </div>
@@ -814,6 +1009,13 @@ export function PedidosModule() {
                           <FileText className="w-4 h-4" />
                         </button>
                         <button
+                          onClick={() => handleOpenEditDialog(pedido)}
+                          title="Editar pedido"
+                          className="h-8 w-8 flex items-center justify-center rounded-lg transition-all duration-150 cursor-pointer text-gray-400 hover:bg-amber-50 hover:text-amber-600"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => handleViewDetail(pedido)}
                           title="Ver detalle"
                           className="h-8 w-8 flex items-center justify-center rounded-lg transition-all duration-150 cursor-pointer text-gray-400 hover:bg-indigo-50 hover:text-indigo-600"
@@ -844,6 +1046,211 @@ export function PedidosModule() {
           />
         )}
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="bg-white border border-gray-100 max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl p-0">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 pt-6 pb-5 border-b border-gray-100 sticky top-0 bg-white z-10">
+            <div className="flex items-center gap-4">
+              <div
+                className="flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+                style={{ width: 44, height: 44, borderRadius: 12, background: "linear-gradient(135deg,#c47b96,#e092b2)", boxShadow: "0 2px 8px rgba(196,123,150,0.3)" }}
+              >
+                <Edit className="w-5 h-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold text-gray-900 leading-tight">
+                  Editar Pedido
+                </DialogTitle>
+                <DialogDescription className="text-xs text-gray-400 mt-0.5">
+                  {editingPedido && ['enviado','entregado','cancelado'].includes(editingPedido.estado)
+                    ? "Solo lectura — el pedido no puede modificarse en este estado"
+                    : editingPedido?.estado === 'pendiente'
+                      ? "Puedes cambiar cliente, dirección y productos"
+                      : "Solo puedes modificar la dirección de envío"}
+                </DialogDescription>
+              </div>
+            </div>
+            <button onClick={() => setIsEditDialogOpen(false)} className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+              <XCircle className="w-5 h-5" />
+            </button>
+          </div>
+
+          {editingPedido && (
+            <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+
+              {/* Banner estado */}
+              {['enviado','entregado','cancelado'].includes(editingPedido.estado) && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                  <p className="text-sm text-amber-700 font-medium">
+                    Este pedido está en estado <strong className="uppercase">{editingPedido.estado}</strong> y no puede ser modificado.
+                  </p>
+                </div>
+              )}
+
+              {/* Cliente — solo en pendiente */}
+              {editingPedido.estado === 'pendiente' && (
+                <div style={{ background: "#f9fafb", borderRadius: "12px", padding: "16px" }}>
+                  <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <User className="w-3.5 h-3.5" /> Cliente <span style={{ color: "#f87171" }}>*</span>
+                  </p>
+                  <AsyncClientSelect
+                    value={editFormData.clienteId}
+                    onChange={(val) => setEditFormData({ ...editFormData, clienteId: val })}
+                  />
+                </div>
+              )}
+
+              {/* Dirección — pendiente y procesando */}
+              {!['enviado','entregado','cancelado'].includes(editingPedido.estado) && (
+                <div style={{ background: "#f9fafb", borderRadius: "12px", padding: "16px" }}>
+                  <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <MapPin className="w-3.5 h-3.5" /> Dirección de Envío <span style={{ color: "#f87171" }}>*</span>
+                  </p>
+                  <Input
+                    value={editFormData.direccionEnvio}
+                    onChange={(e) => setEditFormData({ ...editFormData, direccionEnvio: e.target.value })}
+                    className="border-gray-200 text-gray-800 h-10 rounded-lg"
+                    style={{ background: "#ffffff" }}
+                    placeholder="Calle 50 #30-20"
+                  />
+                </div>
+              )}
+
+              {/* Productos — solo en pendiente */}
+              {editingPedido.estado === 'pendiente' && (
+                <div style={{ background: "#ffffff", border: "1px solid #f3f4f6", borderRadius: "12px" }}>
+                  <div className="flex items-center justify-between" style={{ background: "#f9fafb", padding: "12px 16px", borderBottom: "1px solid #f3f4f6" }}>
+                    <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", display: "flex", alignItems: "center", gap: "6px", margin: 0 }}>
+                      <Package className="w-3.5 h-3.5" /> Productos
+                    </p>
+                    <Button
+                      type="button" size="sm"
+                      onClick={() => setEditFormData({ ...editFormData, productos: [...editFormData.productos, { productoId: "", cantidad: 1, precioUnitario: 0, maxStock: 0 }] })}
+                      className="hover:opacity-90 rounded-lg font-bold text-xs h-7 px-3 border-0 flex items-center"
+                      style={{ backgroundColor: "#c47b96", color: "#ffffff" }}
+                    >
+                      <Plus className="w-3.5 h-3.5 mr-1" /> Añadir
+                    </Button>
+                  </div>
+                  <div style={{ padding: "0 16px", maxHeight: "300px", overflowY: "auto" }}>
+                    {editFormData.productos.map((prod, index) => (
+                      <div key={index} style={{ display: "flex", flexDirection: "column", padding: "14px 0", borderBottom: index < editFormData.productos.length - 1 ? "1px solid #f3f4f6" : "none", position: "relative", zIndex: 100 - index }}>
+                        <div className="grid grid-cols-12 gap-3 items-end">
+                          <div className="col-span-6">
+                            <p style={{ fontSize: "10px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", marginBottom: "6px" }}>Producto</p>
+                            <AsyncProductSelect
+                              value={prod.productoId}
+                              onChange={(val, prodObj) => {
+                                const newP = [...editFormData.productos];
+                                // Verificar duplicados
+                                const existingIdx = newP.findIndex((p, i) => i !== index && p.productoId === val);
+                                if (existingIdx !== -1 && val) {
+                                  const ms = newP[existingIdx].maxStock || prodObj?.stock || 0;
+                                  const nuevaCant = newP[existingIdx].cantidad + (newP[index].cantidad || 1);
+                                  newP[existingIdx] = { ...newP[existingIdx], cantidad: ms > 0 ? Math.min(nuevaCant, ms) : nuevaCant };
+                                  toast.info("Producto ya agregado. Se actualizó la cantidad.");
+                                  setEditFormData({ ...editFormData, productos: newP.filter((_, i) => i !== index) });
+                                  return;
+                                }
+                                newP[index] = { ...newP[index], productoId: val, precioUnitario: prodObj?.precioVenta || 0, maxStock: prodObj?.stock || 0 };
+                                setEditFormData({ ...editFormData, productos: newP });
+                              }}
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <p style={{ fontSize: "10px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", marginBottom: "6px" }}>Cant.</p>
+                            <Input
+                              type="number" min="1"
+                              value={prod.cantidad}
+                              onChange={(e) => {
+                                const newP = [...editFormData.productos];
+                                const val = parseInt(e.target.value) || 1;
+                                const ms = newP[index].maxStock;
+                                if (val <= 0) {
+                                  toast.warning("La cantidad debe ser mayor a 0");
+                                  newP[index] = { ...newP[index], cantidad: 1 };
+                                } else if (ms > 0 && val > ms) {
+                                  toast.warning(`Stock insuficiente. Máximo: ${ms}`);
+                                  newP[index] = { ...newP[index], cantidad: ms };
+                                } else {
+                                  newP[index] = { ...newP[index], cantidad: val };
+                                }
+                                setEditFormData({ ...editFormData, productos: newP });
+                              }}
+                              className="border-gray-200 text-gray-800 h-9 rounded-lg"
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <p style={{ fontSize: "10px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", marginBottom: "6px" }}>Precio</p>
+                            <div style={{ height: "36px", padding: "0 10px", background: "#f9fafb", border: "1px solid #f3f4f6", borderRadius: "8px", display: "flex", alignItems: "center" }}>
+                              <span style={{ fontSize: "12px", fontWeight: 600, color: "#6b7280" }}>
+                                {new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(prod.precioUnitario)}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="col-span-2">
+                            <p style={{ fontSize: "10px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", marginBottom: "6px" }}>Subtotal</p>
+                            <div style={{ height: "36px", padding: "0 10px", background: "#f9fafb", border: "1px solid #f3f4f6", borderRadius: "8px", display: "flex", alignItems: "center" }}>
+                              <span style={{ fontSize: "12px", fontWeight: 800, color: "#1f2937" }}>
+                                {new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(prod.cantidad * prod.precioUnitario)}
+                              </span>
+                            </div>
+                          </div>
+                          {editFormData.productos.length > 1 && (
+                            <div className="absolute -top-1 -right-1">
+                              <Button size="sm" variant="ghost"
+                                onClick={() => setEditFormData({ ...editFormData, productos: editFormData.productos.filter((_, i) => i !== index) })}
+                                style={{ height: 24, width: 24, padding: 0 }}
+                                className="bg-white border border-gray-200 rounded-full text-gray-400 hover:text-rose-500 hover:border-rose-200 transition-all shadow-sm"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Total */}
+                  <div className="bg-gradient-to-r from-[#fff0f5] to-[#fce8f0] px-4 py-3 border-t border-[#f0d5e0] flex items-center justify-between">
+                    <span style={{ fontSize: "11px", fontWeight: 700, color: "#c47b96", textTransform: "uppercase", letterSpacing: "0.07em" }}>Total</span>
+                    <span style={{ fontSize: "18px", fontWeight: 900, color: "#c47b96" }}>
+                      {new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(
+                        editFormData.productos.reduce((sum, p) => sum + p.cantidad * p.precioUnitario, 0)
+                      )}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Dirección solo lectura si está enviado */}
+              {['enviado','entregado','cancelado'].includes(editingPedido.estado) && (
+                <div style={{ background: "#f9fafb", borderRadius: "12px", padding: "16px" }}>
+                  <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "8px" }}>Dirección de Envío</p>
+                  <p className="text-sm text-gray-700">{editingPedido.direccionEnvio || "—"}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Footer */}
+          <div className="flex justify-end gap-3 px-6 pb-6 pt-4 border-t border-gray-100 sticky bottom-0 bg-white z-10">
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} className="border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg px-5 h-10 text-sm" disabled={isSaving}>
+              Cancelar
+            </Button>
+            {editingPedido && !['enviado','entregado','cancelado'].includes(editingPedido.estado) && (
+              <Button onClick={handleSaveEdit} disabled={isSaving} className="rounded-lg font-semibold px-6 h-10 text-sm border-0" style={{ backgroundColor: "#c47b96", color: "#ffffff" }}>
+                {isSaving ? (
+                  <div className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Guardando...</div>
+                ) : "Guardar Cambios"}
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Create Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -1773,20 +2180,13 @@ export function PedidosModule() {
               </div>
 
               {/* Footer */}
-              <div className="flex justify-end gap-3 px-6 pb-6 pt-4 border-t border-gray-100 sticky bottom-0 bg-white z-10">
+              <div className="px-8 py-4 border-t border-gray-100 bg-white">
                 <Button
-                  variant="outline"
                   onClick={() => setDetailDialogOpen(false)}
-                  className="border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg px-5 h-10 text-sm"
+                  className="w-full rounded-xl text-white font-semibold h-11 text-sm border-0"
+                  style={{ backgroundColor: "#c47b96" }}
                 >
                   Cerrar
-                </Button>
-                <Button
-                  onClick={() => window.print()}
-                  className="rounded-lg font-semibold px-6 h-10 text-sm border-0"
-                  style={{ backgroundColor: "#c47b96", color: "#ffffff" }}
-                >
-                  Imprimir Copia
                 </Button>
               </div>
             </>
