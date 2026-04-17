@@ -27,8 +27,14 @@ import { HistorialView } from "./components/client/HistorialView";
 import { PerfilView } from "./components/client/PerfilView";
 import { CheckoutView } from "./components/client/CheckoutView";
 import { FloatingCart } from "./components/client/FloatingCart";
+import { ClientNavbar } from "./components/client/ClientNavbar";
 import { Toaster, toast } from "sonner";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "./components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "./components/ui/dialog";
 import { Lock, X } from "lucide-react";
 import { authService } from "./services/authService";
 import { orderService } from "./services/orderService";
@@ -323,7 +329,10 @@ function AppContent() {
       return true;
     } catch (error: any) {
       // Cuenta inactiva — mostrar modal específico
-      if (error.response?.status === 403 && error.response?.data?.code === "USER_INACTIVE") {
+      if (
+        error.response?.status === 403 &&
+        error.response?.data?.code === "USER_INACTIVE"
+      ) {
         setShowInactiveModal(true);
         return false;
       }
@@ -390,30 +399,8 @@ function AppContent() {
     );
   }
 
-  // Show landing page or authentication pages if not authenticated
-  if (!isAuthenticated) {
-    // If showAuthPage is false, show the public landing page
-    if (!showAuthPage) {
-      return (
-        <InicioView
-          isPublic={true}
-          onNavigate={(route) => {
-            setShowAuthPage(true);
-            setAuthPage(route === "register" ? "register" : "login");
-          }}
-          onNavigateToLogin={() => {
-            setShowAuthPage(true);
-            setAuthPage("login");
-          }}
-          onNavigateToRegister={() => {
-            setShowAuthPage(true);
-            setAuthPage("register");
-          }}
-        />
-      );
-    }
-
-    // Show authentication pages
+  // Show authentication pages if requested
+  if (showAuthPage && !isAuthenticated) {
     let authContent;
     switch (authPage) {
       case "login":
@@ -449,17 +436,17 @@ function AppContent() {
     return (
       <>
         {authContent}
-
         {/* Modal: cuenta inactiva */}
         <Dialog open={showInactiveModal} onOpenChange={setShowInactiveModal}>
           <DialogContent className="bg-white border border-gray-100 max-w-md rounded-2xl shadow-2xl p-0 overflow-hidden">
-            {/* Header */}
             <div className="flex items-center justify-between px-6 pt-6 pb-5 border-b border-gray-100">
               <div className="flex items-center gap-4">
                 <div
                   className="flex items-center justify-center flex-shrink-0"
                   style={{
-                    width: 44, height: 44, borderRadius: 12,
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
                     background: "linear-gradient(135deg,#c47b96,#e092b2)",
                     boxShadow: "0 2px 8px rgba(196,123,150,0.3)",
                   }}
@@ -482,9 +469,14 @@ function AppContent() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-
-            {/* Body */}
-            <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div
+              style={{
+                padding: "20px 24px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
               <div
                 style={{
                   background: "#fff0f5",
@@ -496,19 +488,40 @@ function AppContent() {
                   gap: "12px",
                 }}
               >
-                <Lock style={{ color: "#c47b96", width: 18, height: 18, flexShrink: 0, marginTop: 2 }} />
+                <Lock
+                  style={{
+                    color: "#c47b96",
+                    width: 18,
+                    height: 18,
+                    flexShrink: 0,
+                    marginTop: 2,
+                  }}
+                />
                 <div>
-                  <p style={{ fontSize: "14px", color: "#374151", lineHeight: 1.5, fontWeight: 600, marginBottom: 4 }}>
+                  <p
+                    style={{
+                      fontSize: "14px",
+                      color: "#374151",
+                      lineHeight: 1.5,
+                      fontWeight: 600,
+                      marginBottom: 4,
+                    }}
+                  >
                     Tu cuenta ha sido desactivada
                   </p>
-                  <p style={{ fontSize: "13px", color: "#6b7280", lineHeight: 1.5 }}>
-                    No tienes permiso para iniciar sesión. Si crees que esto es un error, comunícate con el administrador del sistema.
+                  <p
+                    style={{
+                      fontSize: "13px",
+                      color: "#6b7280",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    No tienes permiso para iniciar sesión. Si crees que esto es
+                    un error, comunícate con el administrador del sistema.
                   </p>
                 </div>
               </div>
             </div>
-
-            {/* Footer */}
             <div className="flex justify-end px-6 pb-6 pt-2">
               <button
                 onClick={() => setShowInactiveModal(false)}
@@ -577,9 +590,15 @@ function AppContent() {
       case "inicio":
         return (
           <InicioView
+            isPublic={!isAuthenticated}
             onNavigate={(route, catId) => {
-              if (catId) setActiveCategory(catId);
-              setCurrentRoute(route as Route);
+              if (route === "login" || route === "register") {
+                setShowAuthPage(true);
+                setAuthPage(route as AuthPage);
+              } else {
+                if (catId) setActiveCategory(catId);
+                setCurrentRoute(route as Route);
+              }
             }}
           />
         );
@@ -597,6 +616,11 @@ function AppContent() {
           />
         );
       case "mis-pedidos":
+        if (!isAuthenticated) {
+          setShowAuthPage(true);
+          setAuthPage("login");
+          return null;
+        }
         return (
           <MisPedidosView
             onNavigate={(route) => setCurrentRoute(route as Route)}
@@ -605,8 +629,18 @@ function AppContent() {
       case "historial":
         return <HistorialView />;
       case "perfil":
+        if (!isAuthenticated) {
+          setShowAuthPage(true);
+          setAuthPage("login");
+          return null;
+        }
         return <PerfilView />;
       case "checkout":
+        if (!isAuthenticated) {
+          setShowAuthPage(true);
+          setAuthPage("login");
+          return null;
+        }
         return (
           <CheckoutView
             onBack={() => setCurrentRoute("inicio")}
@@ -630,6 +664,29 @@ function AppContent() {
     });
   };
 
+  // Layout cliente: navbar horizontal, sin sidebar
+  if (userType === "cliente") {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <ClientNavbar
+          currentRoute={currentRoute}
+          onNavigate={(route) => {
+            if (route === "login" || route === "register") {
+              setShowAuthPage(true);
+              setAuthPage(route as AuthPage);
+            } else {
+              if (route === "catalogo") setActiveCategory(null);
+              setCurrentRoute(route as Route);
+            }
+          }}
+          onLogout={handleLogout}
+        />
+        <main className="flex-1">{renderContent()}</main>
+      </div>
+    );
+  }
+
+  // Layout admin: sidebar
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
@@ -642,11 +699,6 @@ function AppContent() {
           onLogout={handleLogout}
         />
         <main className="flex-1 overflow-auto">{renderContent()}</main>
-
-        {/* Floating Cart - Only show for client view */}
-        {userType === "cliente" && currentRoute !== "checkout" && (
-          <FloatingCart onCheckout={() => setCurrentRoute("checkout")} />
-        )}
       </div>
     </SidebarProvider>
   );

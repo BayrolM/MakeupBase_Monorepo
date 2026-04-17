@@ -1,38 +1,23 @@
-import { useState } from 'react';
-import { useStore } from '../../lib/store';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Badge } from '../ui/badge';
-import { Textarea } from '../ui/textarea';
-import { Label } from '../ui/label';
-import { 
-  Sparkles, 
-  ShoppingBag, 
-  Heart, 
-  Star, 
-  TrendingUp, 
-  Package, 
-  Truck, 
-  Shield, 
-  Mail,
-  MapPin,
-  Phone,
-  Instagram,
-  Facebook,
-  Twitter,
-  ChevronRight,
-  Check,
-  LogIn,
-  UserPlus,
-  Target,
-  Eye,
-  Award,
-  Droplets,
-  FlaskConical,
-  Tag
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { ThemeToggle } from '../ThemeToggle';
+import { useState, useEffect } from "react";
+import { useStore } from "../../lib/store";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+  type CarouselApi,
+} from "../ui/carousel";
+import {
+  Sparkles,
+  ShoppingBag,
+  Heart,
+  Package,
+  Truck,
+  Shield,
+  Tag,
+} from "lucide-react";
+import { toast } from "sonner";
 
 interface InicioViewProps {
   isPublic?: boolean;
@@ -41,860 +26,1063 @@ interface InicioViewProps {
   onNavigateToRegister?: () => void;
 }
 
-type Section = 'inicio' | 'catalogo' | 'nosotros' | 'contacto';
+type Section = "inicio" | "catalogo" | "nosotros" | "contacto";
 
-// GLAMOUR ML - Landing Page / Vista de Inicio para Clientes
-export function InicioView({ 
-  isPublic = false, 
+// COLORS FROM OFFICIAL DESIGN
+const COLORS = {
+  accent: "#c47b96",
+  accentDark: "#a85d77",
+  accentDeep: "#7b1347",
+  accentSoft: "#f0d5e0",
+  bgSoft: "#fdf5f8",
+  bgHeader: "#fff8fb",
+  textDark: "#1a1a1a",
+  textSecondary: "#4b5563",
+  textMuted: "#9ca3af",
+  white: "#ffffff",
+};
+
+export function InicioView({
+  isPublic = false,
   onNavigate,
-  onNavigateToLogin, 
-  onNavigateToRegister 
 }: InicioViewProps = {}) {
-  const { productos, categorias, addToCarrito, pedidos, clientes, currentUser } = useStore();
-  const [activeSection, setActiveSection] = useState<Section>('inicio');
-  const [contactForm, setContactForm] = useState({
-    nombre: '',
-    email: '',
-    mensaje: ''
-  });
+  const {
+    productos,
+    categorias,
+    addToCarrito,
+    clientes,
+    currentUser,
+    pedidos,
+  } = useStore();
+  const [activeSection, setActiveSection] = useState<Section>("inicio");
+  const [api, setApi] = useState<CarouselApi>();
+
+  // Auto-play logic
+  useEffect(() => {
+    if (!api) return;
+
+    const interval = setInterval(() => {
+      api.scrollNext();
+    }, 5000); // Change slide every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [api]);
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
       minimumFractionDigits: 0,
     }).format(value);
   };
 
-  // Get featured products (first 8)
-  const productosDestacados = productos.filter(p => p.estado === 'activo' && p.stock > 0).slice(0, 8);
+  // Carousel Data
+  const slides = [
+    {
+      image:
+        "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=2687&auto=format&fit=crop",
+      title: "Belleza que transforma",
+      subtitle:
+        "Descubre nuestra cuidada selección de cosméticos premium. Ingredientes naturales para resultados extraordinarios.",
+      badge: isPublic ? "Nueva Colección 2025" : "Exclusivo para ti",
+    },
+    {
+      image:
+        "https://images.unsplash.com/photo-1596462502278-27bfdc4033c8?q=80&w=2080&auto=format&fit=crop",
+      title: "Cuidado de la Piel",
+      subtitle:
+        "Rutinas personalizadas con las mejores marcas globales. Tu piel merece el lujo de lo natural.",
+      badge: "Tendencias 2025",
+    },
+    {
+      image:
+        "https://images.unsplash.com/photo-1620916566398-39f1143bc7be?q=80&w=1974&auto=format&fit=crop",
+      title: "Fragancias de Lujo",
+      subtitle:
+        "Encuentra el aroma que define tu esencia. Perfumería importada con sellos de autenticidad.",
+      badge: "Edición Limitada",
+    },
+    {
+      image:
+        "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?q=80&w=2072&auto=format&fit=crop",
+      title: "Labios Irresistibles",
+      subtitle:
+        "Tonos vibrantes y fórmulas hidratantes. El toque final perfecto para cualquier ocasión.",
+      badge: "Especial de Temporada",
+    },
+  ];
 
-  // Get all active products for catalog
-  const productosActivos = productos.filter(p => p.estado === 'activo' && p.stock > 0);
+  // Get featured products (first 8)
+  const productosDestacados = productos
+    .filter((p) => p.estado === "activo" && p.stock > 0)
+    .slice(0, 8);
 
   // Get featured categories (first 6)
   const categoriasDestacadas = categorias.slice(0, 6);
 
   // Get user info
-  const currentCliente = clientes?.find((c: any) => c.email === currentUser?.email);
+  const currentCliente = clientes?.find(
+    (c: any) => c.email === currentUser?.email,
+  );
   const myId = currentCliente?.id || currentUser?.id;
-
-  const handleContactFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!contactForm.nombre || !contactForm.email || !contactForm.mensaje) {
-      toast.error('Campos requeridos', {
-        description: 'Por favor completa todos los campos',
-      });
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(contactForm.email)) {
-      toast.error('Email inválido', {
-        description: 'Por favor ingresa un email válido',
-      });
-      return;
-    }
-
-    toast.success('¡Mensaje enviado!', {
-      description: 'Nos pondremos en contacto contigo pronto',
-    });
-    setContactForm({
-      nombre: '',
-      email: '',
-      mensaje: ''
-    });
-  };
+  // Fallback to empty array if pedidos is undefined
+  const myPedidos = Array.isArray(pedidos)
+    ? pedidos.filter(
+        (p) =>
+          p.clienteId === myId &&
+          p.estado !== "entregado" &&
+          p.estado !== "cancelado",
+      )
+    : [];
 
   const handleAddToCart = (productoId: string) => {
     if (isPublic) {
-      toast.info('Inicia sesión', {
-        description: 'Debes iniciar sesión para agregar productos al carrito',
+      toast.info("Inicia sesión", {
+        description: "Debes iniciar sesión para agregar productos al carrito",
       });
       return;
     }
     addToCarrito(productoId, 1);
-    toast.success('Producto agregado', {
-      description: 'El producto se agregó a tu carrito',
+    toast.success("Producto agregado", {
+      description: "El producto se agregó a tu carrito",
     });
   };
 
   const beneficios = [
     {
       icon: Truck,
-      title: 'Envío Rápido',
-      description: 'Entrega en 24-48 horas en Medellín',
+      title: "Envío Rápido",
+      description: "Entrega en 24-48 horas en Medellín",
     },
     {
       icon: Shield,
-      title: 'Compra Segura',
-      description: 'Protección total en tus pagos',
+      title: "Compra Segura",
+      description: "Protección total en tus pagos",
     },
     {
       icon: Package,
-      title: 'Devoluciones',
-      description: 'Hasta 30 días para devolver',
+      title: "Devoluciones",
+      description: "Hasta 30 días para devolver",
     },
     {
       icon: Heart,
-      title: 'Atención Personalizada',
-      description: 'Asesoría experta en belleza',
+      title: "Atención Personalizada",
+      description: "Asesoría experta en belleza",
     },
   ];
 
   // Render Section Content
   const renderSectionContent = () => {
     switch (activeSection) {
-      case 'inicio':
+      case "inicio":
         return (
-          <>
-            {/* HERO SECTION */}
-            <section className="relative overflow-hidden border-b border-border">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-primary-light/5 to-transparent"></div>
-              <div className="relative max-w-7xl mx-auto px-6 lg:px-8 py-20 lg:py-28">
-                <div className="grid lg:grid-cols-2 gap-12 items-center">
-                  {/* Left Content */}
-                  <div className="space-y-8">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
-                      <Sparkles className="w-4 h-4 text-primary" />
-                      <span className="text-primary" style={{ fontSize: '14px', fontWeight: 500 }}>
-                        {isPublic ? 'Belleza y Elegancia en Medellín' : 'Tu Espacio Personal'}
-                      </span>
-                    </div>
+          <div
+            style={{
+              fontFamily: "'DM Sans', sans-serif",
+              background: COLORS.white,
+            }}
+          >
+            {/* LOGGED IN SECTION */}
+            {!isPublic && (
+              <div
+                style={{
+                  background: COLORS.bgHeader,
+                  borderBottom: `1px solid ${COLORS.accentSoft}`,
+                  padding: 0,
+                }}
+              ></div>
+            )}
 
-                    <h1 className="text-foreground" style={{ fontSize: '56px', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
-                      {isPublic ? (
-                        <>
-                          Realza tu belleza
-                          <span className="block text-primary mt-2">con estilo único</span>
-                        </>
-                      ) : (
-                        <>
-                          Hola, {currentUser?.nombres?.split(' ')[0] || 'Cliente'}
-                          <span className="block text-primary mt-2">Bienvenido de vuelta</span>
-                        </>
-                      )}
-                    </h1>
-
-                    <p className="text-foreground-secondary max-w-xl" style={{ fontSize: '18px', lineHeight: 1.7 }}>
-                      {isPublic 
-                        ? 'Descubre productos de alta calidad seleccionados especialmente para ti. Maquillaje, cuidado de la piel y accesorios que realzan tu belleza natural.'
-                        : 'Accede rápidamente a tus pedidos recientes, descubre nuevos productos y gestiona tu cuenta desde aquí.'}
-                    </p>
-
-                    <div className="flex flex-wrap gap-4">
-                      <Button 
-                        size="lg" 
-                        onClick={() => onNavigate ? onNavigate('catalogo') : setActiveSection('catalogo')}
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-base gap-2"
-                      >
-                        <ShoppingBag className="w-5 h-5" />
-                        {isPublic ? 'Comprar Ahora' : 'Catálogo'}
-                      </Button>
-                      
-                      {isPublic ? (
-                        <Button 
-                          size="lg" 
-                          variant="outline" 
-                          onClick={onNavigateToLogin || (() => onNavigate?.('login'))}
-                          className="border-border hover:bg-primary/5 hover:border-gray-300 hover:text-primary px-8 py-6 text-base gap-2 transition-all"
-                        >
-                          <LogIn className="w-5 h-5" />
-                          Iniciar Sesión
-                        </Button>
-                      ) : (
-                        <Button 
-                          size="lg" 
-                          variant="outline" 
-                          onClick={() => onNavigate?.('pedidos')}
-                          className="border-border hover:bg-primary/5 hover:border-gray-300 hover:text-primary px-8 py-6 text-base gap-2 transition-all"
-                        >
-                          <Package className="w-5 h-5" />
-                          Ver mis pedidos
-                        </Button>
-                      )}
-                    </div>
-
-                    {/* Stats or Acciones Rapidas */}
-                    {isPublic ? (
-                      <div className="flex flex-wrap gap-8 pt-4">
-                        <div>
-                          <div className="text-foreground" style={{ fontSize: '32px', fontWeight: 600 }}>
-                            200+
-                          </div>
-                          <div className="text-foreground-secondary" style={{ fontSize: '14px' }}>
-                            Productos
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-foreground" style={{ fontSize: '32px', fontWeight: 600 }}>
-                            1K+
-                          </div>
-                          <div className="text-foreground-secondary" style={{ fontSize: '14px' }}>
-                            Clientes Felices
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-foreground" style={{ fontSize: '32px', fontWeight: 600 }}>
-                            98%
-                          </div>
-                          <div className="text-foreground-secondary" style={{ fontSize: '14px' }}>
-                            Seguridad
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-wrap gap-4 pt-4">
-                        <div 
-                          onClick={() => onNavigate?.('catalogo')}
-                          className="flex items-center gap-3 bg-card border border-border p-3 rounded-xl cursor-pointer hover:border-gray-300 hover:shadow-sm transition-all"
-                        >
-                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Heart className="w-5 h-5 text-primary" />
-                          </div>
-                          <div>
-                            <div className="text-foreground" style={{ fontSize: '14px', fontWeight: 600 }}>Mis Favoritos</div>
-                            <div className="text-foreground-secondary" style={{ fontSize: '12px' }}>Ver tus favoritos</div>
-                          </div>
-                        </div>
-                        <div 
-                          onClick={() => onNavigate?.('perfil')}
-                          className="flex items-center gap-3 bg-card border border-border p-3 rounded-xl cursor-pointer hover:border-gray-300 hover:shadow-sm transition-all"
-                        >
-                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Target className="w-5 h-5 text-primary" />
-                          </div>
-                          <div>
-                            <div className="text-foreground" style={{ fontSize: '14px', fontWeight: 600 }}>Mi Perfil</div>
-                            <div className="text-foreground-secondary" style={{ fontSize: '12px' }}>Ajustes de cuenta</div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Right Image */}
-                  <div className="relative">
-                    <div className="relative aspect-square rounded-2xl overflow-hidden border border-border shadow-2xl">
-                      <img
-                        src="/images/hero.png"
-                        alt="Hero"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* BENEFICIOS */}
-            <section className="bg-surface py-12 border-b border-border">
-              <div className="max-w-7xl mx-auto px-6 lg:px-8">
-                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {beneficios.map((beneficio, index) => (
-                    <div key={index} className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <beneficio.icon className="w-6 h-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="text-foreground mb-1" style={{ fontSize: '16px', fontWeight: 600 }}>
-                          {beneficio.title}
-                        </h3>
-                        <p className="text-foreground-secondary" style={{ fontSize: '14px' }}>
-                          {beneficio.description}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            {/* CATEGORÍAS DESTACADAS */}
-            <section className="py-20 border-b border-border">
-              <div className="max-w-7xl mx-auto px-6 lg:px-8">
-                <div className="text-center max-w-2xl mx-auto mb-12">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
-                    <Package className="w-4 h-4 text-primary" />
-                    <span className="text-primary" style={{ fontSize: '14px', fontWeight: 500 }}>
-                      Explora por Categoría
-                    </span>
-                  </div>
-                  <h2 className="text-foreground mb-4" style={{ fontSize: '40px', fontWeight: 600, lineHeight: 1.2 }}>
-                    Encuentra lo que buscas
-                  </h2>
-                  <p className="text-foreground-secondary" style={{ fontSize: '16px', lineHeight: 1.6 }}>
-                    Navega por nuestras categorías y descubre productos perfectos para ti
-                  </p>
-                </div>
-
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {categoriasDestacadas.map((categoria) => (
-                    <div
-                      key={categoria.id}
-                      onClick={() => onNavigate ? onNavigate('catalogo', categoria.id) : setActiveSection('catalogo')}
-                      className="group relative bg-card border border-border rounded-2xl p-6 hover:shadow-lg hover:border-gray-300 transition-all duration-300 cursor-pointer overflow-hidden"
-                    >
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
-                      
-                      <div className="relative">
-                        <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                          {(() => {
-                            const nombre = categoria.nombre?.toLowerCase() || '';
-                            if (nombre.includes('maquillaje')) return <Sparkles className="w-8 h-8 text-primary" />;
-                            if (nombre.includes('facial') || nombre.includes('cuidado')) return <Droplets className="w-8 h-8 text-primary" />;
-                            if (nombre.includes('prueba') || nombre.includes('test')) return <FlaskConical className="w-8 h-8 text-primary" />;
-                            return <Tag className="w-8 h-8 text-primary" />;
-                          })()}
-                        </div>
-
-                        <h3 className="text-foreground mb-2" style={{ fontSize: '20px', fontWeight: 600 }}>
-                          {categoria.nombre}
-                        </h3>
-
-                        <p className="text-foreground-secondary mb-4" style={{ fontSize: '14px', lineHeight: 1.5 }}>
-                          {categoria.descripcion || 'Descubre productos increíbles en esta categoría'}
-                        </p>
-
-                        <div className="flex items-center gap-2 text-primary group-hover:gap-3 transition-all">
-                          <span style={{ fontSize: '14px', fontWeight: 500 }}>Ver productos</span>
-                          <ChevronRight className="w-4 h-4" />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-              {/* PRODUCTOS DESTACADOS */}
-            <section className="py-20 bg-surface">
-              <div className="max-w-7xl mx-auto px-6 lg:px-8">
-                <div className="text-center max-w-2xl mx-auto mb-12">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
-                    <TrendingUp className="w-4 h-4 text-primary" />
-                    <span className="text-primary" style={{ fontSize: '14px', fontWeight: 500 }}>
-                      Lo Más Popular
-                    </span>
-                  </div>
-                  <h2 className="text-foreground mb-4" style={{ fontSize: '40px', fontWeight: 600, lineHeight: 1.2 }}>
-                    Productos destacados
-                  </h2>
-                  <p className="text-foreground-secondary" style={{ fontSize: '16px', lineHeight: 1.6 }}>
-                    Los productos favoritos de nuestras clientas
-                  </p>
-                </div>
-
-                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {productosDestacados.map((producto, index) => {
-                    const categoria = categorias.find(c => c.id === producto.categoriaId);
-                    const isNew = index < 2;
-                    const hasDiscount = index === 3;
-
-                    return (
+            {/* FULLSCREEN AUTO-PLAY CAROUSEL */}
+            <section
+              style={{
+                position: "relative",
+                width: "100vw",
+                height: "100vh",
+                overflow: "hidden",
+                margin: 0,
+                padding: 0,
+                left: "50%",
+                right: "50%",
+                marginLeft: "-50vw",
+                marginRight: "-50vw",
+              }}
+            >
+              <Carousel
+                setApi={setApi}
+                opts={{
+                  loop: true,
+                  align: "center",
+                }}
+                className="w-[100vw] h-full"
+                style={{ width: "100vw" }}
+              >
+                <CarouselContent className="ml-0 h-full">
+                  {slides.map((slide, idx) => (
+                    <CarouselItem key={idx} className="pl-0 basis-full">
                       <div
-                        key={producto.id}
-                        className="group bg-card border border-border rounded-2xl overflow-hidden hover:shadow-xl hover:border-gray-300 transition-all duration-300"
+                        style={{
+                          position: "relative",
+                          width: "100vw",
+                          height: "100vh",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
                       >
-                        {/* Image Container */}
-                        <div className="relative aspect-square bg-surface overflow-hidden">
-                          {producto.imagenUrl ? (
-                            <img
-                              src={producto.imagenUrl}
-                              alt={producto.nombre}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                            />
-                          ) : (
-                            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary-light/10">
-                              <Package className="w-20 h-20 text-primary/30" />
-                            </div>
-                          )}
-
-                          {/* Badges */}
-                          <div className="absolute top-3 left-3 flex flex-col gap-2">
-                            {isNew && (
-                              <Badge className="bg-primary text-primary-foreground border-0">
-                                Nuevo
-                              </Badge>
-                            )}
-                            {hasDiscount && (
-                              <Badge className="bg-danger text-white border-0">
-                                -20%
-                              </Badge>
-                            )}
-                          </div>
-
-                          {/* Favorite Button */}
-                          <button className="absolute top-3 right-3 w-10 h-10 rounded-full bg-card/80 backdrop-blur-sm border border-border flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-card">
-                            <Heart className="w-5 h-5 text-foreground-secondary hover:text-primary transition-colors" />
-                          </button>
+                        {/* Fullscreen Background Image */}
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            backgroundImage: `url(${slide.image})`,
+                            backgroundSize: "cover",
+                            backgroundPosition: "center",
+                            backgroundRepeat: "no-repeat",
+                            zIndex: 1,
+                          }}
+                        >
+                          {/* Dark Overlay for readability */}
+                          <div
+                            style={{
+                              position: "absolute",
+                              inset: 0,
+                              background:
+                                "linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%)",
+                              zIndex: 2,
+                            }}
+                          />
                         </div>
 
                         {/* Content */}
-                        <div className="p-5">
-                          <div className="mb-2">
-                            <span className="text-primary" style={{ fontSize: '12px', fontWeight: 500 }}>
-                              {categoria?.nombre || 'Sin categoría'}
-                            </span>
-                          </div>
-
-                          <h3 className="text-foreground mb-2 line-clamp-2" style={{ fontSize: '16px', fontWeight: 600 }}>
-                            {producto.nombre}
-                          </h3>
-
-                          {/* Rating */}
-                          <div className="flex items-center gap-1 mb-3">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`w-4 h-4 ${i < 4 ? 'text-warning fill-warning' : 'text-foreground-secondary/30'}`}
-                              />
-                            ))}
-                            <span className="text-foreground-secondary ml-1" style={{ fontSize: '12px' }}>
-                              (4.5)
-                            </span>
-                          </div>
-
-                          <div className="flex items-center justify-between mb-4">
-                            <div>
-                              {hasDiscount ? (
-                                <div className="flex items-center gap-2">
-                                  <span className="text-foreground" style={{ fontSize: '20px', fontWeight: 600 }}>
-                                    {formatCurrency(producto.precioVenta * 0.8)}
-                                  </span>
-                                  <span className="text-foreground-secondary line-through" style={{ fontSize: '14px' }}>
-                                    {formatCurrency(producto.precioVenta)}
-                                  </span>
-                                </div>
-                              ) : (
-                                <span className="text-foreground" style={{ fontSize: '20px', fontWeight: 600 }}>
-                                  {formatCurrency(producto.precioVenta)}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          <Button 
-                            onClick={() => handleAddToCart(producto.id)}
-                            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
+                        <div
+                          style={{
+                            position: "relative",
+                            zIndex: 3,
+                            textAlign: "center",
+                            color: "white",
+                            maxWidth: "900px",
+                            padding: "0 2rem",
+                          }}
+                        >
+                          {/* Badge */}
+                          <div
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              background: "rgba(255,255,255,0.15)",
+                              backdropFilter: "blur(10px)",
+                              border: "1px solid rgba(255,255,255,0.2)",
+                              color: "white",
+                              fontSize: "14px",
+                              fontWeight: 600,
+                              letterSpacing: "2px",
+                              textTransform: "uppercase",
+                              padding: "8px 20px",
+                              borderRadius: "30px",
+                              marginBottom: "2rem",
+                            }}
                           >
-                            <ShoppingBag className="w-4 h-4" />
-                            Agregar
-                          </Button>
+                            <Sparkles className="w-4 h-4" />
+                            {slide.badge}
+                          </div>
+
+                          {/* Title */}
+                          <h1
+                            style={{
+                              fontFamily: "'Cormorant Garamond', serif",
+                              fontSize: "clamp(2.5rem, 6vw, 5rem)",
+                              fontWeight: 300,
+                              lineHeight: 1.2,
+                              marginBottom: "1.5rem",
+                              textShadow: "0 4px 20px rgba(0,0,0,0.5)",
+                            }}
+                          >
+                            {slide.title}
+                          </h1>
+
+                          {/* Subtitle */}
+                          <p
+                            style={{
+                              fontSize: "clamp(1rem, 2vw, 1.3rem)",
+                              lineHeight: 1.6,
+                              marginBottom: "2.5rem",
+                              maxWidth: "700px",
+                              margin: "0 auto 2.5rem",
+                              opacity: 0.9,
+                              textShadow: "0 2px 10px rgba(0,0,0,0.3)",
+                            }}
+                          >
+                            {slide.subtitle}
+                          </p>
+
+                          {/* CTA Button */}
+                          <button
+                            onClick={() =>
+                              onNavigate
+                                ? onNavigate("catalogo")
+                                : setActiveSection("catalogo")
+                            }
+                            style={{
+                              background:
+                                "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
+                              color: COLORS.accentDeep,
+                              border: "none",
+                              padding: "16px 40px",
+                              borderRadius: "50px",
+                              fontSize: "16px",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "10px",
+                              boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+                              transition: "all 0.3s ease",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform =
+                                "translateY(-3px)";
+                              e.currentTarget.style.boxShadow =
+                                "0 15px 40px rgba(0,0,0,0.3)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = "translateY(0)";
+                              e.currentTarget.style.boxShadow =
+                                "0 10px 30px rgba(0,0,0,0.2)";
+                            }}
+                          >
+                            <ShoppingBag className="w-5 h-5" />
+                            Explorar tienda
+                          </button>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
 
-                <div className="text-center mt-12">
-                  <Button 
-                    size="lg" 
-                    variant="outline" 
-                    onClick={() => onNavigate ? onNavigate('catalogo') : setActiveSection('catalogo')}
-                    className="border-border hover:bg-primary/5 hover:border-gray-300 hover:text-primary px-8 gap-2 transition-all"
-                  >
-                    Ver Todos los Productos
-                    <ChevronRight className="w-5 h-5" />
-                  </Button>
-                </div>
+              {/* Progress Indicators */}
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: "2rem",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  display: "flex",
+                  gap: "12px",
+                  zIndex: 50,
+                }}
+              >
+                {slides.map((_, i) => (
+                  <button
+                    key={i}
+                    style={{
+                      width: "8px",
+                      height: "8px",
+                      borderRadius: "50%",
+                      border: "none",
+                      background: "rgba(255,255,255,0.4)",
+                      cursor: "pointer",
+                      transition: "all 0.3s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.width = "32px";
+                      e.currentTarget.style.borderRadius = "4px";
+                      e.currentTarget.style.background =
+                        "rgba(255,255,255,0.8)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.width = "8px";
+                      e.currentTarget.style.borderRadius = "50%";
+                      e.currentTarget.style.background =
+                        "rgba(255,255,255,0.4)";
+                    }}
+                  />
+                ))}
               </div>
             </section>
-          </>
-        );
 
-      case 'catalogo':
-        return (
-          <section className="py-20">
-            <div className="max-w-7xl mx-auto px-6 lg:px-8">
-              <div className="text-center max-w-2xl mx-auto mb-12">
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
-                  <ShoppingBag className="w-4 h-4 text-primary" />
-                  <span className="text-primary" style={{ fontSize: '14px', fontWeight: 500 }}>
-                    Catálogo Completo
-                  </span>
-                </div>
-                <h2 className="text-foreground mb-4" style={{ fontSize: '40px', fontWeight: 600, lineHeight: 1.2 }}>
-                  Todos nuestros productos
-                </h2>
-                <p className="text-foreground-secondary" style={{ fontSize: '16px', lineHeight: 1.6 }}>
-                  Explora nuestra colección completa de productos de belleza
+            {/* PROMO BANNER */}
+            <div
+              style={{
+                margin: "5rem 2rem 4rem",
+                background: `linear-gradient(120deg, ${COLORS.accentDeep} 0%, ${COLORS.accent} 60%, ${COLORS.accentDark} 100%)`,
+                borderRadius: "24px",
+                padding: "3rem 4rem",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  position: "absolute",
+                  right: "160px",
+                  top: "-40px",
+                  fontSize: "180px",
+                  color: "rgba(255,255,255,0.06)",
+                  pointerEvents: "none",
+                  userSelect: "none",
+                }}
+              >
+                ✿
+              </div>
+              <div style={{ zIndex: 1 }}>
+                <h3
+                  style={{
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontSize: "32px",
+                    fontWeight: 300,
+                    color: "white",
+                    marginBottom: "8px",
+                  }}
+                >
+                  Descubre las <em style={{ fontStyle: "italic" }}>novedades</em> de la semana
+                </h3>
+                <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.8)" }}>
+                  Nuevos productos exclusivos han llegado a nuestro catálogo.
                 </p>
               </div>
+              <button
+                onClick={() =>
+                  onNavigate
+                    ? onNavigate("catalogo")
+                    : setActiveSection("catalogo")
+                }
+                style={{
+                  background: "white",
+                  color: COLORS.accentDeep,
+                  border: "none",
+                  padding: "14px 36px",
+                  borderRadius: "32px",
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  zIndex: 1,
+                  boxShadow: "0 8px 16px rgba(0,0,0,0.1)",
+                  transition: "transform 0.2s",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.transform = "scale(1.05)")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.transform = "scale(1)")
+                }
+              >
+                {isPublic ? "Aprovechar oferta" : "Ver novedades"}
+              </button>
+            </div>
 
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {productosActivos.map((producto) => {
-                  const categoria = categorias.find(c => c.id === producto.categoriaId);
+            {/* CATEGORÍAS */}
+            <section style={{ padding: "0 2rem 5rem" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "baseline",
+                  justifyContent: "space-between",
+                  marginBottom: "2.5rem",
+                }}
+              >
+                <h2
+                  style={{
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontSize: "36px",
+                    fontWeight: 300,
+                    color: COLORS.textDark,
+                  }}
+                >
+                  Explora por{" "}
+                  <span
+                    style={{
+                      color: COLORS.accent,
+                      fontStyle: "italic",
+                      fontWeight: 400,
+                    }}
+                  >
+                    categoría
+                  </span>
+                </h2>
+                <button
+                  onClick={() =>
+                    onNavigate
+                      ? onNavigate("catalogo")
+                      : setActiveSection("catalogo")
+                  }
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    color: COLORS.accentDeep,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                    textUnderlineOffset: "4px",
+                  }}
+                >
+                  Ver todas →
+                </button>
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                  gap: "20px",
+                  justifyContent: "center",
+                }}
+              >
+                {categoriasDestacadas.map((cat) => (
+                  <div
+                    key={cat.id}
+                    onClick={() =>
+                      onNavigate
+                        ? onNavigate("catalogo", cat.id)
+                        : setActiveSection("catalogo")
+                    }
+                    style={{
+                      background: "white",
+                      borderRadius: "20px",
+                      padding: "2rem 1rem",
+                      textAlign: "center",
+                      border: `1px solid ${COLORS.accentSoft}`,
+                      cursor: "pointer",
+                      transition:
+                        "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+                      position: "relative",
+                      overflow: "hidden",
+                    }}
+                    onMouseEnter={(e) => {
+                      const el = e.currentTarget;
+                      el.style.transform = "translateY(-6px)";
+                      el.style.boxShadow = `0 15px 35px ${COLORS.accent}20`;
+                      el.style.borderColor = COLORS.accent;
+                    }}
+                    onMouseLeave={(e) => {
+                      const el = e.currentTarget;
+                      el.style.transform = "translateY(0)";
+                      el.style.boxShadow = "none";
+                      el.style.borderColor = COLORS.accentSoft;
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "56px",
+                        height: "56px",
+                        borderRadius: "16px",
+                        background: COLORS.bgSoft,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        margin: "0 auto 15px",
+                        color: COLORS.accentDeep,
+                      }}
+                    >
+                      <Tag className="w-6 h-6" />
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        color: COLORS.textDark,
+                        marginBottom: "4px",
+                      }}
+                    >
+                      {cat.nombre}
+                    </div>
+                    <div style={{ fontSize: "12px", color: COLORS.textMuted }}>
+                      {
+                        productos.filter(
+                          (p) =>
+                            p.categoriaId === cat.id && p.estado === "activo",
+                        ).length
+                      }{" "}
+                      productos
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
 
+            {/* PRODUCTOS DESTACADOS */}
+            <section style={{ padding: "0 2rem 5rem" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "baseline",
+                  justifyContent: "space-between",
+                  marginBottom: "2.5rem",
+                }}
+              >
+                <h2
+                  style={{
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontSize: "36px",
+                    fontWeight: 300,
+                    color: COLORS.textDark,
+                  }}
+                >
+                  Nuestros{" "}
+                  <span
+                    style={{
+                      color: COLORS.accent,
+                      fontStyle: "italic",
+                      fontWeight: 400,
+                    }}
+                  >
+                    más amados
+                  </span>
+                </h2>
+                <button
+                  onClick={() =>
+                    onNavigate
+                      ? onNavigate("catalogo")
+                      : setActiveSection("catalogo")
+                  }
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    color: COLORS.accentDeep,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                    textUnderlineOffset: "4px",
+                  }}
+                >
+                  Ver todos →
+                </button>
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+                  gap: "24px",
+                }}
+              >
+                {productosDestacados.map((producto, index) => {
+                  const categoria = categorias.find(
+                    (c) => c.id === producto.categoriaId,
+                  );
                   return (
                     <div
                       key={producto.id}
-                      className="group bg-card border border-border rounded-2xl overflow-hidden hover:shadow-xl hover:border-gray-300 transition-all duration-300"
+                      style={{
+                        background: "white",
+                        borderRadius: "24px",
+                        border: "1px solid rgba(0,0,0,0.08)",
+                        overflow: "hidden",
+                        cursor: "pointer",
+                        transition:
+                          "all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1)",
+                        position: "relative",
+                        boxShadow: "0 4px 20px rgba(0,0,0,0.04)",
+                      }}
+                      onMouseEnter={(e) => {
+                        const el = e.currentTarget;
+                        el.style.transform = "translateY(-12px)";
+                        el.style.boxShadow = `0 30px 60px ${COLORS.accent}20`;
+                        el.style.borderColor = COLORS.accentSoft;
+                      }}
+                      onMouseLeave={(e) => {
+                        const el = e.currentTarget;
+                        el.style.transform = "translateY(0)";
+                        el.style.boxShadow = "0 4px 20px rgba(0,0,0,0.04)";
+                        el.style.borderColor = "rgba(0,0,0,0.08)";
+                      }}
                     >
-                      {/* Image Container */}
-                      <div className="relative aspect-square bg-surface overflow-hidden">
+                      {index === 0 && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: "15px",
+                            left: "15px",
+                            background: COLORS.accentDeep,
+                            color: "white",
+                            fontSize: "10px",
+                            fontWeight: 700,
+                            padding: "4px 12px",
+                            borderRadius: "20px",
+                            zIndex: 1,
+                            letterSpacing: "0.5px",
+                          }}
+                        >
+                          MÁS VENDIDO
+                        </div>
+                      )}
+                      {index === 1 && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: "15px",
+                            left: "15px",
+                            background: COLORS.accent,
+                            color: "white",
+                            fontSize: "10px",
+                            fontWeight: 700,
+                            padding: "4px 12px",
+                            borderRadius: "20px",
+                            zIndex: 1,
+                            letterSpacing: "0.5px",
+                          }}
+                        >
+                          NUEVO
+                        </div>
+                      )}
+
+                      <div
+                        style={{
+                          width: "100%",
+                          height: "220px",
+                          background: COLORS.bgSoft,
+                          overflow: "hidden",
+                          position: "relative",
+                        }}
+                      >
                         {producto.imagenUrl ? (
                           <img
                             src={producto.imagenUrl}
                             alt={producto.nombre}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                            }}
                           />
                         ) : (
-                          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary-light/10">
-                            <Package className="w-20 h-20 text-primary/30" />
+                          <div
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <Package
+                              style={{
+                                width: 64,
+                                height: 64,
+                                color: COLORS.accent,
+                                opacity: 0.3,
+                              }}
+                            />
                           </div>
                         )}
-
-                        {/* Stock Badge */}
-                        {producto.stock <= producto.stockMinimo && (
-                          <div className="absolute top-3 left-3">
-                            <Badge className="bg-warning text-white border-0">
-                              Pocas unidades
-                            </Badge>
-                          </div>
-                        )}
-
-                        {/* Favorite Button */}
-                        <button className="absolute top-3 right-3 w-10 h-10 rounded-full bg-card/80 backdrop-blur-sm border border-border flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-card">
-                          <Heart className="w-5 h-5 text-foreground-secondary hover:text-primary transition-colors" />
-                        </button>
                       </div>
 
-                      {/* Content */}
-                      <div className="p-5">
-                        <div className="mb-2">
-                          <span className="text-primary" style={{ fontSize: '12px', fontWeight: 500 }}>
-                            {categoria?.nombre || 'Sin categoría'}
-                          </span>
+                      <div style={{ padding: "1.5rem" }}>
+                        <div
+                          style={{
+                            fontSize: "10px",
+                            color: COLORS.textMuted,
+                            letterSpacing: "2px",
+                            textTransform: "uppercase",
+                            marginBottom: "6px",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {categoria?.nombre || "BELLEZA"}
                         </div>
-
-                        <h3 className="text-foreground mb-2 line-clamp-2" style={{ fontSize: '16px', fontWeight: 600 }}>
+                        <h4
+                          style={{
+                            fontFamily: "'Cormorant Garamond', serif",
+                            fontSize: "20px",
+                            fontWeight: 700,
+                            color: COLORS.textDark,
+                            marginBottom: "8px",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
                           {producto.nombre}
-                        </h3>
-
-                        {/* Rating */}
-                        <div className="flex items-center gap-1 mb-3">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`w-4 h-4 ${i < 4 ? 'text-warning fill-warning' : 'text-foreground-secondary/30'}`}
-                            />
-                          ))}
-                          <span className="text-foreground-secondary ml-1" style={{ fontSize: '12px' }}>
-                            (4.0)
+                        </h4>
+                        <div
+                          style={{
+                            color: "#f59e0b",
+                            fontSize: "12px",
+                            marginBottom: "15px",
+                          }}
+                        >
+                          ★★★★★{" "}
+                          <span
+                            style={{
+                              color: COLORS.textMuted,
+                              marginLeft: "6px",
+                            }}
+                          >
+                            4.8
                           </span>
                         </div>
 
-                        <div className="mb-2">
-                          <span className="text-foreground-secondary" style={{ fontSize: '12px' }}>
-                            Stock: {producto.stock} unidades
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between mb-4">
-                          <span className="text-foreground" style={{ fontSize: '20px', fontWeight: 600 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: "20px",
+                              fontWeight: 800,
+                              color: COLORS.accentDeep,
+                            }}
+                          >
                             {formatCurrency(producto.precioVenta)}
                           </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddToCart(producto.id);
+                            }}
+                            style={{
+                              width: "40px",
+                              height: "40px",
+                              borderRadius: "50%",
+                              background: `linear-gradient(135deg, ${COLORS.accent} 0%, ${COLORS.accentDeep} 100%)`,
+                              color: "white",
+                              border: "none",
+                              fontSize: "24px",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              transition: "transform 0.2s",
+                              boxShadow: `0 5px 15px ${COLORS.accent}40`,
+                            }}
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.transform = "scale(1.15)")
+                            }
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.transform = "scale(1)")
+                            }
+                          >
+                            +
+                          </button>
                         </div>
-
-                        <Button 
-                          onClick={() => handleAddToCart(producto.id)}
-                          disabled={producto.stock === 0}
-                          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground gap-2 disabled:opacity-50"
-                        >
-                          <ShoppingBag className="w-4 h-4" />
-                          {producto.stock > 0 ? 'Agregar' : 'Agotado'}
-                        </Button>
                       </div>
                     </div>
                   );
                 })}
               </div>
-            </div>
-          </section>
-        );
+            </section>
 
-      case 'nosotros':
-        return (
-          <section className="py-20">
-            <div className="max-w-7xl mx-auto px-6 lg:px-8">
-              {/* Header */}
-              <div className="text-center max-w-2xl mx-auto mb-16">
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  <span className="text-primary" style={{ fontSize: '14px', fontWeight: 500 }}>
-                    Sobre Nosotros
+            {/* BENEFICIOS */}
+            <section
+              style={{
+                background: COLORS.bgHeader,
+                borderTop: `1px solid ${COLORS.accentSoft}`,
+                borderBottom: `1px solid ${COLORS.accentSoft}`,
+                padding: "4rem 2rem",
+              }}
+            >
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: "3rem",
+                  maxWidth: "1100px",
+                  margin: "0 auto",
+                }}
+              >
+                {beneficios.map((b, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      textAlign: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "64px",
+                        height: "64px",
+                        borderRadius: "22px",
+                        background: "white",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginBottom: "1rem",
+                        color: COLORS.accentDeep,
+                        boxShadow: `0 8px 20px ${COLORS.accent}10`,
+                      }}
+                    >
+                      <b.icon className="w-7 h-7" />
+                    </div>
+                    <div>
+                      <h4
+                        style={{
+                          fontSize: "15px",
+                          fontWeight: 700,
+                          color: COLORS.textDark,
+                          marginBottom: "6px",
+                        }}
+                      >
+                        {b.title}
+                      </h4>
+                      <p
+                        style={{
+                          fontSize: "13px",
+                          color: COLORS.textSecondary,
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {b.description}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* TESTIMONIOS */}
+            <section style={{ padding: "5rem 2rem" }}>
+              <div style={{ textAlign: "center", marginBottom: "3.5rem" }}>
+                <h2
+                  style={{
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontSize: "42px",
+                    fontWeight: 300,
+                    color: COLORS.textDark,
+                  }}
+                >
+                  Lo que dicen nuestras{" "}
+                  <span
+                    style={{
+                      color: COLORS.accent,
+                      fontStyle: "italic",
+                      fontWeight: 400,
+                    }}
+                  >
+                    clientas
                   </span>
-                </div>
-                <h2 className="text-foreground mb-4" style={{ fontSize: '40px', fontWeight: 600, lineHeight: 1.2 }}>
-                  GLAMOUR ML
                 </h2>
-                <p className="text-foreground-secondary" style={{ fontSize: '18px', lineHeight: 1.7 }}>
-                  Tu tienda de confianza para productos de belleza en Medellín
-                </p>
               </div>
-
-              {/* Banner Image */}
-              <div className="relative aspect-[16/6] rounded-2xl overflow-hidden bg-gradient-to-br from-primary/20 to-primary-light/20 border border-border shadow-xl mb-16">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center space-y-4">
-                    <Sparkles className="w-32 h-32 text-primary mx-auto opacity-50" />
-                    <p className="text-foreground-secondary" style={{ fontSize: '18px' }}>
-                      GLAMOUR ML - Realza tu belleza
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Historia */}
-              <div className="max-w-4xl mx-auto mb-16">
-                <div className="bg-card border border-border rounded-2xl p-8 lg:p-12">
-                  <h3 className="text-foreground mb-6" style={{ fontSize: '28px', fontWeight: 600 }}>
-                    Nuestra Historia
-                  </h3>
-                  <div className="space-y-4 text-foreground-secondary" style={{ fontSize: '16px', lineHeight: 1.8 }}>
-                    <p>
-                      <strong className="text-foreground">GLAMOUR ML</strong> nace en Medellín con la visión de ofrecer productos de belleza 
-                      de alta calidad que realcen la belleza natural de cada mujer. Fundada por <strong className="text-foreground">Melissa López Patiño</strong>, 
-                      nuestra empresa se ha convertido en un referente de confianza en el sector de cosméticos.
-                    </p>
-                    <p>
-                      Comenzamos como una pequeña tienda con un gran sueño: democratizar el acceso a productos de belleza premium 
-                      y brindar una experiencia de compra excepcional. Hoy, atendemos a miles de clientas satisfechas en toda la región.
-                    </p>
-                    <p>
-                      Nos especializamos en maquillaje, cuidado de la piel y accesorios cuidadosamente seleccionados para garantizar 
-                      la mejor calidad y resultados para nuestras clientas.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Misión, Visión, Valores */}
-              <div className="grid md:grid-cols-3 gap-6 mb-16">
-                {/* Misión */}
-                <div className="bg-card border border-border rounded-2xl p-8 hover:shadow-lg transition-shadow">
-                  <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center mb-6">
-                    <Target className="w-8 h-8 text-primary" />
-                  </div>
-                  <h3 className="text-foreground mb-4" style={{ fontSize: '22px', fontWeight: 600 }}>
-                    Misión
-                  </h3>
-                  <p className="text-foreground-secondary" style={{ fontSize: '15px', lineHeight: 1.7 }}>
-                    Ofrecer productos de belleza de alta calidad que realcen la confianza y autoestima de nuestras clientas, 
-                    brindando una experiencia de compra excepcional y asesoría personalizada.
-                  </p>
-                </div>
-
-                {/* Visión */}
-                <div className="bg-card border border-border rounded-2xl p-8 hover:shadow-lg transition-shadow">
-                  <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center mb-6">
-                    <Eye className="w-8 h-8 text-primary" />
-                  </div>
-                  <h3 className="text-foreground mb-4" style={{ fontSize: '22px', fontWeight: 600 }}>
-                    Visión
-                  </h3>
-                  <p className="text-foreground-secondary" style={{ fontSize: '15px', lineHeight: 1.7 }}>
-                    Ser la tienda de cosméticos líder en Medellín, reconocida por la excelencia en nuestros productos, 
-                    servicio al cliente y por empoderar a las mujeres a través de la belleza.
-                  </p>
-                </div>
-
-                {/* Valores */}
-                <div className="bg-card border border-border rounded-2xl p-8 hover:shadow-lg transition-shadow">
-                  <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center mb-6">
-                    <Award className="w-8 h-8 text-primary" />
-                  </div>
-                  <h3 className="text-foreground mb-4" style={{ fontSize: '22px', fontWeight: 600 }}>
-                    Valores
-                  </h3>
-                  <ul className="space-y-2 text-foreground-secondary" style={{ fontSize: '15px', lineHeight: 1.7 }}>
-                    <li className="flex items-start gap-2">
-                      <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                      <span><strong className="text-foreground">Calidad:</strong> Productos premium</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                      <span><strong className="text-foreground">Confianza:</strong> Transparencia total</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                      <span><strong className="text-foreground">Excelencia:</strong> Servicio superior</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              {/* Por qué elegirnos */}
-              <div className="max-w-4xl mx-auto">
-                <div className="text-center mb-12">
-                  <h3 className="text-foreground mb-4" style={{ fontSize: '32px', fontWeight: 600 }}>
-                    ¿Por qué elegirnos?
-                  </h3>
-                  <p className="text-foreground-secondary" style={{ fontSize: '16px', lineHeight: 1.6 }}>
-                    Estos son los beneficios que nos hacen diferentes
-                  </p>
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-6">
-                  {beneficios.map((beneficio, index) => (
-                    <div key={index} className="flex items-start gap-4 bg-card border border-border rounded-xl p-6">
-                      <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <beneficio.icon className="w-6 h-6 text-primary" />
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+                  gap: "24px",
+                  maxWidth: "1200px",
+                  margin: "0 auto",
+                }}
+              >
+                {[
+                  {
+                    initials: "MP",
+                    name: "María Paula",
+                    color: `linear-gradient(135deg, ${COLORS.accent}, ${COLORS.accentDeep})`,
+                    text: '"Los productos son increíbles. El nivel de atención y la calidad superaron mis expectativas. En 3 semanas noté diferencia real en mi piel."',
+                  },
+                  {
+                    initials: "VS",
+                    name: "Valentina S.",
+                    color: `linear-gradient(135deg, ${COLORS.accentDark}, ${COLORS.accent})`,
+                    text: '"Llevo 2 años comprando aquí. El envío es rapidísimo y el empaque es toda una experiencia de lujo. Mi marca favorita sin duda."',
+                  },
+                  {
+                    initials: "LG",
+                    name: "Laura G.",
+                    color: `linear-gradient(135deg, ${COLORS.accentDeep}, ${COLORS.accentDark})`,
+                    text: '"Asesoría experta que realmente entiende lo que tu piel necesita. Productos originales y de altísima calidad. ¡Totalmente recomendado!"',
+                  },
+                ].map((t) => (
+                  <div
+                    key={t.name}
+                    style={{
+                      background: "white",
+                      border: `1px solid ${COLORS.accentSoft}`,
+                      borderRadius: "24px",
+                      padding: "2rem",
+                      boxShadow: "0 5px 15px rgba(0,0,0,0.02)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "15px",
+                        marginBottom: "1.2rem",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "48px",
+                          height: "48px",
+                          borderRadius: "50%",
+                          background: t.color,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "white",
+                          fontSize: "14px",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {t.initials}
                       </div>
                       <div>
-                        <h4 className="text-foreground mb-2" style={{ fontSize: '18px', fontWeight: 600 }}>
-                          {beneficio.title}
-                        </h4>
-                        <p className="text-foreground-secondary" style={{ fontSize: '14px', lineHeight: 1.6 }}>
-                          {beneficio.description}
-                        </p>
+                        <div
+                          style={{
+                            fontSize: "15px",
+                            fontWeight: 700,
+                            color: COLORS.textDark,
+                          }}
+                        >
+                          {t.name}
+                        </div>
+                        <div style={{ color: "#f59e0b", fontSize: "12px" }}>
+                          ★★★★★
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </section>
-        );
-
-      case 'contacto':
-        return (
-          <section className="py-20">
-            <div className="max-w-7xl mx-auto px-6 lg:px-8">
-              <div className="text-center max-w-2xl mx-auto mb-12">
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
-                  <Mail className="w-4 h-4 text-primary" />
-                  <span className="text-primary" style={{ fontSize: '14px', fontWeight: 500 }}>
-                    Contáctanos
-                  </span>
-                </div>
-                <h2 className="text-foreground mb-4" style={{ fontSize: '40px', fontWeight: 600, lineHeight: 1.2 }}>
-                  Envíanos un mensaje
-                </h2>
-                <p className="text-foreground-secondary" style={{ fontSize: '16px', lineHeight: 1.6 }}>
-                  Estamos aquí para ayudarte. Envíanos un mensaje y te responderemos lo antes posible.
-                </p>
-              </div>
-
-              {/* Contact Cards */}
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-                <div className="bg-card border border-border rounded-2xl p-6 hover:shadow-lg transition-shadow">
-                  <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                    <Mail className="w-8 h-8 text-primary" />
+                    <p
+                      style={{
+                        fontSize: "14px",
+                        color: COLORS.textSecondary,
+                        lineHeight: 1.7,
+                        fontStyle: "italic",
+                      }}
+                    >
+                      {t.text}
+                    </p>
                   </div>
-
-                  <h3 className="text-foreground mb-2" style={{ fontSize: '20px', fontWeight: 600 }}>
-                    Email
-                  </h3>
-
-                  <p className="text-foreground-secondary mb-4" style={{ fontSize: '14px', lineHeight: 1.5 }}>
-                    Envíanos un correo electrónico para cualquier consulta o duda.
-                  </p>
-
-                  <a href="mailto:hola@glamourml.com" className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
-                    <span style={{ fontSize: '14px', fontWeight: 500 }}>hola@glamourml.com</span>
-                    <ChevronRight className="w-4 h-4" />
-                  </a>
-                </div>
-
-                <div className="bg-card border border-border rounded-2xl p-6 hover:shadow-lg transition-shadow">
-                  <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                    <Phone className="w-8 h-8 text-primary" />
-                  </div>
-
-                  <h3 className="text-foreground mb-2" style={{ fontSize: '20px', fontWeight: 600 }}>
-                    Teléfono
-                  </h3>
-
-                  <p className="text-foreground-secondary mb-4" style={{ fontSize: '14px', lineHeight: 1.5 }}>
-                    Llámanos para asistencia inmediata o para más información.
-                  </p>
-
-                  <a href="tel:+573001234567" className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
-                    <span style={{ fontSize: '14px', fontWeight: 500 }}>+57 300 123 4567</span>
-                    <ChevronRight className="w-4 h-4" />
-                  </a>
-                </div>
-
-                <div className="bg-card border border-border rounded-2xl p-6 hover:shadow-lg transition-shadow sm:col-span-2 lg:col-span-1">
-                  <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                    <MapPin className="w-8 h-8 text-primary" />
-                  </div>
-
-                  <h3 className="text-foreground mb-2" style={{ fontSize: '20px', fontWeight: 600 }}>
-                    Dirección
-                  </h3>
-
-                  <p className="text-foreground-secondary mb-4" style={{ fontSize: '14px', lineHeight: 1.5 }}>
-                    Visítanos en nuestra tienda física en Medellín.
-                  </p>
-
-                  <div className="flex items-start gap-2 text-primary">
-                    <span style={{ fontSize: '14px', fontWeight: 500 }}>Medellín, Antioquia, Colombia</span>
-                  </div>
-                </div>
+                ))}
               </div>
+            </section>
 
-              {/* Contact Form */}
-              <div className="max-w-2xl mx-auto">
-                <div className="bg-card border border-border rounded-2xl p-8 lg:p-12">
-                  <h3 className="text-foreground mb-6 text-center" style={{ fontSize: '28px', fontWeight: 600 }}>
-                    Formulario de Contacto
-                  </h3>
-                  
-                  <form onSubmit={handleContactFormSubmit} className="space-y-6">
-                    <div className="grid sm:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="nombre" className="text-foreground" style={{ fontSize: '14px', fontWeight: 500 }}>
-                          Nombre <span className="text-danger">*</span>
-                        </Label>
-                        <Input
-                          type="text"
-                          id="nombre"
-                          value={contactForm.nombre}
-                          onChange={(e) => setContactForm({ ...contactForm, nombre: e.target.value })}
-                          className="h-12 bg-input-background border-border text-foreground"
-                          placeholder="Tu nombre"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email" className="text-foreground" style={{ fontSize: '14px', fontWeight: 500 }}>
-                          Email <span className="text-danger">*</span>
-                        </Label>
-                        <Input
-                          type="email"
-                          id="email"
-                          value={contactForm.email}
-                          onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
-                          className="h-12 bg-input-background border-border text-foreground"
-                          placeholder="tu@email.com"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="mensaje" className="text-foreground" style={{ fontSize: '14px', fontWeight: 500 }}>
-                        Mensaje <span className="text-danger">*</span>
-                      </Label>
-                      <Textarea
-                        id="mensaje"
-                        value={contactForm.mensaje}
-                        onChange={(e) => setContactForm({ ...contactForm, mensaje: e.target.value })}
-                        className="min-h-32 bg-input-background border-border text-foreground"
-                        placeholder="Escribe tu mensaje aquí..."
-                      />
-                    </div>
-
-                    <Button type="submit" size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
-                      <Mail className="w-5 h-5" />
-                      Enviar Mensaje
-                    </Button>
-                  </form>
-                </div>
+            {/* FOOTER */}
+            <footer
+              style={{
+                background: COLORS.textDark,
+                color: "rgba(255,255,255,0.6)",
+                padding: "3rem 2rem",
+                textAlign: "center",
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontSize: "24px",
+                  color: "white",
+                  letterSpacing: "4px",
+                  marginBottom: "1rem",
+                }}
+              >
+                GLAMOUR ML
               </div>
-            </div>
-          </section>
+              <p style={{ fontSize: "12px", letterSpacing: "1px" }}>
+                © 2026 Belleza & Cuidado Personal. Todos los derechos
+                reservados.
+              </p>
+            </footer>
+          </div>
         );
 
       default:
@@ -903,296 +1091,8 @@ export function InicioView({
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* ===== PUBLIC HEADER WITH NAVBAR ===== */}
-      {isPublic && (
-        <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="max-w-7xl mx-auto px-6 lg:px-8">
-            <div className="flex h-16 items-center justify-between gap-4">
-              {/* Logo */}
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center overflow-hidden">
-                  <img src="/logo.png" alt="Glamour ML" className="w-full h-full object-cover" />
-                </div>
-                <span className="text-foreground" style={{ fontSize: '20px', fontWeight: 600 }}>
-                  GLAMOUR ML
-                </span>
-              </div>
-
-              {/* Navigation Menu - Desktop */}
-              <nav className="hidden md:flex items-center gap-1">
-                <button
-                  onClick={() => setActiveSection('inicio')}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    activeSection === 'inicio'
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-foreground-secondary hover:text-primary hover:bg-primary/5'
-                  }`}
-                  style={{ fontSize: '14px', fontWeight: 500 }}
-                >
-                  Inicio
-                </button>
-                <button
-                  onClick={() => setActiveSection('catalogo')}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    activeSection === 'catalogo'
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-foreground-secondary hover:text-primary hover:bg-primary/5'
-                  }`}
-                  style={{ fontSize: '14px', fontWeight: 500 }}
-                >
-                  Catálogo
-                </button>
-                <button
-                  onClick={() => setActiveSection('nosotros')}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    activeSection === 'nosotros'
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-foreground-secondary hover:text-primary hover:bg-primary/5'
-                  }`}
-                  style={{ fontSize: '14px', fontWeight: 500 }}
-                >
-                  Nosotros
-                </button>
-                <button
-                  onClick={() => setActiveSection('contacto')}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    activeSection === 'contacto'
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-foreground-secondary hover:text-primary hover:bg-primary/5'
-                  }`}
-                  style={{ fontSize: '14px', fontWeight: 500 }}
-                >
-                  Contacto
-                </button>
-              </nav>
-
-              {/* Right Side: Theme Toggle + Auth Buttons */}
-              <div className="flex items-center gap-3">
-                {/* Theme Toggle - Integrated in header */}
-                <div className="flex items-center">
-                  <ThemeToggle inline />
-                </div>
-                
-                {/* Auth Buttons - Desktop */}
-                <div className="hidden sm:flex items-center gap-3">
-                  <Button
-                    onClick={onNavigateToLogin}
-                    variant="ghost"
-                    className="text-foreground hover:text-primary hover:bg-primary/10 gap-2"
-                    style={{ fontSize: '14px', fontWeight: 500 }}
-                  >
-                    <LogIn className="w-4 h-4" />
-                    <span className="hidden lg:inline">Iniciar Sesión</span>
-                  </Button>
-                  <Button
-                    onClick={onNavigateToRegister}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
-                    style={{ fontSize: '14px', fontWeight: 500 }}
-                  >
-                    <UserPlus className="w-4 h-4" />
-                    <span className="hidden lg:inline">Registrarse</span>
-                  </Button>
-                </div>
-
-                {/* Mobile Auth Buttons */}
-                <div className="sm:hidden flex items-center gap-2">
-                  <Button
-                    onClick={onNavigateToLogin}
-                    size="sm"
-                    variant="ghost"
-                    className="text-foreground hover:text-primary hover:bg-primary/10"
-                  >
-                    <LogIn className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    onClick={onNavigateToRegister}
-                    size="sm"
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                  >
-                    <UserPlus className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Mobile Navigation Menu */}
-            <div className="md:hidden border-t border-border">
-              <nav className="flex items-center justify-around py-2">
-                <button
-                  onClick={() => setActiveSection('inicio')}
-                  className={`px-3 py-2 rounded-lg transition-colors ${
-                    activeSection === 'inicio'
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-foreground-secondary hover:text-primary hover:bg-primary/5'
-                  }`}
-                  style={{ fontSize: '13px', fontWeight: 500 }}
-                >
-                  Inicio
-                </button>
-                <button
-                  onClick={() => setActiveSection('catalogo')}
-                  className={`px-3 py-2 rounded-lg transition-colors ${
-                    activeSection === 'catalogo'
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-foreground-secondary hover:text-primary hover:bg-primary/5'
-                  }`}
-                  style={{ fontSize: '13px', fontWeight: 500 }}
-                >
-                  Catálogo
-                </button>
-                <button
-                  onClick={() => setActiveSection('nosotros')}
-                  className={`px-3 py-2 rounded-lg transition-colors ${
-                    activeSection === 'nosotros'
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-foreground-secondary hover:text-primary hover:bg-primary/5'
-                  }`}
-                  style={{ fontSize: '13px', fontWeight: 500 }}
-                >
-                  Nosotros
-                </button>
-                <button
-                  onClick={() => setActiveSection('contacto')}
-                  className={`px-3 py-2 rounded-lg transition-colors ${
-                    activeSection === 'contacto'
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-foreground-secondary hover:text-primary hover:bg-primary/5'
-                  }`}
-                  style={{ fontSize: '13px', fontWeight: 500 }}
-                >
-                  Contacto
-                </button>
-              </nav>
-            </div>
-          </div>
-        </header>
-      )}
-
-      {/* ===== SECTION CONTENT ===== */}
+    <div style={{ minHeight: "100vh", background: "white" }}>
       {renderSectionContent()}
-
-      {/* ===== FOOTER ===== */}
-      <footer className="bg-surface border-t border-border">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
-            {/* Brand */}
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center overflow-hidden">
-                  <img src="/logo.png" alt="Glamour ML" className="w-14 h-14 object-cover" />
-                </div>
-                <span className="text-foreground" style={{ fontSize: '20px', fontWeight: 600 }}>
-                  GLAMOUR ML
-                </span>
-              </div>
-              <p className="text-foreground-secondary mb-4" style={{ fontSize: '14px', lineHeight: 1.6 }}>
-                Tu tienda de confianza para productos de belleza en Medellín.
-              </p>
-              <div className="flex gap-3">
-                <a href="#" className="w-9 h-9 rounded-full bg-card border border-border flex items-center justify-center hover:bg-primary hover:border-primary hover:text-primary-foreground transition-all">
-                  <Instagram className="w-4 h-4" />
-                </a>
-                <a href="#" className="w-9 h-9 rounded-full bg-card border border-border flex items-center justify-center hover:bg-primary hover:border-primary hover:text-primary-foreground transition-all">
-                  <Facebook className="w-4 h-4" />
-                </a>
-                <a href="#" className="w-9 h-9 rounded-full bg-card border border-border flex items-center justify-center hover:bg-primary hover:border-primary hover:text-primary-foreground transition-all">
-                  <Twitter className="w-4 h-4" />
-                </a>
-              </div>
-            </div>
-
-            {/* Enlaces Rápidos */}
-            <div>
-              <h3 className="text-foreground mb-4" style={{ fontSize: '16px', fontWeight: 600 }}>
-                Enlaces Rápidos
-              </h3>
-              <ul className="space-y-3">
-                <li>
-                  <button onClick={() => setActiveSection('inicio')} className="text-foreground-secondary hover:text-primary transition-colors" style={{ fontSize: '14px' }}>
-                    Inicio
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => onNavigate ? onNavigate('catalogo') : setActiveSection('catalogo')} className="text-foreground-secondary hover:text-primary transition-colors" style={{ fontSize: '14px' }}>
-                    Catálogo
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => setActiveSection('nosotros')} className="text-foreground-secondary hover:text-primary transition-colors" style={{ fontSize: '14px' }}>
-                    Sobre Nosotros
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => setActiveSection('contacto')} className="text-foreground-secondary hover:text-primary transition-colors" style={{ fontSize: '14px' }}>
-                    Contacto
-                  </button>
-                </li>
-              </ul>
-            </div>
-
-            {/* Categorías */}
-            <div>
-              <h3 className="text-foreground mb-4" style={{ fontSize: '16px', fontWeight: 600 }}>
-                Categorías
-              </h3>
-              <ul className="space-y-3">
-                {categoriasDestacadas.slice(0, 5).map((cat) => (
-                  <li key={cat.id}>
-                    <button onClick={() => onNavigate ? onNavigate('catalogo', cat.id) : setActiveSection('catalogo')} className="text-foreground-secondary hover:text-primary transition-colors" style={{ fontSize: '14px' }}>
-                      {cat.nombre}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Contacto */}
-            <div>
-              <h3 className="text-foreground mb-4" style={{ fontSize: '16px', fontWeight: 600 }}>
-                Contacto
-              </h3>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                  <span className="text-foreground-secondary" style={{ fontSize: '14px' }}>
-                    Medellín, Antioquia<br />Colombia
-                  </span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <Phone className="w-5 h-5 text-primary flex-shrink-0" />
-                  <a href="tel:+573001234567" className="text-foreground-secondary hover:text-primary transition-colors" style={{ fontSize: '14px' }}>
-                    +57 300 123 4567
-                  </a>
-                </li>
-                <li className="flex items-center gap-3">
-                  <Mail className="w-5 h-5 text-primary flex-shrink-0" />
-                  <a href="mailto:hola@glamourml.com" className="text-foreground-secondary hover:text-primary transition-colors" style={{ fontSize: '14px' }}>
-                    hola@glamourml.com
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Bottom Bar */}
-          <div className="pt-8 border-t border-border">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-foreground-secondary text-center sm:text-left" style={{ fontSize: '14px' }}>
-                © 2026 GLAMOUR ML. Todos los derechos reservados.
-              </p>
-              <div className="flex gap-6">
-                <a href="#" className="text-foreground-secondary hover:text-primary transition-colors" style={{ fontSize: '14px' }}>
-                  Términos y Condiciones
-                </a>
-                <a href="#" className="text-foreground-secondary hover:text-primary transition-colors" style={{ fontSize: '14px' }}>
-                  Política de Privacidad
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

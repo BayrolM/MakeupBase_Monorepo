@@ -1,56 +1,88 @@
-import { useState } from 'react';
-import { useStore, Proveedor } from '../../lib/store';
-import { PageHeader } from '../PageHeader';
-import { StatusBadge } from '../StatusBadge';
-import { StatusSwitch } from '../StatusSwitch';
-import { Pagination } from '../Pagination';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Button } from '../ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Plus, Pencil, Trash2, Eye, Search, X } from 'lucide-react';
-import { toast } from 'sonner';
-import { providerService } from '../../services/providerService';
+import { useState, useEffect, useMemo } from "react";
+import { useStore, Proveedor, Status } from "../../lib/store";
+import { toast } from "sonner";
+import { providerService } from "../../services/providerService";
+import { usePagination } from "../../hooks/usePagination";
+import { Pagination } from "../Pagination";
+
+// Sub-componentes
+import { ProveedorHeader } from "./proveedores/ProveedorHeader";
+import { ProveedorTable } from "./proveedores/ProveedorTable";
+import { ProveedorFormDialog } from "./proveedores/ProveedorFormDialog";
+import { ProveedorDetailDialog } from "./proveedores/ProveedorDetailDialog";
+import { ProveedorDeleteDialog } from "./proveedores/ProveedorDeleteDialog";
 
 export function ProveedoresModule() {
   const { proveedores, setProveedores } = useStore();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [editingProveedor, setEditingProveedor] = useState<Proveedor | null>(null);
-  const [selectedProveedor, setSelectedProveedor] = useState<Proveedor | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedProveedor, setSelectedProveedor] = useState<Proveedor | null>(
+    null,
+  );
+  const [editingProveedor, setEditingProveedor] = useState<Proveedor | null>(
+    null,
+  );
+  const [searchQuery, setSearchQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  const filteredProveedores = useMemo(() => {
+    return proveedores.filter(
+      (p) =>
+        p.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.nit.includes(searchQuery),
+    );
+  }, [proveedores, searchQuery]);
+
+  const {
+    currentPage,
+    itemsPerPage,
+    totalPages,
+    handlePageChange,
+    handleLimitChange,
+  } = usePagination({ totalItems: filteredProveedores.length });
+
+  const paginatedProveedores = useMemo(() => {
+    return filteredProveedores.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage,
+    );
+  }, [filteredProveedores, currentPage, itemsPerPage]);
+
   const [formData, setFormData] = useState({
-    nombre: '',
-    email: '',
-    telefono: '',
-    nit: '',
-    direccion: '',
-    estado: 'activo' as 'activo' | 'inactivo',
+    nombre: "",
+    email: "",
+    telefono: "",
+    nit: "",
+    direccion: "",
+    estado: "activo" as "activo" | "inactivo",
   });
 
-  const refreshProvidersLocal = async () => {
+  const refreshProveedores = async () => {
     try {
       const data = await providerService.getAll();
-      const mapped = data.map(prov => ({
+      const mapped = (
+        Array.isArray(data) ? data : (data as any).data || []
+      ).map((prov: any) => ({
         id: prov.id_proveedor.toString(),
         nombre: prov.nombre,
-        email: prov.email || '',
-        telefono: prov.telefono || '',
-        nit: prov.documento_nit || '',
-        direccion: '', // We don't have it in the backend yet
-        estado: prov.estado ? 'activo' as const : 'inactivo' as const,
+        email: prov.email || "",
+        telefono: prov.telefono || "",
+        nit: prov.documento_nit || "",
+        direccion: "",
+        estado: prov.estado ? ("activo" as const) : ("inactivo" as const),
         fechaRegistro: new Date().toISOString(),
       }));
       setProveedores(mapped);
     } catch (e) {
       console.error(e);
+      toast.error("Error al cargar proveedores");
     }
   };
+
+  useEffect(() => {
+    refreshProveedores();
+  }, []);
 
   const handleOpenDialog = (proveedor?: Proveedor) => {
     if (proveedor) {
@@ -66,12 +98,12 @@ export function ProveedoresModule() {
     } else {
       setEditingProveedor(null);
       setFormData({
-        nombre: '',
-        email: '',
-        telefono: '',
-        nit: '',
-        direccion: '',
-        estado: 'activo',
+        nombre: "",
+        email: "",
+        telefono: "",
+        nit: "",
+        direccion: "",
+        estado: "activo",
       });
     }
     setIsDialogOpen(true);
@@ -79,7 +111,7 @@ export function ProveedoresModule() {
 
   const handleSave = async () => {
     if (!formData.nombre.trim() || !formData.nit.trim()) {
-      toast.error('Nombre y NIT son obligatorios');
+      toast.error("Nombre y NIT son obligatorios");
       return;
     }
 
@@ -90,21 +122,21 @@ export function ProveedoresModule() {
         email: formData.email.trim(),
         telefono: formData.telefono.trim(),
         documento_nit: formData.nit.trim(),
-        estado: formData.estado === 'activo',
+        estado: formData.estado === "activo",
       };
 
       if (editingProveedor) {
         await providerService.update(Number(editingProveedor.id), payload);
-        toast.success('Proveedor actualizado');
+        toast.success("Proveedor actualizado");
       } else {
         await providerService.create(payload);
-        toast.success('Proveedor creado');
+        toast.success("Proveedor creado");
       }
-      
-      await refreshProvidersLocal();
+
+      await refreshProveedores();
       setIsDialogOpen(false);
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error.message || "Error al guardar");
     } finally {
       setIsSaving(false);
     }
@@ -112,184 +144,93 @@ export function ProveedoresModule() {
 
   const handleConfirmDelete = async () => {
     if (!selectedProveedor) return;
+    setIsSaving(true);
     try {
       await providerService.delete(Number(selectedProveedor.id));
-      await refreshProvidersLocal();
-      toast.success('Proveedor eliminado');
+      await refreshProveedores();
+      toast.success("Proveedor eliminado permanentemente");
       setIsDeleteDialogOpen(false);
       setSelectedProveedor(null);
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error.message || "Error al eliminar");
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const filteredProveedores = proveedores.filter(p => 
-    p.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.nit.includes(searchQuery)
-  );
-
-  const totalPages = Math.ceil(filteredProveedores.length / itemsPerPage);
-  const paginatedProveedores = filteredProveedores.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const handleStatusChange = async (
+    proveedor: any,
+    newStatus: "activo" | "inactivo",
+  ) => {
+    try {
+      await providerService.update(Number(proveedor.id), {
+        estado: newStatus === "activo",
+      });
+      await refreshProveedores();
+      toast.success(`Proveedor ${newStatus}`);
+    } catch (e) {
+      toast.error("Error al cambiar el estado");
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background">
-      <PageHeader
-        title="Proveedores"
-        subtitle="Gestión de proveedores"
-        actionButton={{
-          label: 'Nuevo Proveedor',
-          icon: Plus,
-          onClick: () => handleOpenDialog(),
-        }}
-      />
+    <div className="min-h-screen bg-[#f6f3f5]">
+      <ProveedorHeader onOpenDialog={() => handleOpenDialog()} />
 
-      <div className="p-8">
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
-          <div className="p-4 border-b border-border">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground-secondary" />
-              <input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-10 pl-10 pr-10 bg-input-background border border-border rounded-lg text-foreground placeholder:text-foreground-secondary focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="Buscar por nombre o NIT..."
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2">
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
+      <div className="px-8 pb-8">
+        <ProveedorTable
+          proveedores={paginatedProveedores}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onViewDetail={(p) => {
+            setSelectedProveedor(p);
+            setIsDetailDialogOpen(true);
+          }}
+          onEdit={handleOpenDialog}
+          onDelete={(p) => {
+            setSelectedProveedor(p);
+            setIsDeleteDialogOpen(true);
+          }}
+          onStatusChange={handleStatusChange}
+        />
+
+        {totalPages > 1 && (
+          <div className="mt-6">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredProveedores.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={handleLimitChange}
+            />
           </div>
-
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border">
-                <TableHead>Nombre</TableHead>
-                <TableHead>NIT</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Teléfono</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedProveedores.map((proveedor) => (
-                <TableRow key={proveedor.id} className="border-border">
-                  <TableCell className="font-medium text-foreground">{proveedor.nombre}</TableCell>
-                  <TableCell className="text-foreground-secondary">{proveedor.nit}</TableCell>
-                  <TableCell className="text-foreground-secondary">{proveedor.email || 'N/A'}</TableCell>
-                  <TableCell className="text-foreground-secondary">{proveedor.telefono || 'N/A'}</TableCell>
-                  <TableCell>
-                    <StatusSwitch 
-                      status={proveedor.estado} 
-                      onChange={(newStatus) => {
-                        providerService.update(Number(proveedor.id), { estado: newStatus === 'activo' }).then(refreshProvidersLocal);
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <button 
-                        onClick={() => { setSelectedProveedor(proveedor); setIsDetailDialogOpen(true); }}
-                        className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-150"
-                        title="Ver detalles"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => handleOpenDialog(proveedor)}
-                        className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-all duration-150"
-                        title="Editar proveedor"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => { setSelectedProveedor(proveedor); setIsDeleteDialogOpen(true); }}
-                        className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-all duration-150"
-                        title="Eliminar proveedor"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-
-          {totalPages > 1 && (
-            <div className="p-4 border-t border-border">
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-                totalItems={filteredProveedores.length}
-                itemsPerPage={itemsPerPage}
-                onItemsPerPageChange={setItemsPerPage}
-              />
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-card border-border">
-          <DialogHeader><DialogTitle>{editingProveedor ? 'Editar Proveedor' : 'Nuevo Proveedor'}</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-4 py-4">
-            <div className="space-y-2 col-span-2">
-              <Label>Nombre / Razón Social</Label>
-              <Input value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} />
-            </div>
-            <div className="space-y-2">
-              <Label>NIT / Documento</Label>
-              <Input value={formData.nit} onChange={e => setFormData({...formData, nit: e.target.value})} />
-            </div>
-            <div className="space-y-2">
-              <Label>Teléfono</Label>
-              <Input value={formData.telefono} onChange={e => setFormData({...formData, telefono: e.target.value})} />
-            </div>
-            <div className="space-y-2 col-span-2">
-              <Label>Email</Label>
-              <Input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={isSaving}>{isSaving ? 'Guardando...' : 'Guardar'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ProveedorFormDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        editingProveedor={editingProveedor}
+        formData={formData}
+        setFormData={setFormData}
+        isSaving={isSaving}
+        onSave={handleSave}
+      />
 
-      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="bg-card border-border">
-          <DialogHeader><DialogTitle>Detalles del Proveedor</DialogTitle></DialogHeader>
-          {selectedProveedor && (
-            <div className="space-y-4 py-4">
-              <p><strong>Nombre:</strong> {selectedProveedor.nombre}</p>
-              <p><strong>NIT:</strong> {selectedProveedor.nit}</p>
-              <p><strong>Email:</strong> {selectedProveedor.email || 'N/A'}</p>
-              <p><strong>Teléfono:</strong> {selectedProveedor.telefono || 'N/A'}</p>
-              <p><strong>Estado:</strong> <StatusBadge status={selectedProveedor.estado} /></p>
-            </div>
-          )}
-          <DialogFooter><Button onClick={() => setIsDetailDialogOpen(false)}>Cerrar</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ProveedorDetailDialog
+        open={isDetailDialogOpen}
+        onOpenChange={setIsDetailDialogOpen}
+        proveedor={selectedProveedor}
+      />
 
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="bg-card border-border">
-          <DialogHeader><DialogTitle>Eliminar Proveedor</DialogTitle></DialogHeader>
-          <p className="py-4 text-center">¿Seguro que deseas eliminar a <strong>{selectedProveedor?.nombre}</strong>?</p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancelar</Button>
-            <Button className="bg-danger text-foreground" onClick={handleConfirmDelete}>Eliminar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ProveedorDeleteDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        proveedor={selectedProveedor}
+        isSaving={isSaving}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }

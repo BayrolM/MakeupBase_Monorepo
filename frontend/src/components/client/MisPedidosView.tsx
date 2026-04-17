@@ -189,9 +189,9 @@ export function MisPedidosView({
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8f7f8' }}>
+    <div style={{ minHeight: '100vh', background: '#fdf5f8' }}>
       {/* Header */}
-      <div style={{ background: '#fff', borderBottom: '1px solid #e5e7eb' }}>
+      <div style={{ background: '#fff8fb', borderBottom: '1px solid #f0d5e0' }}>
         <div className="max-w-7xl mx-auto px-8 py-6">
           <div className="flex items-center gap-3 mb-6">
             <Truck style={{ width: 28, height: 28, color: '#b06080' }} />
@@ -307,11 +307,11 @@ export function MisPedidosView({
               <div
                 key={pedido.id}
                 style={{
-                  background: '#fff', border: '1px solid #d1d5db', borderRadius: '12px', padding: '24px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.06)', transition: 'all 0.3s ease'
+                  background: '#fff8fb', border: '1px solid #f0d5e0', borderRadius: '12px', padding: '24px',
+                  boxShadow: '0 4px 12px rgba(196,123,150,0.08)', transition: 'all 0.3s ease'
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#c47b96'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(176,96,128,0.1), 0 4px 6px -2px rgba(176,96,128,0.05)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#d1d5db'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.06)'; e.currentTarget.style.transform = 'none'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#c47b96'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(196,123,150,0.15)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#f0d5e0'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(196,123,150,0.08)'; e.currentTarget.style.transform = 'none'; }}
               >
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>

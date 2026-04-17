@@ -235,7 +235,7 @@ export function CheckoutView({ onBack, onComplete }: CheckoutViewProps) {
   if (step === 2) {
     return (
       <>
-        <div style={{ height: '100vh', background: '#f8f7f8', display: 'flex', flexDirection: 'column', padding: '24px 40px', overflow: 'hidden' }}>
+        <div style={{ height: '100vh', background: '#fdf5f8', display: 'flex', flexDirection: 'column', padding: '24px 40px', overflow: 'hidden' }}>
 
           {/* Top bar */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
@@ -393,7 +393,7 @@ export function CheckoutView({ onBack, onComplete }: CheckoutViewProps) {
   }
 
   return (
-    <div style={{ height: '100vh', background: '#f8f7f8', display: 'flex', flexDirection: 'column', padding: '24px 40px', overflow: 'hidden' }}>
+    <div style={{ height: '100vh', background: '#fdf5f8', display: 'flex', flexDirection: 'column', padding: '24px 40px', overflow: 'hidden' }}>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
           <button

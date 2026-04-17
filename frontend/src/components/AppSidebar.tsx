@@ -9,7 +9,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from './ui/sidebar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import {
   LayoutDashboard,
@@ -29,6 +29,7 @@ import {
   Heart,
   Bell,
   LogOut,
+  X,
 } from 'lucide-react';
 
 interface AppSidebarProps {
@@ -273,14 +274,11 @@ export function AppSidebar({ onNavigate, currentRoute, onLogout }: AppSidebarPro
       </div>
 
       <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-        <DialogContent className="bg-white border border-gray-100 max-w-md rounded-2xl shadow-2xl p-0 overflow-hidden">
+        <DialogContent className="bg-white border-0 max-w-md rounded-2xl shadow-2xl p-0 overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-6 pt-6 pb-5 border-b border-gray-100">
             <div className="flex items-center gap-4">
-              <div
-                className="flex items-center justify-center flex-shrink-0"
-                style={{ width: 44, height: 44, borderRadius: 12, background: "linear-gradient(135deg,#c47b96,#e092b2)", boxShadow: "0 2px 8px rgba(196,123,150,0.3)" }}
-              >
+              <div className="flex items-center justify-center text-white font-bold text-lg flex-shrink-0 luxury-icon-gradient" style={{ width: 44, height: 44, borderRadius: 12 }}>
                 <LogOut className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -290,12 +288,18 @@ export function AppSidebar({ onNavigate, currentRoute, onLogout }: AppSidebarPro
                 <p className="text-xs text-gray-400 mt-0.5">¿Estás segura de que deseas salir?</p>
               </div>
             </div>
+            <button
+              onClick={() => setShowLogoutDialog(false)}
+              className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
           {/* Body */}
           <div className="px-6 py-5">
-            <div className="bg-[#fff0f5] rounded-xl p-4 border border-[#f0d5e0]">
-              <p className="text-sm text-gray-600 leading-relaxed">
+            <div className="bg-[#fff0f5] rounded-xl p-4 border border-[#fce8f0]">
+              <p className="text-sm text-gray-600 leading-relaxed text-center">
                 Tu sesión se cerrará y tendrás que volver a iniciar sesión para acceder a tu cuenta.
               </p>
             </div>
@@ -310,13 +314,12 @@ export function AppSidebar({ onNavigate, currentRoute, onLogout }: AppSidebarPro
             >
               Cancelar
             </Button>
-            <Button
+            <button
               onClick={() => { setShowLogoutDialog(false); onLogout?.(); }}
-              className="rounded-lg font-semibold px-6 h-10 text-sm border-0"
-              style={{ backgroundColor: "#c47b96", color: "#ffffff" }}
+              className="rounded-lg font-semibold px-6 h-10 text-sm border-0 luxury-button-modal"
             >
               Cerrar Sesión
-            </Button>
+            </button>
           </div>
         </DialogContent>
       </Dialog>
