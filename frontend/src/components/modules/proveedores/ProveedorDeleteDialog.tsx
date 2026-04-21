@@ -44,31 +44,46 @@ export function ProveedorDeleteDialog({
         </div>
 
         {/* Body */}
-        <div className="px-6 py-5">
-          <div className="bg-rose-50 rounded-xl p-4 border border-rose-100 flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-rose-500 mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-rose-900 leading-relaxed">
-              ¿Estás segura de que deseas eliminar a <strong>{proveedor.nombre}</strong>? 
-              Se perderán todos los datos asociados a este proveedor de forma permanente.
+        <div className="px-6 py-6">
+          <div className="bg-rose-50/50 rounded-2xl p-5 border border-rose-100 flex flex-col items-center text-center gap-3">
+            <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mb-1">
+              <AlertCircle className="w-6 h-6 text-rose-500" />
+            </div>
+            <p className="text-[15px] text-gray-700 leading-relaxed max-w-sm">
+              ¿Estás segura de que deseas eliminar a <strong className="text-rose-600 font-bold">{proveedor.nombre}</strong>? 
+              <br/>
+              <span className="text-sm text-gray-500 mt-2 block">
+                Se perderán todos los datos y facturas asociadas a este proveedor de forma permanente.
+              </span>
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 px-6 pb-6 pt-2">
-          <Button
-            variant="outline"
+        <div className="flex justify-end gap-3 px-6 py-5 bg-gray-50/50 border-t border-gray-100 mt-2 items-center">
+          <button
+            type="button"
             onClick={() => onOpenChange(false)}
-            className="border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg px-5 h-10 text-sm"
+            disabled={isSaving}
+            className="px-5 h-11 text-sm font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-100 hover:text-gray-900 rounded-xl transition-all disabled:opacity-50 min-w-[100px]"
           >
             Cancelar
-          </Button>
+          </button>
           <button
+            type="button"
             onClick={onConfirm}
             disabled={isSaving}
-            className="rounded-lg font-semibold px-6 h-10 text-sm text-white bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 transition-all shadow-md shadow-rose-100 disabled:opacity-50 min-w-[120px]"
+            className="px-6 h-11 text-sm font-bold text-white bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 focus:ring-4 focus:ring-rose-200 rounded-xl shadow-lg shadow-rose-500/20 transition-all select-none disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center min-w-[160px]"
           >
-            {isSaving ? "Eliminando..." : "Confirmar Eliminación"}
+            {isSaving ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Procesando...
+              </span>
+            ) : "Sí, Eliminar Proveedor"}
           </button>
         </div>
       </DialogContent>

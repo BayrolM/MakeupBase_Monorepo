@@ -16,6 +16,8 @@ interface CompraTableProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onViewDetail: (compra: any) => void;
+  onAnular?: (compra: any) => void;
+  isAdmin?: boolean;
 }
 
 export function CompraTable({
@@ -24,6 +26,8 @@ export function CompraTable({
   searchQuery,
   onSearchChange,
   onViewDetail,
+  onAnular,
+  isAdmin = false,
 }: CompraTableProps) {
   return (
     <div className="bg-white/80 backdrop-blur-sm border border-white/50 rounded-2xl overflow-hidden shadow-xl">
@@ -59,6 +63,9 @@ export function CompraTable({
                 <Calendar className="w-3.5 h-3.5" /> Fecha
               </div>
             </TableHead>
+            <TableHead className="text-gray-700 font-semibold text-xs uppercase tracking-wider py-3 text-center">
+              Estado
+            </TableHead>
             <TableHead className="text-gray-700 font-semibold text-xs uppercase tracking-wider py-3 text-right">
               <div className="flex items-center justify-end gap-1.5">
                 <DollarSign className="w-3.5 h-3.5" /> Total
@@ -72,7 +79,7 @@ export function CompraTable({
         <TableBody>
           {compras.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-20 bg-white">
+              <TableCell colSpan={6} className="text-center py-20 bg-white">
                 <div className="flex flex-col items-center gap-4">
                   <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#fff0f5] to-[#fce8f0] flex items-center justify-center">
                     <ShoppingBag className="w-10 h-10 text-[#c47b96]" />
@@ -118,13 +125,24 @@ export function CompraTable({
                       {new Date(compra.fecha).toLocaleDateString()}
                     </span>
                   </TableCell>
+                  <TableCell className="py-2.5 text-center">
+                    {compra.confirmada ? (
+                      <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-[10px] font-bold uppercase tracking-wider">
+                        Confirmada
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-1 bg-red-50 text-red-700 border border-red-200 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 w-max mx-auto">
+                        Anulada
+                      </span>
+                    )}
+                  </TableCell>
                   <TableCell className="py-2.5 text-right">
                     <span className="text-gray-900 font-bold text-base bg-gradient-to-r from-[#2e1020] to-[#4a2035] bg-clip-text text-transparent">
                       {formatCurrency(compra.total)}
                     </span>
                   </TableCell>
                   <TableCell className="py-2.5 text-right pr-6">
-                    <div className="flex items-center justify-end gap-1.5">
+                    <div className="flex items-center justify-end gap-1.5 opacity-90 transition-opacity">
                       <button
                         onClick={() => onViewDetail(compra)}
                         className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-150"
@@ -132,6 +150,17 @@ export function CompraTable({
                       >
                         <Eye className="w-4 h-4" />
                       </button>
+                      {isAdmin && compra.confirmada && onAnular && (
+                        <button
+                          onClick={() => onAnular(compra)}
+                          className="h-8 w-8 flex items-center justify-center rounded-lg text-rose-400 hover:bg-rose-50 hover:text-rose-600 transition-all duration-150"
+                          title="Anular compra"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

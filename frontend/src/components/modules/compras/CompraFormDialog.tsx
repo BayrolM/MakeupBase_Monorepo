@@ -1,6 +1,6 @@
-import { X, ShoppingBag, Plus, Trash2, Package, Building2 } from "lucide-react";
+import { useState } from "react";
+import { X, Plus, Trash2, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "../../ui/dialog";
-import { Button } from "../../ui/button";
 import { Label } from "../../ui/label";
 import { Input } from "../../ui/input";
 import {
@@ -39,11 +39,6 @@ interface CompraFormDialogProps {
   onSave: () => void;
   selectedProductId: string;
   setSelectedProductId: (id: string) => void;
-  tempQuantity: number;
-  setTempQuantity: (q: number) => void;
-  tempPrice: number;
-  setTempPrice: (p: number) => void;
-  addProductToDetalles: () => void;
   removeProductFromDetalles: (index: number) => void;
 }
 
@@ -58,71 +53,130 @@ export function CompraFormDialog({
   onSave,
   selectedProductId,
   setSelectedProductId,
-  tempQuantity,
-  setTempQuantity,
-  tempPrice,
-  setTempPrice,
-  addProductToDetalles,
   removeProductFromDetalles,
 }: CompraFormDialogProps) {
+  const [productSearch, setProductSearch] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+
   const totalPurchase = formData.detalles.reduce(
     (acc, curr) => acc + curr.cantidad * curr.precioUnitario,
     0,
   );
 
+  const filteredProducts = productos.filter((p) =>
+    p.nombre.toLowerCase().includes(productSearch.toLowerCase()),
+  );
+
+  const handleAddProduct = () => {
+    if (!selectedProductId) return;
+    const existingIndex = formData.detalles.findIndex(
+      (d: any) => d.productoId === selectedProductId,
+    );
+    if (existingIndex >= 0) {
+      const newDetalles = [...formData.detalles];
+      newDetalles[existingIndex].cantidad += 1;
+      setFormData({ ...formData, detalles: newDetalles });
+    } else {
+      setFormData({
+        ...formData,
+        detalles: [
+          ...formData.detalles,
+          { productoId: selectedProductId, cantidad: 1, precioUnitario: 0 },
+        ],
+      });
+    }
+    setSelectedProductId("");
+    setProductSearch("");
+    setShowDropdown(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-white border-0 !w-[95vw] !max-w-[850px] rounded-2xl shadow-2xl p-0 overflow-hidden">
+      <DialogContent
+        className="border-0 rounded-2xl shadow-2xl p-0 flex flex-col"
+        style={{
+          backgroundColor: "#ffffff",
+          width: "95vw",
+          maxWidth: "700px",
+          maxHeight: "90vh",
+          overflow: "hidden",
+        }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-6 pb-5 border-b border-gray-100 luxury-header-gradient">
-          <div className="flex items-center gap-4">
+        <div
+          className="flex items-center justify-between px-6 py-4 shrink-0"
+          style={{ background: "linear-gradient(135deg, #7b2d45 0%, #c47b96 100%)" }}
+        >
+          <div className="flex items-center gap-3">
             <div
-              className="flex items-center justify-center text-white font-bold text-lg flex-shrink-0 bg-white/10 rounded-xl border border-white/20 backdrop-blur-md"
-              style={{ width: 44, height: 44 }}
+              className="flex items-center justify-center rounded-xl"
+              style={{
+                width: 40,
+                height: 40,
+                backgroundColor: "rgba(255,255,255,0.15)",
+                border: "1px solid rgba(255,255,255,0.2)",
+              }}
             >
-              <Plus className="w-5 h-5 text-white" />
+              <Plus style={{ width: 18, height: 18, color: "white" }} />
             </div>
             <div>
               <DialogTitle className="text-base font-bold text-white leading-tight">
                 Registrar Nueva Compra
               </DialogTitle>
-              <p className="text-xs text-white/60 mt-0.5">
+              <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.65)" }}>
                 Incrementa el stock con nuevas adquisiciones
               </p>
             </div>
           </div>
           <button
             onClick={() => onOpenChange(false)}
-            className="p-1.5 rounded-full text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+            className="rounded-full transition-colors"
+            style={{
+              padding: "6px",
+              color: "rgba(255,255,255,0.6)",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+            }}
+            onMouseOver={(e) =>
+              ((e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.15)")
+            }
+            onMouseOut={(e) =>
+              ((e.currentTarget as HTMLElement).style.backgroundColor = "transparent")
+            }
           >
-            <X className="w-4 h-4" />
+            <X style={{ width: 16, height: 16 }} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-8 grid grid-cols-12 gap-8 items-start">
-          {/* Columna Izquierda: Datos Generales y Añadir Producto */}
-          <div className="col-span-12 lg:col-span-5 space-y-6">
-            <div className="space-y-4 bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-[#c47b96]" /> Información
-                General
-              </h3>
-
-              <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-bold text-gray-400">
+        <div
+          className="flex-1 flex flex-col gap-6 p-6"
+          style={{ overflowY: "auto", backgroundColor: "#f9f9fb" }}
+        >
+          {/* Datos Generales */}
+          <div>
+            <p className="text-sm font-bold mb-3" style={{ color: "#1a1a2e" }}>
+              Datos de la Compra
+            </p>
+            <div className="grid grid-cols-1 gap-4" style={{ gridTemplateColumns: "1fr 1fr" }}>
+              <div className="space-y-1">
+                <Label style={{ fontSize: 11, fontWeight: 700, color: "#888" }}>
                   Proveedor
                 </Label>
                 <Select
                   value={formData.proveedorId}
-                  onValueChange={(v) =>
-                    setFormData({ ...formData, proveedorId: v })
-                  }
+                  onValueChange={(v) => setFormData({ ...formData, proveedorId: v })}
                 >
-                  <SelectTrigger className="bg-white border-gray-200 rounded-xl h-11">
-                    <SelectValue placeholder="Seleccionar" />
+                  <SelectTrigger
+                    className="h-11 rounded-xl"
+                    style={{ backgroundColor: "white", borderColor: "#e5e7eb" }}
+                  >
+                    <SelectValue placeholder="Seleccionar proveedor..." />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent
+                    style={{ backgroundColor: "white", zIndex: 9999, borderColor: "#e5e7eb" }}
+                  >
                     {proveedores.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.nombre}
@@ -132,8 +186,8 @@ export function CompraFormDialog({
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-bold text-gray-400">
+              <div className="space-y-1">
+                <Label style={{ fontSize: 11, fontWeight: 700, color: "#888" }}>
                   Observaciones
                 </Label>
                 <Input
@@ -141,175 +195,372 @@ export function CompraFormDialog({
                   onChange={(e) =>
                     setFormData({ ...formData, observaciones: e.target.value })
                   }
-                  className="bg-white border-gray-200 rounded-xl h-20"
+                  className="h-11 rounded-xl"
+                  style={{ backgroundColor: "white", borderColor: "#e5e7eb" }}
                   placeholder="Ej: Factura #12345..."
                 />
               </div>
             </div>
+          </div>
 
-            <div className="space-y-4 bg-[#fff0f5]/20 p-6 rounded-2xl border border-[#fad6e3]/30">
-              <h3 className="text-xs font-bold text-[#c47b96] uppercase tracking-widest flex items-center gap-2">
-                <Package className="w-4 h-4" /> Añadir Producto
-              </h3>
+          {/* Buscador de Productos */}
+          <div>
+            <p className="text-sm font-bold mb-3" style={{ color: "#1a1a2e" }}>
+              Agregar Productos
+            </p>
+            <div className="flex items-center gap-3">
+              {/* Search input with dropdown */}
+              <div style={{ position: "relative", flex: 1 }}>
+                <Input
+                  className="h-11 rounded-xl pr-10"
+                  style={{ backgroundColor: "white", borderColor: "#e5e7eb" }}
+                  placeholder="Buscar por nombre..."
+                  value={productSearch}
+                  onChange={(e) => {
+                    setProductSearch(e.target.value);
+                    setShowDropdown(true);
+                    setSelectedProductId("");
+                  }}
+                  onFocus={() => setShowDropdown(true)}
+                  autoComplete="off"
+                />
+                <Search
+                  style={{
+                    width: 16,
+                    height: 16,
+                    color: "#aaa",
+                    position: "absolute",
+                    right: 14,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    pointerEvents: "none",
+                  }}
+                />
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-[10px] uppercase font-bold text-gray-400">
-                    Producto
-                  </Label>
-                  <Select
-                    value={selectedProductId}
-                    onValueChange={setSelectedProductId}
-                  >
-                    <SelectTrigger className="bg-white border-gray-200 rounded-xl h-11">
-                      <SelectValue placeholder="Buscar..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {productos.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.nombre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] uppercase font-bold text-gray-400">
-                      Cantidad
-                    </Label>
-                    <Input
-                      type="number"
-                      value={tempQuantity}
-                      onChange={(e) => setTempQuantity(Number(e.target.value))}
-                      className="bg-white border-gray-200 rounded-xl h-11 text-center font-bold"
+                {showDropdown && productSearch.length > 0 && (
+                  <>
+                    {/* backdrop */}
+                    <div
+                      style={{
+                        position: "fixed",
+                        inset: 0,
+                        zIndex: 8999,
+                      }}
+                      onClick={() => setShowDropdown(false)}
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] uppercase font-bold text-gray-400">
-                      Precio Unit.
-                    </Label>
-                    <Input
-                      type="number"
-                      value={tempPrice}
-                      onChange={(e) => setTempPrice(Number(e.target.value))}
-                      className="bg-white border-gray-200 rounded-xl h-11 font-bold"
-                      placeholder="$ 0.00"
-                    />
-                  </div>
-                </div>
-
-                <Button
-                  onClick={addProductToDetalles}
-                  className="w-full bg-[#c47b96] hover:bg-[#b06a84] text-white rounded-xl h-11 font-bold shadow-lg shadow-pink-100 flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" /> Agregar a la lista
-                </Button>
+                    {/* dropdown */}
+                    <ul
+                      style={{
+                        position: "absolute",
+                        left: 0,
+                        right: 0,
+                        top: "100%",
+                        zIndex: 9000,
+                        backgroundColor: "white",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 12,
+                        boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+                        maxHeight: 200,
+                        overflowY: "auto",
+                        listStyle: "none",
+                        margin: 0,
+                        marginTop: 6,
+                        padding: 0,
+                      }}
+                    >
+                      {filteredProducts.length === 0 ? (
+                        <li
+                          style={{
+                            padding: "12px 16px",
+                            color: "#aaa",
+                            fontSize: 13,
+                            textAlign: "center",
+                          }}
+                        >
+                          No se encontraron productos
+                        </li>
+                      ) : (
+                        filteredProducts.map((p) => (
+                          <li
+                            key={p.id}
+                            style={{
+                              padding: "10px 16px",
+                              cursor: "pointer",
+                              borderBottom: "1px solid #f3f4f6",
+                              transition: "background 0.15s",
+                            }}
+                            onMouseOver={(e) =>
+                              ((e.currentTarget as HTMLElement).style.backgroundColor = "#fdf2f6")
+                            }
+                            onMouseOut={(e) =>
+                              ((e.currentTarget as HTMLElement).style.backgroundColor = "white")
+                            }
+                            onClick={() => {
+                              setProductSearch(p.nombre);
+                              setSelectedProductId(p.id);
+                              setShowDropdown(false);
+                            }}
+                          >
+                            <div style={{ fontWeight: 700, fontSize: 13, color: "#1a1a2e" }}>
+                              {p.nombre}
+                            </div>
+                            <div style={{ fontSize: 10, color: "#aaa" }}>
+                              Stock: {p.stock ?? "—"}
+                            </div>
+                          </li>
+                        ))
+                      )}
+                    </ul>
+                  </>
+                )}
               </div>
+
+              {/* Agregar button */}
+              <button
+                onClick={handleAddProduct}
+                disabled={!selectedProductId}
+                style={{
+                  height: 44,
+                  paddingLeft: 20,
+                  paddingRight: 20,
+                  borderRadius: 12,
+                  fontWeight: 700,
+                  fontSize: 14,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  border: "none",
+                  cursor: selectedProductId ? "pointer" : "not-allowed",
+                  backgroundColor: selectedProductId ? "#c47b96" : "#d1d5db",
+                  color: "white",
+                  transition: "background 0.2s",
+                  flexShrink: 0,
+                }}
+                onMouseOver={(e) => {
+                  if (selectedProductId)
+                    (e.currentTarget as HTMLElement).style.backgroundColor = "#b06a84";
+                }}
+                onMouseOut={(e) => {
+                  if (selectedProductId)
+                    (e.currentTarget as HTMLElement).style.backgroundColor = "#c47b96";
+                }}
+              >
+                <Plus style={{ width: 16, height: 16 }} />
+                Agregar
+              </button>
             </div>
           </div>
 
-          {/* Columna Derecha: Tabla de Items y Totales */}
-          <div className="col-span-12 lg:col-span-7 space-y-6">
-            <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm flex flex-col h-full min-h-[400px]">
-              <div className="px-6 py-4 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                  Resumen de Items
-                </span>
-                <span className="px-3 py-1 bg-[#fff0f5] text-[#c47b96] rounded-lg text-xs font-black uppercase">
-                  {formData.detalles.length} Productos
-                </span>
-              </div>
-
-              <div className="flex-1 overflow-y-auto max-h-[350px]">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                      <TableHead className="text-[10px] font-bold text-gray-400 uppercase py-3">
-                        Producto
-                      </TableHead>
-                      <TableHead className="text-[10px] font-bold text-gray-400 uppercase py-3 text-center">
-                        Cant.
-                      </TableHead>
-                      <TableHead className="text-[10px] font-bold text-gray-400 uppercase py-3 text-right">
-                        Subtotal
-                      </TableHead>
-                      <TableHead className="text-[10px] font-bold text-gray-400 uppercase py-3 text-center"></TableHead>
+          {/* Tabla de Productos */}
+          <div
+            style={{
+              backgroundColor: "white",
+              border: "1px solid #e5e7eb",
+              borderRadius: 16,
+              overflow: "hidden",
+            }}
+          >
+            <div style={{ overflowX: "auto" }}>
+              <Table>
+                <TableHeader>
+                  <TableRow style={{ backgroundColor: "#f9fafb" }}>
+                    <TableHead style={{ fontSize: 11, fontWeight: 700, color: "#6b7280" }}>
+                      Producto
+                    </TableHead>
+                    <TableHead
+                      style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", width: 110, textAlign: "center" }}
+                    >
+                      Cantidad
+                    </TableHead>
+                    <TableHead
+                      style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", width: 128, textAlign: "center" }}
+                    >
+                      Precio Unit.
+                    </TableHead>
+                    <TableHead
+                      style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", textAlign: "right" }}
+                    >
+                      Subtotal
+                    </TableHead>
+                    <TableHead
+                      style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", width: 56, textAlign: "center" }}
+                    >
+                      Acción
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {formData.detalles.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        style={{ height: 120, textAlign: "center", color: "#aaa", fontSize: 13 }}
+                      >
+                        No hay productos agregados.
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {formData.detalles.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={4} className="h-64 text-center">
-                          <div className="flex flex-col items-center gap-3 text-gray-300">
-                            <ShoppingBag className="w-12 h-12" />
-                            <p className="text-sm font-medium">
-                              La lista está vacía
-                            </p>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      formData.detalles.map((d, i) => {
-                        const prod = productos.find(
-                          (p) => p.id === d.productoId,
-                        );
-                        return (
-                          <TableRow
-                            key={i}
-                            className="border-b border-gray-50 group hover:bg-gray-50/50"
+                  ) : (
+                    formData.detalles.map((d: any, i: number) => {
+                      const prod = productos.find((p) => p.id === d.productoId);
+                      return (
+                        <TableRow key={i} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                          <TableCell style={{ padding: "10px 12px" }}>
+                            <div style={{ fontWeight: 700, fontSize: 13, color: "#1a1a2e" }}>
+                              {prod?.nombre}
+                            </div>
+                          </TableCell>
+                          <TableCell style={{ padding: "10px 12px", textAlign: "center" }}>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={d.cantidad || ""}
+                              onChange={(e) => {
+                                const nd = [...formData.detalles];
+                                nd[i].cantidad = Number(e.target.value) || 0;
+                                setFormData({ ...formData, detalles: nd });
+                              }}
+                              style={{
+                                height: 38,
+                                textAlign: "center",
+                                fontWeight: 700,
+                                backgroundColor: "#f9fafb",
+                                borderColor: "#e5e7eb",
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell style={{ padding: "10px 12px", textAlign: "center" }}>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={d.precioUnitario === 0 ? "" : d.precioUnitario}
+                              onChange={(e) => {
+                                const nd = [...formData.detalles];
+                                nd[i].precioUnitario = Number(e.target.value) || 0;
+                                setFormData({ ...formData, detalles: nd });
+                              }}
+                              style={{
+                                height: 38,
+                                textAlign: "center",
+                                fontWeight: 700,
+                                backgroundColor: "#f9fafb",
+                                borderColor: "#e5e7eb",
+                              }}
+                              placeholder="$ 0"
+                            />
+                          </TableCell>
+                          <TableCell
+                            style={{ padding: "10px 12px", textAlign: "right", fontWeight: 800, color: "#c47b96" }}
                           >
-                            <TableCell className="py-4">
-                              <div className="flex flex-col">
-                                <span className="text-sm font-bold text-gray-800 line-clamp-1">
-                                  {prod?.nombre}
-                                </span>
-                                <span className="text-[10px] font-semibold text-gray-400">
-                                  {formatCurrency(d.precioUnitario)} p/u
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-center font-black text-gray-700">
-                              {d.cantidad}
-                            </TableCell>
-                            <TableCell className="text-right font-black text-[#c47b96]">
-                              {formatCurrency(d.cantidad * d.precioUnitario)}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <button
-                                onClick={() => removeProductFromDetalles(i)}
-                                className="p-1.5 rounded-lg text-gray-300 hover:bg-rose-50 hover:text-rose-500 transition-all opacity-0 group-hover:opacity-100"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
-                    )}
-                  </TableBody>
-                </Table>
+                            {formatCurrency(d.cantidad * d.precioUnitario)}
+                          </TableCell>
+                          <TableCell style={{ padding: "10px 12px", textAlign: "center" }}>
+                            <button
+                              onClick={() => removeProductFromDetalles(i)}
+                              style={{
+                                padding: 7,
+                                borderRadius: 8,
+                                border: "none",
+                                backgroundColor: "transparent",
+                                cursor: "pointer",
+                                color: "#aaa",
+                                transition: "background 0.15s",
+                              }}
+                              onMouseOver={(e) => {
+                                (e.currentTarget as HTMLElement).style.backgroundColor = "#fef2f2";
+                                (e.currentTarget as HTMLElement).style.color = "#ef4444";
+                              }}
+                              onMouseOut={(e) => {
+                                (e.currentTarget as HTMLElement).style.backgroundColor = "transparent";
+                                (e.currentTarget as HTMLElement).style.color = "#aaa";
+                              }}
+                            >
+                              <Trash2 style={{ width: 15, height: 15 }} />
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Footer con totales y botones */}
+            <div
+              style={{
+                padding: "16px 20px",
+                borderTop: "1px solid #e5e7eb",
+                backgroundColor: "#fafafa",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
+              <div>
+                <div style={{ display: "flex", gap: 20, fontSize: 13, color: "#6b7280", fontWeight: 600 }}>
+                  <span>Subtotal:</span>
+                  <span>{formatCurrency(totalPurchase)}</span>
+                </div>
+                <div style={{ display: "flex", gap: 20, fontSize: 18, color: "#c47b96", fontWeight: 900 }}>
+                  <span>Total:</span>
+                  <span>{formatCurrency(totalPurchase)}</span>
+                </div>
               </div>
 
-              <div className="mt-auto bg-gray-50 p-6 border-t border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      Total de la Compra
-                    </span>
-                    <span className="text-3xl font-black text-gray-900 tracking-tighter">
-                      {formatCurrency(totalPurchase)}
-                    </span>
-                  </div>
-                  <button
-                    onClick={onSave}
-                    disabled={isSaving || formData.detalles.length === 0}
-                    className="h-12 px-8 rounded-xl font-bold bg-[#c47b96] text-white hover:bg-[#b06a84] shadow-lg shadow-pink-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  >
-                    {isSaving ? "Registrando..." : "Registrar Compra"}
-                  </button>
-                </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={() => onOpenChange(false)}
+                  style={{
+                    height: 42,
+                    padding: "0 20px",
+                    borderRadius: 10,
+                    fontWeight: 700,
+                    fontSize: 14,
+                    border: "1px solid #e5e7eb",
+                    backgroundColor: "white",
+                    color: "#374151",
+                    cursor: "pointer",
+                    transition: "background 0.15s",
+                  }}
+                  onMouseOver={(e) =>
+                    ((e.currentTarget as HTMLElement).style.backgroundColor = "#f3f4f6")
+                  }
+                  onMouseOut={(e) =>
+                    ((e.currentTarget as HTMLElement).style.backgroundColor = "white")
+                  }
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={onSave}
+                  disabled={isSaving || formData.detalles.length === 0}
+                  style={{
+                    height: 42,
+                    padding: "0 24px",
+                    borderRadius: 10,
+                    fontWeight: 700,
+                    fontSize: 14,
+                    border: "none",
+                    backgroundColor:
+                      isSaving || formData.detalles.length === 0 ? "#d1d5db" : "#c47b96",
+                    color: "white",
+                    cursor:
+                      isSaving || formData.detalles.length === 0 ? "not-allowed" : "pointer",
+                    transition: "background 0.2s",
+                  }}
+                  onMouseOver={(e) => {
+                    if (!isSaving && formData.detalles.length > 0)
+                      (e.currentTarget as HTMLElement).style.backgroundColor = "#b06a84";
+                  }}
+                  onMouseOut={(e) => {
+                    if (!isSaving && formData.detalles.length > 0)
+                      (e.currentTarget as HTMLElement).style.backgroundColor = "#c47b96";
+                  }}
+                >
+                  {isSaving ? "Guardando..." : "Guardar Compra"}
+                </button>
               </div>
             </div>
           </div>

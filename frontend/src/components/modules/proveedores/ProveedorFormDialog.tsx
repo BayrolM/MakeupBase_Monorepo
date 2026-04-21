@@ -18,6 +18,7 @@ interface ProveedorFormDialogProps {
   onOpenChange: (open: boolean) => void;
   editingProveedor: any;
   formData: {
+    tipo_proveedor: string;
     nombre: string;
     email: string;
     telefono: string;
@@ -67,37 +68,58 @@ export function ProveedorFormDialog({
 
         {/* Body */}
         <div className="px-8 py-6 space-y-5">
-          <div className="space-y-2">
-            <Label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-              <Building2 className="w-3.5 h-3.5 text-[#c47b96]" /> Nombre o Razón Social
-            </Label>
-            <Input
-              value={formData.nombre}
-              onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-              className="h-11 border-gray-200 focus:border-[#c47b96] focus:ring-[#c47b96]/10 rounded-xl"
-              placeholder="Ej: Suministros Cosméticos S.A.S"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                Tipo Persona
+              </Label>
+              <select
+                value={formData.tipo_proveedor}
+                onChange={(e) => setFormData({ ...formData, tipo_proveedor: e.target.value })}
+                className="w-full h-11 px-3 border border-gray-200 focus:border-[#c47b96] focus:ring-[#c47b96]/10 rounded-xl"
+              >
+                <option value="Persona Natural">Persona Natural</option>
+                <option value="Persona Jurídica">Persona Jurídica</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                <Building2 className="w-3.5 h-3.5 text-[#c47b96]" /> Nombre o Razón Social *
+              </Label>
+              <Input
+                value={formData.nombre}
+                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                maxLength={100}
+                required
+                className="h-11 border-gray-200 focus:border-[#c47b96] focus:ring-[#c47b96]/10 rounded-xl"
+                placeholder="Ej: Suministros Cosméticos S.A.S"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                <FileText className="w-3.5 h-3.5 text-[#c47b96]" /> NIT / Documento
+                <FileText className="w-3.5 h-3.5 text-[#c47b96]" /> NIT / Documento *
               </Label>
               <Input
                 value={formData.nit}
                 onChange={(e) => setFormData({ ...formData, nit: e.target.value })}
+                maxLength={20}
+                required
                 className="h-11 border-gray-200 focus:border-[#c47b96] focus:ring-[#c47b96]/10 rounded-xl font-mono"
                 placeholder="900.123.456-7"
               />
             </div>
             <div className="space-y-2">
               <Label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                <Phone className="w-3.5 h-3.5 text-[#c47b96]" /> Teléfono
+                <Phone className="w-3.5 h-3.5 text-[#c47b96]" /> Teléfono *
               </Label>
               <Input
                 value={formData.telefono}
                 onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                maxLength={20}
+                required
                 className="h-11 border-gray-200 focus:border-[#c47b96] focus:ring-[#c47b96]/10 rounded-xl"
                 placeholder="+57 321..."
               />
@@ -106,12 +128,14 @@ export function ProveedorFormDialog({
 
           <div className="space-y-2">
             <Label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-              <Mail className="w-3.5 h-3.5 text-[#c47b96]" /> Correo Electrónico
+              <Mail className="w-3.5 h-3.5 text-[#c47b96]" /> Correo Electrónico *
             </Label>
             <Input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              maxLength={100}
+              required
               className="h-11 border-gray-200 focus:border-[#c47b96] focus:ring-[#c47b96]/10 rounded-xl"
               placeholder="contacto@proveedor.com"
             />
@@ -119,11 +143,13 @@ export function ProveedorFormDialog({
 
           <div className="space-y-2">
             <Label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-              <MapPin className="w-3.5 h-3.5 text-[#c47b96]" /> Dirección (Opcional)
+              <MapPin className="w-3.5 h-3.5 text-[#c47b96]" /> Dirección *
             </Label>
             <Input
               value={formData.direccion}
               onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
+              maxLength={150}
+              required
               className="h-11 border-gray-200 focus:border-[#c47b96] focus:ring-[#c47b96]/10 rounded-xl"
               placeholder="Av. Siempre Viva 123"
             />

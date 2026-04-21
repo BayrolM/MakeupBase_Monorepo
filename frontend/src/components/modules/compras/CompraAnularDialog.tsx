@@ -1,28 +1,22 @@
 import { AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "../../ui/dialog";
 
-interface DevolucionAnularDialogProps {
+interface CompraAnularDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  devolucion: any;
-  motivoAnulacion: string;
+  compra: any;
   isSaving: boolean;
-  onMotivoChange: (val: string) => void;
   onConfirm: () => void;
 }
 
-export function DevolucionAnularDialog({
+export function CompraAnularDialog({
   open,
   onOpenChange,
-  devolucion,
-  motivoAnulacion,
+  compra,
   isSaving,
-  onMotivoChange,
   onConfirm,
-}: DevolucionAnularDialogProps) {
-  if (!devolucion) return null;
-
-  const esAprobada = devolucion.estado === "aprobada";
+}: CompraAnularDialogProps) {
+  if (!compra) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -61,7 +55,7 @@ export function DevolucionAnularDialog({
               marginBottom: 8,
             }}
           >
-            Anular Devolución DEV-{devolucion.id}
+            Anular Compra #{compra.id}
           </DialogTitle>
 
           <p
@@ -73,10 +67,9 @@ export function DevolucionAnularDialog({
               maxWidth: 320,
             }}
           >
-            ¿Estás seguro de que deseas anular esta devolución? Esta acción es{" "}
-            <strong style={{ color: "#ef4444" }}>irreversible</strong> y la
-            devolución quedará registrada en el historial con sello de{" "}
-            <strong>ANULADA</strong>.
+            ¿Estás seguro de que deseas anular esta compra? Esta acción es{" "}
+            <strong style={{ color: "#ef4444" }}>irreversible</strong> y todos
+            los productos ingresados serán descontados del inventario.
           </p>
 
           {/* Info box */}
@@ -94,53 +87,18 @@ export function DevolucionAnularDialog({
             }}
           >
             <AlertTriangle
-              style={{ width: 16, height: 16, color: "#ef4444", flexShrink: 0, marginTop: 2 }}
-            />
-            <span style={{ fontSize: 12, color: "#991b1b", lineHeight: 1.5 }}>
-              {esAprobada
-                ? "Esta devolución fue aprobada. Al anularla, el stock será revertido (los productos se descontarán del inventario)."
-                : "El registro se conservará en el historial con estado ANULADA."}
-            </span>
-          </div>
-
-          {/* Motivo */}
-          <div style={{ marginTop: 20, textAlign: "left" }}>
-            <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
-              <label
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: "#888",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                }}
-              >
-                Motivo de Anulación <span style={{ color: "#ef4444" }}>*</span>
-              </label>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "#aaa" }}>
-                Mín: 5 caracteres
-              </span>
-            </div>
-            <textarea
-              value={motivoAnulacion}
-              onChange={(e) => onMotivoChange(e.target.value)}
-              disabled={isSaving}
-              placeholder="Ingresa los motivos técnicos o legales de la anulación..."
               style={{
-                width: "100%",
-                minHeight: 80,
-                backgroundColor: "#f9fafb",
-                border: "1px solid #e5e7eb",
-                borderRadius: 12,
-                padding: "10px 14px",
-                fontSize: 13,
-                color: "#1a1a2e",
-                fontWeight: 600,
-                resize: "vertical",
-                outline: "none",
-                fontFamily: "inherit",
+                width: 16,
+                height: 16,
+                color: "#ef4444",
+                flexShrink: 0,
+                marginTop: 2,
               }}
             />
+            <span style={{ fontSize: 12, color: "#991b1b", lineHeight: 1.5 }}>
+              El stock de cada producto se restará automáticamente al confirmar
+              la anulación.
+            </span>
           </div>
         </div>
 
@@ -172,17 +130,19 @@ export function DevolucionAnularDialog({
               transition: "background 0.15s",
             }}
             onMouseOver={(e) => {
-              if (!isSaving) (e.currentTarget as HTMLElement).style.backgroundColor = "#f3f4f6";
+              if (!isSaving)
+                (e.currentTarget as HTMLElement).style.backgroundColor =
+                  "#f3f4f6";
             }}
             onMouseOut={(e) => {
               (e.currentTarget as HTMLElement).style.backgroundColor = "white";
             }}
           >
-            No, Mantener
+            Cancelar
           </button>
           <button
             onClick={onConfirm}
-            disabled={isSaving || motivoAnulacion.trim().length < 5}
+            disabled={isSaving}
             style={{
               height: 42,
               padding: "0 22px",
@@ -190,9 +150,9 @@ export function DevolucionAnularDialog({
               fontWeight: 700,
               fontSize: 14,
               border: "none",
-              backgroundColor: isSaving || motivoAnulacion.trim().length < 5 ? "#fca5a5" : "#ef4444",
+              backgroundColor: isSaving ? "#fca5a5" : "#ef4444",
               color: "white",
-              cursor: isSaving || motivoAnulacion.trim().length < 5 ? "not-allowed" : "pointer",
+              cursor: isSaving ? "not-allowed" : "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -201,26 +161,51 @@ export function DevolucionAnularDialog({
               transition: "background 0.2s",
             }}
             onMouseOver={(e) => {
-              if (!isSaving && motivoAnulacion.trim().length >= 5)
-                (e.currentTarget as HTMLElement).style.backgroundColor = "#dc2626";
+              if (!isSaving)
+                (e.currentTarget as HTMLElement).style.backgroundColor =
+                  "#dc2626";
             }}
             onMouseOut={(e) => {
-              if (!isSaving && motivoAnulacion.trim().length >= 5)
-                (e.currentTarget as HTMLElement).style.backgroundColor = "#ef4444";
+              if (!isSaving)
+                (e.currentTarget as HTMLElement).style.backgroundColor =
+                  "#ef4444";
             }}
           >
             {isSaving ? (
               <>
-                <svg style={{ width: 16, height: 16 }} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.3" />
-                  <path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor" opacity="0.8">
-                    <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite" />
+                <svg
+                  style={{ width: 16, height: 16 }}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    opacity="0.3"
+                  />
+                  <path
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    fill="currentColor"
+                    opacity="0.8"
+                  >
+                    <animateTransform
+                      attributeName="transform"
+                      type="rotate"
+                      from="0 12 12"
+                      to="360 12 12"
+                      dur="1s"
+                      repeatCount="indefinite"
+                    />
                   </path>
                 </svg>
                 Procesando...
               </>
             ) : (
-              "Sí, Anular Devolución"
+              "Sí, Anular Compra"
             )}
           </button>
         </div>

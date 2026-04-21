@@ -62,7 +62,12 @@ export function ProveedorDetailDialog({
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Proveedor / NIT</p>
-                <p className="text-sm font-bold text-gray-800">{proveedor.nombre}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold text-gray-800">{proveedor.nombre}</p>
+                  <span className="px-2 py-0.5 rounded-full bg-gray-100 text-[10px] font-medium text-gray-600 border border-gray-200">
+                    {proveedor.tipo_proveedor || "Persona Natural"}
+                  </span>
+                </div>
                 <p className="text-xs font-mono text-gray-500">{formatNIT(proveedor.nit)}</p>
               </div>
             </div>

@@ -3,10 +3,11 @@ import api from "../lib/api";
 export interface Proveedor {
   id_proveedor: number;
   nombre: string;
-  email?: string;
-  telefono?: string;
-  documento_nit?: string;
-  tipo_proveedor?: string;
+  email: string;
+  telefono: string;
+  documento_nit: string;
+  tipo_proveedor: string;
+  direccion: string;
   estado: boolean;
 }
 

@@ -2,9 +2,10 @@ import { Plus, Building2 } from "lucide-react";
 
 interface ProveedorHeaderProps {
   onOpenDialog: () => void;
+  isAdmin?: boolean;
 }
 
-export function ProveedorHeader({ onOpenDialog }: ProveedorHeaderProps) {
+export function ProveedorHeader({ onOpenDialog, isAdmin = false }: ProveedorHeaderProps) {
   return (
     <div className="px-8 pt-8 pb-5">
       <div className="relative overflow-hidden rounded-2xl shadow-xl">
@@ -21,13 +22,15 @@ export function ProveedorHeader({ onOpenDialog }: ProveedorHeaderProps) {
                 </div>
               </div>
             </div>
-            <button
-              onClick={onOpenDialog}
-              className="luxury-button-premium"
-            >
-              <Plus className="w-5 h-5" />
-              Nuevo Proveedor
-            </button>
+            {isAdmin && (
+              <button
+                onClick={onOpenDialog}
+                className="luxury-button-premium"
+              >
+                <Plus className="w-5 h-5" />
+                Nuevo Proveedor
+              </button>
+            )}
           </div>
         </div>
       </div>

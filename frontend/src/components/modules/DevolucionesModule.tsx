@@ -1,10 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useStore } from "../../lib/store";
 import { Pagination } from "../Pagination";
 import { toast } from "sonner";
+import { usePagination } from "../../hooks/usePagination";
+import { devolucionService } from "../../services/devolucionService";
+import { generateDevolucionPDF } from "../../lib/pdfGenerator";
 
-// Utilities
-import { canChangeEstado } from "../../../src/utils/devolucionUtils";
 
 // Sub-componentes
 import { DevolucionHeader } from "./devoluciones/DevolucionHeader";
@@ -20,9 +21,7 @@ export function DevolucionesModule() {
     ventas,
     clientes,
     productos,
-    addDevolucion,
-    updateDevolucion,
-    updateStock,
+    setDevoluciones,
   } = useStore();
 
   // Dialog States
@@ -34,12 +33,13 @@ export function DevolucionesModule() {
   // Data & Selection States
   const [selectedDevolucion, setSelectedDevolucion] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [filterEstado, setFilterEstado] = useState("");
   const [motivoDecision, setMotivoDecision] = useState("");
+  const [nuevoEstado, setNuevoEstado] = useState("en_revision");
   const [motivoAnulacion, setMotivoAnulacion] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const [ventaData, setVentaData] = useState<any>(null);
   const [productosDevolver, setProductosDevolver] = useState<any[]>([]);
 
@@ -47,16 +47,94 @@ export function DevolucionesModule() {
     ventaId: "",
     fechaDevolucion: new Date().toISOString().split("T")[0],
     motivo: "",
-    estado: "Procesada" as "Procesada" | "Pendiente" | "Rechazada",
+    estado: "aprobada" as "aprobada" | "pendiente" | "rechazada",
   });
 
-  // Handlers
+  // Pagination
+  const filteredDevoluciones = useMemo(() => {
+    let result = devoluciones;
+    if (filterEstado) {
+      result = result.filter(d => d.estado === filterEstado);
+    }
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(dev => {
+        const cliente = clientes.find(c => c.id === dev.clienteId);
+        return (
+          dev.id.toLowerCase().includes(q) ||
+          (dev as any).ventaId?.toString().includes(q) ||
+          (cliente?.nombre || "").toLowerCase().includes(q) ||
+          dev.estado.toLowerCase().includes(q) ||
+          dev.motivo?.toLowerCase().includes(q) ||
+          dev.fecha.includes(q)
+        );
+      });
+    }
+    return result;
+  }, [devoluciones, searchQuery, filterEstado, clientes]);
+
+  const {
+    currentPage,
+    itemsPerPage,
+    totalPages,
+    handlePageChange,
+    handleLimitChange,
+  } = usePagination({ totalItems: filteredDevoluciones.length });
+
+  const paginatedDevoluciones = useMemo(() => {
+    return filteredDevoluciones.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage,
+    );
+  }, [filteredDevoluciones, currentPage, itemsPerPage]);
+
+  // ── Load data from backend ──
+  const refreshData = async () => {
+    try {
+      const data = await devolucionService.getAll();
+      const devolucionesArray = Array.isArray(data) ? data : data.data || [];
+
+      const mapped = devolucionesArray.map((dev: any) => ({
+        id: dev.id_devolucion.toString(),
+        ventaId: dev.id_venta?.toString() || "",
+        clienteId: dev.id_usuario_cliente?.toString() || "",
+        clienteNombre: `${dev.nombre_cliente || ""} ${dev.apellido_cliente || ""}`.trim(),
+        empleadoNombre: `${dev.nombre_empleado || ""} ${dev.apellido_empleado || ""}`.trim(),
+        fecha: new Date(dev.fecha_devolucion).toLocaleDateString(),
+        motivo: dev.motivo,
+        estado: dev.estado,
+        totalDevuelto: Number(dev.total_devuelto),
+        motivoDecision: dev.motivo_decision || "",
+        motivoAnulacion: dev.motivo_anulacion || "",
+        fechaAnulacion: dev.fecha_anulacion ? new Date(dev.fecha_anulacion).toLocaleDateString() : "",
+        evidencias: [],
+        productos: (dev.detalles || []).map((det: any) => ({
+          productoId: det.id_producto?.toString() || "",
+          productoNombre: det.nombre_producto || "",
+          cantidad: det.cantidad,
+          precioUnitario: Number(det.precio_unitario || 0),
+          subtotal: Number(det.subtotal || 0),
+        })),
+      }));
+
+      setDevoluciones(mapped);
+    } catch (error) {
+      console.error("Error al cargar devoluciones:", error);
+      toast.error("Error al cargar devoluciones");
+    }
+  };
+
+  useEffect(() => {
+    refreshData();
+  }, []);
+
+  // ── Handlers ──
   const handleOpenCreateDialog = () => {
     setFormData({
       ventaId: "",
       fechaDevolucion: new Date().toISOString().split("T")[0],
       motivo: "",
-      estado: "Procesada",
+      estado: "aprobada",
     });
     setSuccessMessage("");
     setErrorMessage("");
@@ -65,7 +143,7 @@ export function DevolucionesModule() {
     setIsDialogOpen(true);
   };
 
-  const handleVentaIdChange = (id: string) => {
+  const handleVentaIdChange = async (id: string) => {
     setFormData(prev => ({ ...prev, ventaId: id }));
     setErrorMessage("");
     setProductosDevolver([]);
@@ -75,14 +153,15 @@ export function DevolucionesModule() {
       return;
     }
 
+    // Search in loaded ventas first
     const venta = ventas?.find(
-      (v: any) => v.id === id || v.id.toLowerCase().includes(id.toLowerCase()),
+      (v: any) => v.id === id || v.id === id.trim(),
     );
 
     if (venta) {
       setVentaData(venta);
       setErrorMessage("");
-      const productosDisponibles = venta.productos.map((p: any) => ({
+      const productosDisponibles = (venta.productos || []).map((p: any) => ({
         productoId: p.productoId,
         cantidadComprada: p.cantidad,
         cantidadADevolver: 0,
@@ -93,7 +172,7 @@ export function DevolucionesModule() {
     } else {
       setVentaData(null);
       setProductosDevolver([]);
-      if (id.length >= 4) setErrorMessage("La compra no existe, verifica el ID ingresado");
+      if (id.length >= 1) setErrorMessage("La venta no existe, verifica el ID ingresado");
     }
   };
 
@@ -120,117 +199,136 @@ export function DevolucionesModule() {
       .reduce((sum, p) => sum + p.precioUnitario * p.cantidadADevolver, 0);
   }, [productosDevolver]);
 
-  const handleSaveDevolucion = () => {
-    if (!formData.ventaId.trim()) return setErrorMessage("Debe ingresar el ID de la compra");
-    if (!ventaData) return setErrorMessage("La compra no existe");
-    
+  const handleSaveDevolucion = async () => {
+    if (!formData.ventaId.trim()) return setErrorMessage("Debe ingresar el ID de la venta");
+    if (!ventaData) return setErrorMessage("La venta no existe");
+
     const productosSeleccionados = productosDevolver.filter(p => p.selected && p.cantidadADevolver > 0);
-    if (productosSeleccionados.length === 0) return setErrorMessage("Seleccione al menos un producto");
+    if (productosSeleccionados.length === 0) return setErrorMessage("Seleccione al menos un producto y cantidad");
     if (formData.motivo.trim().length < 5) return setErrorMessage("Ingrese un motivo válido (mínimo 5 caracteres)");
+    if (formData.motivo.trim().length > 100) return setErrorMessage("El motivo no puede exceder 100 caracteres");
 
-    // Evitar duplicados
-    const yaRegistrada = devoluciones.some(d => 
-      d.ventaId === formData.ventaId && 
-      d.productos.some((dp: any) => productosSeleccionados.some(ps => ps.productoId === dp.productoId))
-    );
-    if (yaRegistrada) return setErrorMessage("Alguno de estos productos ya tiene una devolución registrada");
+    setIsSaving(true);
+    setErrorMessage("");
+    try {
+      await devolucionService.create({
+        id_venta: Number(formData.ventaId),
+        id_usuario_cliente: Number(ventaData.clienteId),
+        motivo: formData.motivo.trim(),
+        estado: formData.estado,
+        fecha_devolucion: formData.fechaDevolucion,
+        productos: productosSeleccionados.map((p) => ({
+          id_producto: Number(p.productoId),
+          cantidad: p.cantidadADevolver,
+          precio_unitario: p.precioUnitario,
+        })),
+      });
 
-    addDevolucion({
-      ventaId: formData.ventaId,
-      clienteId: ventaData.clienteId || "",
-      fecha: formData.fechaDevolucion,
-      motivo: formData.motivo,
-      productos: productosSeleccionados.map((p) => ({
-        productoId: p.productoId,
-        cantidad: p.cantidadADevolver,
-      })),
-      estado: formData.estado === "Procesada" ? "aprobada" : formData.estado === "Rechazada" ? "rechazada" : "pendiente",
-      evidencias: [],
-      totalDevuelto: totalDevolucionEstimado,
-    });
-
-    if (formData.estado === "Procesada") {
-      productosSeleccionados.forEach(p => updateStock(p.productoId, p.cantidadADevolver));
+      setSuccessMessage("Devolución registrada correctamente");
+      toast.success("Devolución registrada con éxito");
+      await refreshData();
+      setTimeout(() => {
+        setIsDialogOpen(false);
+        setSuccessMessage("");
+      }, 1200);
+    } catch (error: any) {
+      const msg = error.response?.data?.message || error.message || "Error al registrar la devolución";
+      setErrorMessage(msg);
+      toast.error(msg);
+    } finally {
+      setIsSaving(false);
     }
-
-    setSuccessMessage("Devolución registrada correctamente");
-    setTimeout(() => {
-      setIsDialogOpen(false);
-      setSuccessMessage("");
-    }, 1500);
   };
 
-  const handleChangeStatus = (newEstado: string) => {
-    if (!selectedDevolucion || !motivoDecision.trim()) {
-      toast.error("Debe ingresar un motivo para el cambio de estado");
+  const handleChangeStatus = async (newEstado: string) => {
+    if (!selectedDevolucion) return;
+    if (!motivoDecision.trim() || motivoDecision.trim().length < 3) {
+      toast.error("Debe ingresar un motivo para el cambio de estado (mínimo 3 caracteres)");
       return;
     }
 
-    if (newEstado === "aprobada") {
-      selectedDevolucion.productos.forEach((p: any) => updateStock(p.productoId, p.cantidad));
-    }
-
-    updateDevolucion(selectedDevolucion.id, {
-      estado: newEstado as any,
-      motivoDecision: motivoDecision,
-    });
-    setStatusDialogOpen(false);
-    setMotivoDecision("");
-    toast.success("Estado actualizado correctamente");
-  };
-
-  const handleConfirmAnulacion = () => {
-    if (!selectedDevolucion || motivoAnulacion.trim().length < 5) {
-      toast.error("Ingrese un motivo de anulación válido");
-      return;
-    }
-
-    updateDevolucion(selectedDevolucion.id, {
-      estado: "anulada",
-      motivoAnulacion: motivoAnulacion,
-      fechaAnulacion: new Date().toISOString().split("T")[0],
-    });
-
-    setAnularDialogOpen(false);
-    setMotivoAnulacion("");
-    toast.success("Devolución anulada");
-  };
-
-  // Filter & Pagination
-  const filteredDevoluciones = useMemo(() => {
-    if (!searchQuery) return devoluciones;
-    const q = searchQuery.toLowerCase();
-    return devoluciones.filter(dev => {
-      const cliente = clientes.find(c => c.id === dev.clienteId);
-      return (
-        dev.id.toLowerCase().includes(q) ||
-        (cliente?.nombre || "").toLowerCase().includes(q) ||
-        dev.estado.toLowerCase().includes(q) ||
-        dev.fecha.includes(q)
+    setIsSaving(true);
+    try {
+      await devolucionService.cambiarEstado(
+        Number(selectedDevolucion.id),
+        newEstado,
+        motivoDecision.trim(),
       );
-    });
-  }, [devoluciones, searchQuery, clientes]);
+      toast.success("Estado actualizado correctamente");
+      await refreshData();
+      setStatusDialogOpen(false);
+      setMotivoDecision("");
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Error al cambiar estado");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
-  const totalPages = Math.ceil(filteredDevoluciones.length / itemsPerPage);
-  const paginatedDevoluciones = filteredDevoluciones.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage,
-  );
+  const handleConfirmAnulacion = async () => {
+    if (!selectedDevolucion || motivoAnulacion.trim().length < 5) {
+      toast.error("Ingrese un motivo de anulación válido (mínimo 5 caracteres)");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await devolucionService.anular(
+        Number(selectedDevolucion.id),
+        motivoAnulacion.trim(),
+      );
+      toast.success("Devolución anulada correctamente");
+      await refreshData();
+      setAnularDialogOpen(false);
+      setMotivoAnulacion("");
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Error al anular la devolución");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleViewPdf = (dev: any) => {
+    const cliente = clientes.find(c => c.id === dev.clienteId);
+    generateDevolucionPDF(dev, cliente, productos);
+  };
 
   return (
     <div className="min-h-screen bg-[#f6f3f5]">
       <DevolucionHeader onOpenDialog={handleOpenCreateDialog} />
 
-      <div className="p-8">
+      <div className="px-8 pb-8">
         <DevolucionTable
           devoluciones={paginatedDevoluciones}
           clientes={clientes}
           searchQuery={searchQuery}
-          onSearchChange={(q) => { setSearchQuery(q); setCurrentPage(1); }}
-          onViewDetail={(dev) => { setSelectedDevolucion(dev); setDetailDialogOpen(true); }}
-          onViewPdf={(dev) => { toast.info("Generando comprobante...", { description: `PDF para ${dev.id.slice(0,8)}` }); }}
+          filterEstado={filterEstado}
+          onSearchChange={(q) => { setSearchQuery(q); handlePageChange(1); }}
+          onFilterEstadoChange={(e) => { setFilterEstado(e === "todos" ? "" : e); handlePageChange(1); }}
+          onViewDetail={async (dev) => {
+            try {
+              const fullData = await devolucionService.getById(Number(dev.id));
+              setSelectedDevolucion({
+                ...dev,
+                productos: (fullData.detalles || []).map((det: any) => ({
+                  productoId: det.id_producto?.toString() || "",
+                  productoNombre: det.nombre_producto || "",
+                  cantidad: det.cantidad,
+                  precioUnitario: Number(det.precio_unitario || 0),
+                  subtotal: Number(det.subtotal || 0),
+                })),
+                emailCliente: fullData.email_cliente || "",
+                telefonoCliente: fullData.telefono_cliente || "",
+              });
+              setDetailDialogOpen(true);
+            } catch {
+              setSelectedDevolucion(dev);
+              setDetailDialogOpen(true);
+            }
+          }}
+          onViewPdf={handleViewPdf}
           onAnular={(dev) => { setSelectedDevolucion(dev); setMotivoAnulacion(""); setAnularDialogOpen(true); }}
-          onChangeEstado={(dev) => { setSelectedDevolucion(dev); setMotivoDecision(""); setStatusDialogOpen(true); }}
+          onChangeEstado={(dev) => { setSelectedDevolucion(dev); setMotivoDecision(""); setNuevoEstado("en_revision"); setStatusDialogOpen(true); }}
           filteredCount={filteredDevoluciones.length}
         />
 
@@ -241,14 +339,14 @@ export function DevolucionesModule() {
               totalPages={totalPages}
               totalItems={filteredDevoluciones.length}
               itemsPerPage={itemsPerPage}
-              onPageChange={setCurrentPage}
-              onItemsPerPageChange={(n) => { setItemsPerPage(n); setCurrentPage(1); }}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={handleLimitChange}
             />
           </div>
         )}
       </div>
 
-      <DevolucionFormDialog 
+      <DevolucionFormDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         formData={formData}
@@ -258,7 +356,7 @@ export function DevolucionesModule() {
         productos={productos}
         successMessage={successMessage}
         errorMessage={errorMessage}
-        isSaving={false}
+        isSaving={isSaving}
         onVentaIdChange={handleVentaIdChange}
         onFieldChange={(name, val) => setFormData(p => ({ ...p, [name]: val }))}
         onToggleProducto={handleToggleProducto}
@@ -267,7 +365,7 @@ export function DevolucionesModule() {
         totalDevolucion={totalDevolucionEstimado}
       />
 
-      <DevolucionDetailDialog 
+      <DevolucionDetailDialog
         open={detailDialogOpen}
         onOpenChange={setDetailDialogOpen}
         devolucion={selectedDevolucion}
@@ -275,20 +373,24 @@ export function DevolucionesModule() {
         productos={productos}
       />
 
-      <DevolucionStatusDialog 
+      <DevolucionStatusDialog
         open={statusDialogOpen}
         onOpenChange={setStatusDialogOpen}
         devolucion={selectedDevolucion}
         motivoDecision={motivoDecision}
+        nuevoEstado={nuevoEstado}
+        isSaving={isSaving}
         onMotivoChange={setMotivoDecision}
+        onEstadoChange={setNuevoEstado}
         onConfirm={handleChangeStatus}
       />
 
-      <DevolucionAnularDialog 
+      <DevolucionAnularDialog
         open={anularDialogOpen}
         onOpenChange={setAnularDialogOpen}
         devolucion={selectedDevolucion}
         motivoAnulacion={motivoAnulacion}
+        isSaving={isSaving}
         onMotivoChange={setMotivoAnulacion}
         onConfirm={handleConfirmAnulacion}
       />

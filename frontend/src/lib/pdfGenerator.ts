@@ -1,6 +1,5 @@
 import jsPDF from "jspdf";
 import { toast } from "sonner";
-import { formatCurrency } from "./utils";
 import { Cliente, Producto } from "./store";
 
 interface VentaData {
@@ -403,5 +402,230 @@ export const generateOrderPDF = async (
   } catch (error: any) {
     console.error(error);
     toast.error("Error al generar el documento PDF");
+  }
+};
+
+/**
+ * Genera un PDF de comprobante de devolución profesional.
+ */
+export const generateDevolucionPDF = async (
+  devolucion: any,
+  cliente: Cliente | undefined,
+  productosDestino: Producto[],
+) => {
+  try {
+    const doc = new jsPDF() as any;
+
+    // COLORES
+    const cPrimary = [46, 16, 32];      // #2e1020
+    const cSecondary = [224, 146, 178];  // #e092b2
+    const cAccent = [196, 123, 150];     // #c47b96
+    const cBorder = [220, 220, 220];
+    const cText = [40, 40, 40];
+    const cLightGray = [248, 248, 248];
+
+    const formatP = (v: number) =>
+      new Intl.NumberFormat("es-CO", {
+        style: "currency",
+        currency: "COP",
+        minimumFractionDigits: 0,
+      }).format(isNaN(v) ? 0 : v);
+
+    const getEstadoLabel = (estado: string) => {
+      const labels: Record<string, string> = {
+        pendiente: "PENDIENTE",
+        en_revision: "EN REVISIÓN",
+        aprobada: "APROBADA",
+        rechazada: "RECHAZADA",
+        anulada: "ANULADA",
+      };
+      return labels[estado] || estado.toUpperCase();
+    };
+
+    // 1. BARRA SUPERIOR
+    doc.setFillColor(cPrimary[0], cPrimary[1], cPrimary[2]);
+    doc.rect(0, 0, 210, 4, "F");
+
+    // Línea de acento
+    doc.setFillColor(cAccent[0], cAccent[1], cAccent[2]);
+    doc.rect(0, 4, 210, 1, "F");
+
+    // Logo
+    try {
+      const img = new Image();
+      img.src = "/logo.png";
+      await new Promise((resolve) => {
+        img.onload = () => { doc.addImage(img, "PNG", 20, 12, 18, 18); resolve(true); };
+        img.onerror = () => resolve(false);
+      });
+    } catch (e) {}
+
+    // Nombre empresa
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.setTextColor(cPrimary[0], cPrimary[1], cPrimary[2]);
+    doc.text("GLAMOUR ML", 45, 20);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(120);
+    doc.text("TIENDA DE BELLEZA & CUIDADO PERSONAL", 45, 25);
+
+    // Título y referencia (derecha)
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(cAccent[0], cAccent[1], cAccent[2]);
+    doc.text("COMPROBANTE DE DEVOLUCIÓN", 190, 18, { align: "right" });
+    doc.setFontSize(10);
+    doc.setTextColor(cSecondary[0], cSecondary[1], cSecondary[2]);
+    doc.text(`DEV-${devolucion.id}`, 190, 24, { align: "right" });
+
+    // Badge de estado
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    const estadoLabel = getEstadoLabel(devolucion.estado);
+    if (devolucion.estado === "aprobada") {
+      doc.setTextColor(16, 185, 129); // emerald
+    } else if (devolucion.estado === "rechazada" || devolucion.estado === "anulada") {
+      doc.setTextColor(239, 68, 68); // rose
+    } else {
+      doc.setTextColor(234, 179, 8); // yellow
+    }
+    doc.text(`Estado: ${estadoLabel}`, 190, 30, { align: "right" });
+
+    // 2. LÍNEA DIVISORA + INFO
+    doc.setDrawColor(cBorder[0], cBorder[1], cBorder[2]);
+    doc.line(20, 40, 190, 40);
+
+    // Columna izquierda: cliente
+    doc.setFontSize(9);
+    doc.setTextColor(150);
+    doc.text("CLIENTE:", 20, 50);
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(cText[0], cText[1], cText[2]);
+    doc.text(devolucion.clienteNombre || cliente?.nombre || "Consumidor Final", 20, 56);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(`Doc: ${cliente?.documento || cliente?.numeroDocumento || "N/A"}`, 20, 62);
+
+    // Columna derecha: info devolución
+    doc.setFontSize(9);
+    doc.setTextColor(150);
+    doc.text("INFORMACIÓN DE DEVOLUCIÓN:", 110, 50);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(cText[0], cText[1], cText[2]);
+    doc.text(`Fecha: ${devolucion.fecha}`, 110, 56);
+    doc.setFont("helvetica", "normal");
+    if (devolucion.ventaId) {
+      doc.text(`Venta Ref: #${devolucion.ventaId}`, 110, 62);
+    }
+    if (devolucion.empleadoNombre) {
+      doc.text(`Procesada por: ${devolucion.empleadoNombre}`, 110, 68);
+    }
+
+    // 3. MOTIVO
+    let currentY = 78;
+    doc.setFillColor(255, 240, 245); // #fff0f5
+    doc.rect(20, currentY, 170, 16, "F");
+    doc.setDrawColor(252, 232, 240);
+    doc.rect(20, currentY, 170, 16, "S");
+    doc.setFontSize(8);
+    doc.setTextColor(cAccent[0], cAccent[1], cAccent[2]);
+    doc.setFont("helvetica", "bold");
+    doc.text("MOTIVO DE DEVOLUCIÓN:", 25, currentY + 6);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(cText[0], cText[1], cText[2]);
+    const motivoLines = doc.splitTextToSize(devolucion.motivo || "Sin motivo", 160);
+    doc.text(motivoLines.slice(0, 2), 25, currentY + 12);
+    currentY += 20;
+
+    // 4. TABLA DE PRODUCTOS
+    let tableY = currentY + 4;
+
+    // Header tabla
+    doc.setFillColor(cPrimary[0], cPrimary[1], cPrimary[2]);
+    doc.rect(20, tableY, 170, 10, "F");
+    doc.setTextColor(255);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text("PRODUCTO", 25, tableY + 6.5);
+    doc.text("CANT", 110, tableY + 6.5, { align: "center" });
+    doc.text("PRECIO UNIT.", 145, tableY + 6.5, { align: "center" });
+    doc.text("SUBTOTAL", 185, tableY + 6.5, { align: "right" });
+
+    tableY += 10;
+    doc.setTextColor(cText[0], cText[1], cText[2]);
+    doc.setFont("helvetica", "normal");
+
+    (devolucion.productos || []).forEach((p: any, i: number) => {
+      const prod = productosDestino.find((pr: Producto) => pr.id === p.productoId);
+      const nombre = p.productoNombre || prod?.nombre || "Producto";
+      const nameLines = doc.splitTextToSize(nombre, 75);
+      const rowHeight = nameLines.length * 5 + 6;
+
+      // Fondo alternado
+      if (i % 2 !== 0) {
+        doc.setFillColor(cLightGray[0], cLightGray[1], cLightGray[2]);
+        doc.rect(20, tableY, 170, rowHeight, "F");
+      }
+
+      // Bordes
+      doc.setDrawColor(cBorder[0], cBorder[1], cBorder[2]);
+      doc.setLineWidth(0.1);
+      doc.line(20, tableY + rowHeight, 190, tableY + rowHeight);
+      doc.line(20, tableY, 20, tableY + rowHeight);
+      doc.line(190, tableY, 190, tableY + rowHeight);
+
+      doc.text(nameLines, 25, tableY + 6);
+      doc.text(String(p.cantidad || 0), 110, tableY + 6, { align: "center" });
+      doc.text(formatP(p.precioUnitario || 0), 145, tableY + 6, { align: "center" });
+      doc.setFont("helvetica", "bold");
+      const subtotal = p.subtotal || (p.cantidad || 0) * (p.precioUnitario || 0);
+      doc.text(formatP(subtotal), 185, tableY + 6, { align: "right" });
+      doc.setFont("helvetica", "normal");
+
+      tableY += rowHeight;
+    });
+
+    // 5. TOTAL
+    const footerY = Math.max(tableY + 15, 200);
+
+    doc.setDrawColor(cAccent[0], cAccent[1], cAccent[2]);
+    doc.setLineWidth(0.5);
+    doc.line(120, footerY, 190, footerY);
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(cPrimary[0], cPrimary[1], cPrimary[2]);
+    doc.text("TOTAL DEVUELTO:", 125, footerY + 10);
+
+    doc.setFontSize(16);
+    doc.setTextColor(cAccent[0], cAccent[1], cAccent[2]);
+    doc.text(formatP(devolucion.totalDevuelto || 0), 185, footerY + 10, { align: "right" });
+
+    // Sello de anulada si aplica
+    if (devolucion.estado === "anulada") {
+      doc.setFontSize(40);
+      doc.setTextColor(239, 68, 68);
+      doc.setFont("helvetica", "bold");
+      doc.text("ANULADA", 105, 160, { align: "center", angle: 30 });
+    }
+
+    // 6. FOOTER
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(150);
+    doc.text("Este comprobante certifica la devolución registrada en el sistema.", 20, 275);
+    doc.text("GLAMOUR ML - Medellín, Colombia", 20, 280);
+
+    doc.save(`GlamourML_Devolucion_DEV-${devolucion.id}.pdf`);
+    toast.success("Comprobante de devolución generado correctamente");
+  } catch (error) {
+    console.error("Error generando PDF de devolución:", error);
+    toast.error("Ocurrió un error al intentar generar el PDF");
   }
 };

@@ -13,6 +13,7 @@ import proveedoresRoutes from "./routes/proveedores.routes.js";
 import marcasRoutes from "./routes/marcas.routes.js";
 import comprasRoutes from "./routes/compras.routes.js";
 import ventasRoutes from "./routes/ventas.routes.js";
+import devolucionesRoutes from "./routes/devoluciones.routes.js";
 import sql from "./config/db.js";
 
 dotenv.config();
@@ -43,6 +44,7 @@ app.use("/api/proveedores", proveedoresRoutes);
 app.use("/api/marcas", marcasRoutes);
 app.use("/api/compras", comprasRoutes);
 app.use("/api/ventas", ventasRoutes);
+app.use("/api/devoluciones", devolucionesRoutes);
 
 // Ruta de prueba general
 app.get("/", (req, res) => {

@@ -11,13 +11,16 @@ import { CompraHeader } from "./compras/CompraHeader";
 import { CompraTable } from "./compras/CompraTable";
 import { CompraFormDialog } from "./compras/CompraFormDialog";
 import { CompraDetailDialog } from "./compras/CompraDetailDialog";
+import { CompraAnularDialog } from "./compras/CompraAnularDialog";
 
 export function ComprasModule() {
-  const { compras, proveedores, productos, setCompras, setProductos } =
-    useStore();
+  const { compras, proveedores, productos, setCompras, setProductos, currentUser, userType } = useStore();
+  const isAdmin = currentUser?.rol === "admin" || userType === "admin";
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [isAnularDialogOpen, setIsAnularDialogOpen] = useState(false);
   const [selectedCompra, setSelectedCompra] = useState<Compra | null>(null);
+  const [compraToAnular, setCompraToAnular] = useState<Compra | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -57,13 +60,12 @@ export function ComprasModule() {
   });
 
   const [selectedProductId, setSelectedProductId] = useState("");
-  const [tempQuantity, setTempQuantity] = useState(1);
-  const [tempPrice, setTempPrice] = useState(0);
 
   const refreshData = async () => {
     try {
       const purchasesResp = await purchaseService.getAll();
-      const mappedPurchases = (purchasesResp.data || []).map((purch: any) => ({
+      const purchasesArray = Array.isArray(purchasesResp) ? purchasesResp : purchasesResp.data || [];
+      const mappedPurchases = purchasesArray.map((purch: any) => ({
         id: purch.id_compra.toString(),
         proveedorId: purch.id_proveedor.toString(),
         fecha: purch.fecha_compra,
@@ -113,34 +115,6 @@ export function ComprasModule() {
     setIsDialogOpen(true);
   };
 
-  const addProductToDetalles = () => {
-    if (!selectedProductId) {
-      toast.warning("Selecciona un producto");
-      return;
-    }
-    const prod = productos.find((p) => p.id === selectedProductId);
-    if (!prod) return;
-
-    if (tempQuantity <= 0) {
-      toast.warning("La cantidad debe ser mayor a 0");
-      return;
-    }
-
-    setFormData({
-      ...formData,
-      detalles: [
-        ...formData.detalles,
-        {
-          productoId: selectedProductId,
-          cantidad: tempQuantity,
-          precioUnitario: tempPrice || prod.precioCompra,
-        },
-      ],
-    });
-    setSelectedProductId("");
-    setTempQuantity(1);
-    setTempPrice(0);
-  };
 
   const removeProductFromDetalles = (index: number) => {
     setFormData({
@@ -163,14 +137,32 @@ export function ComprasModule() {
         detalles: formData.detalles.map((d) => ({
           id_producto: Number(d.productoId),
           cantidad: d.cantidad,
-          precio_compra: d.precioUnitario,
+          precio_unitario: d.precioUnitario,
         })),
       });
       toast.success("Compra registrada con éxito");
       await refreshData();
       setIsDialogOpen(false);
     } catch (error: any) {
-      toast.error(error.message || "Error al registrar la compra");
+      const msg = error.response?.data?.message || error.message || "Error al registrar la compra";
+      console.error("Error guardando compra:", error.response?.data || error);
+      toast.error(msg);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleConfirmAnular = async () => {
+    if (!compraToAnular) return;
+    setIsSaving(true);
+    try {
+      await purchaseService.anular(Number(compraToAnular.id));
+      toast.success("La compra ha sido anulada");
+      await refreshData();
+      setIsAnularDialogOpen(false);
+      setCompraToAnular(null);
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || e.message || "Error al anular compra");
     } finally {
       setIsSaving(false);
     }
@@ -186,9 +178,19 @@ export function ComprasModule() {
           proveedores={proveedores}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          onViewDetail={(c) => {
-            setSelectedCompra(c);
-            setIsDetailDialogOpen(true);
+          isAdmin={isAdmin}
+          onViewDetail={async (c) => {
+            try {
+              const fullPurchase = await purchaseService.getById(Number(c.id));
+              setSelectedCompra({ ...c, detalles: fullPurchase.detalles || [] });
+              setIsDetailDialogOpen(true);
+            } catch (error) {
+              toast.error("Error al cargar detalles de la compra");
+            }
+          }}
+          onAnular={(c) => {
+            setCompraToAnular(c);
+            setIsAnularDialogOpen(true);
           }}
         />
 
@@ -217,11 +219,6 @@ export function ComprasModule() {
         onSave={handleSave}
         selectedProductId={selectedProductId}
         setSelectedProductId={setSelectedProductId}
-        tempQuantity={tempQuantity}
-        setTempQuantity={setTempQuantity}
-        tempPrice={tempPrice}
-        setTempPrice={setTempPrice}
-        addProductToDetalles={addProductToDetalles}
         removeProductFromDetalles={removeProductFromDetalles}
       />
 
@@ -231,6 +228,14 @@ export function ComprasModule() {
         selectedCompra={selectedCompra}
         proveedores={proveedores}
         productos={productos}
+      />
+
+      <CompraAnularDialog
+        open={isAnularDialogOpen}
+        onOpenChange={setIsAnularDialogOpen}
+        compra={compraToAnular}
+        isSaving={isSaving}
+        onConfirm={handleConfirmAnular}
       />
     </div>
   );

@@ -48,5 +48,5 @@ export const canChangeEstado = (estado: string) => {
 };
 
 export const canAnularDevolucion = (estado: string) => {
-  return estado === "pendiente" || estado === "en_revision";
+  return estado !== "anulada" && estado !== "rechazada";
 };

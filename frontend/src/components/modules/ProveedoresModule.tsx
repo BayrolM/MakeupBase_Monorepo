@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useStore, Proveedor, Status } from "../../lib/store";
+import { useStore, Proveedor } from "../../lib/store";
 import { toast } from "sonner";
 import { providerService } from "../../services/providerService";
 import { usePagination } from "../../hooks/usePagination";
@@ -13,7 +13,9 @@ import { ProveedorDetailDialog } from "./proveedores/ProveedorDetailDialog";
 import { ProveedorDeleteDialog } from "./proveedores/ProveedorDeleteDialog";
 
 export function ProveedoresModule() {
-  const { proveedores, setProveedores } = useStore();
+  const { proveedores, setProveedores, userType, currentUser } = useStore();
+  // Ensure we check for the specific 'admin' role if available, otherwise fallback to userType
+  const isAdmin = currentUser?.rol === "admin" || userType === "admin";
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -30,7 +32,9 @@ export function ProveedoresModule() {
     return proveedores.filter(
       (p) =>
         p.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.nit.includes(searchQuery),
+        p.nit.includes(searchQuery) ||
+        (p.email && p.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (p.telefono && p.telefono.includes(searchQuery))
     );
   }, [proveedores, searchQuery]);
 
@@ -50,6 +54,7 @@ export function ProveedoresModule() {
   }, [filteredProveedores, currentPage, itemsPerPage]);
 
   const [formData, setFormData] = useState({
+    tipo_proveedor: "Persona Natural",
     nombre: "",
     email: "",
     telefono: "",
@@ -65,11 +70,12 @@ export function ProveedoresModule() {
         Array.isArray(data) ? data : (data as any).data || []
       ).map((prov: any) => ({
         id: prov.id_proveedor.toString(),
+        tipo_proveedor: prov.tipo_proveedor || "Persona Natural",
         nombre: prov.nombre,
         email: prov.email || "",
         telefono: prov.telefono || "",
         nit: prov.documento_nit || "",
-        direccion: "",
+        direccion: prov.direccion || "",
         estado: prov.estado ? ("activo" as const) : ("inactivo" as const),
         fechaRegistro: new Date().toISOString(),
       }));
@@ -88,6 +94,7 @@ export function ProveedoresModule() {
     if (proveedor) {
       setEditingProveedor(proveedor);
       setFormData({
+        tipo_proveedor: proveedor.tipo_proveedor || "Persona Natural",
         nombre: proveedor.nombre,
         email: proveedor.email,
         telefono: proveedor.telefono,
@@ -98,6 +105,7 @@ export function ProveedoresModule() {
     } else {
       setEditingProveedor(null);
       setFormData({
+        tipo_proveedor: "Persona Natural",
         nombre: "",
         email: "",
         telefono: "",
@@ -110,18 +118,26 @@ export function ProveedoresModule() {
   };
 
   const handleSave = async () => {
-    if (!formData.nombre.trim() || !formData.nit.trim()) {
-      toast.error("Nombre y NIT son obligatorios");
+    if (!formData.tipo_proveedor || !formData.nombre.trim() || !formData.nit.trim() || !formData.telefono.trim() || !formData.email.trim() || !formData.direccion.trim()) {
+      toast.error("Todos los campos son obligatorios.");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
+      toast.error("Formato de correo electrónico inválido.");
       return;
     }
 
     setIsSaving(true);
     try {
-      const payload = {
+      const payload: any = {
+        tipo_proveedor: formData.tipo_proveedor,
         nombre: formData.nombre.trim(),
         email: formData.email.trim(),
         telefono: formData.telefono.trim(),
         documento_nit: formData.nit.trim(),
+        direccion: formData.direccion.trim(),
         estado: formData.estado === "activo",
       };
 
@@ -143,6 +159,10 @@ export function ProveedoresModule() {
   };
 
   const handleConfirmDelete = async () => {
+    if (!isAdmin) {
+      toast.error("Solo un administrador puede eliminar proveedores");
+      return;
+    }
     if (!selectedProveedor) return;
     setIsSaving(true);
     try {
@@ -164,6 +184,12 @@ export function ProveedoresModule() {
   ) => {
     try {
       await providerService.update(Number(proveedor.id), {
+        tipo_proveedor: proveedor.tipo_proveedor,
+        nombre: proveedor.nombre,
+        email: proveedor.email,
+        telefono: proveedor.telefono,
+        documento_nit: proveedor.nit,
+        direccion: proveedor.direccion,
         estado: newStatus === "activo",
       });
       await refreshProveedores();
@@ -175,7 +201,16 @@ export function ProveedoresModule() {
 
   return (
     <div className="min-h-screen bg-[#f6f3f5]">
-      <ProveedorHeader onOpenDialog={() => handleOpenDialog()} />
+      <ProveedorHeader 
+        onOpenDialog={() => {
+          if (!isAdmin) {
+            toast.error("Solo un administrador puede realizar esta acción");
+            return;
+          }
+          handleOpenDialog();
+        }} 
+        isAdmin={isAdmin}
+      />
 
       <div className="px-8 pb-8">
         <ProveedorTable
@@ -186,12 +221,23 @@ export function ProveedoresModule() {
             setSelectedProveedor(p);
             setIsDetailDialogOpen(true);
           }}
-          onEdit={handleOpenDialog}
+          onEdit={(p) => {
+            if (!isAdmin) {
+              toast.error("Solo un administrador puede editar proveedores");
+              return;
+            }
+            handleOpenDialog(p);
+          }}
           onDelete={(p) => {
+            if (!isAdmin) {
+              toast.error("Solo un administrador puede eliminar proveedores");
+              return;
+            }
             setSelectedProveedor(p);
             setIsDeleteDialogOpen(true);
           }}
           onStatusChange={handleStatusChange}
+          isAdmin={isAdmin}
         />
 
         {totalPages > 1 && (

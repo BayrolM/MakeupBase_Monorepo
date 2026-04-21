@@ -61,6 +61,7 @@ export interface Cliente {
 
 export interface Proveedor {
   id: string;
+  tipo_proveedor: string;
   nombre: string;
   nit: string;
   email: string;
@@ -246,6 +247,7 @@ interface StoreActions {
   setClientes: (clientes: Cliente[]) => void;
   setVentas: (ventas: Venta[]) => void;
   setPedidos: (pedidos: Pedido[]) => void;
+  setDevoluciones: (devoluciones: Devolucion[]) => void;
   setMarcas: (marcas: Marca[]) => void;
 }
 
@@ -517,6 +519,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setClientes: (newClientes: Cliente[]) => setClientes(newClientes),
     setVentas: (newVentas: Venta[]) => setVentas(newVentas),
     setPedidos: (newPedidos: Pedido[]) => setPedidos(newPedidos),
+    setDevoluciones: (newDevoluciones: Devolucion[]) => setDevoluciones(newDevoluciones),
     setMarcas: (newMarcas: Marca[]) => setMarcas(newMarcas),
   }), [
     users, clientes, proveedores, categorias, marcas, productos, compras,

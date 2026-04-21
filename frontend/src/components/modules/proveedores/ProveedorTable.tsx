@@ -21,6 +21,7 @@ interface ProveedorTableProps {
   onEdit: (proveedor: any) => void;
   onDelete: (proveedor: any) => void;
   onStatusChange: (proveedor: any, newStatus: "activo" | "inactivo") => void;
+  isAdmin?: boolean;
 }
 
 export function ProveedorTable({
@@ -31,6 +32,7 @@ export function ProveedorTable({
   onEdit,
   onDelete,
   onStatusChange,
+  isAdmin = false,
 }: ProveedorTableProps) {
   return (
     <div className="bg-white/80 backdrop-blur-sm border border-white/50 rounded-2xl overflow-hidden shadow-xl">
@@ -147,20 +149,24 @@ export function ProveedorTable({
                     >
                       <Eye className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={() => onEdit(proveedor)}
-                      className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-all duration-150"
-                      title="Editar proveedor"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => onDelete(proveedor)}
-                      className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-all duration-150"
-                      title="Eliminar proveedor"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {isAdmin && (
+                      <>
+                        <button
+                          onClick={() => onEdit(proveedor)}
+                          className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-all duration-150"
+                          title="Editar proveedor"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => onDelete(proveedor)}
+                          className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-all duration-150"
+                          title="Eliminar proveedor"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>

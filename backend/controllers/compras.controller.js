@@ -77,10 +77,9 @@ export const crear = async (req, res) => {
 
       // 2. Insertar los detalles y actualizar stock
       for (const item of items) {
-        const subtotalItem = item.cantidad * item.precio_unitario;
         await sql`
-          INSERT INTO detalle_compra (id_compra, id_producto, cantidad, precio_unitario, subtotal)
-          VALUES (${compra.id_compra}, ${item.id_producto}, ${item.cantidad}, ${item.precio_unitario}, ${subtotalItem})
+          INSERT INTO detalle_compra (id_compra, id_producto, cantidad, precio_unitario)
+          VALUES (${compra.id_compra}, ${item.id_producto}, ${item.cantidad}, ${item.precio_unitario})
         `;
 
         // 3. Actualizar el stock del producto
@@ -96,7 +95,56 @@ export const crear = async (req, res) => {
 
     return res.status(201).json(resultado);
   } catch (error) {
+    console.error('❌ ERROR en crear compra:', error);
+    console.error('📋 Stack:', error.stack);
+    return res.status(500).json({ ok: false, message: error.message || "Error al registrar la compra." });
+  }
+};
+
+export const anular = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await sql.begin(async (sql) => {
+      // 1. Verificar existencia y estado
+      const [compra] = await sql`
+        SELECT * FROM compras WHERE id_compra = ${id}
+      `;
+
+      if (!compra) {
+        throw new Error("Compra no encontrada.");
+      }
+
+      if (compra.estado === false) {
+        throw new Error("La compra ya se encuentra anulada.");
+      }
+
+      // 2. Obtener los detalles de la compra para revertir el stock
+      const detalles = await sql`
+        SELECT id_producto, cantidad FROM detalle_compra WHERE id_compra = ${id}
+      `;
+
+      // 3. Revertir el stock restando lo que se había sumado
+      for (const item of detalles) {
+        await sql`
+          UPDATE productos 
+          SET stock_actual = stock_actual - ${item.cantidad} 
+          WHERE id_producto = ${item.id_producto}
+        `;
+      }
+
+      // 4. Actualizar el estado a anulada (false)
+      await sql`
+        UPDATE compras SET estado = false WHERE id_compra = ${id}
+      `;
+    });
+
+    return res.json({ ok: true, message: "Compra anulada correctamente." });
+  } catch (error) {
     console.error(error);
-    return res.status(500).json({ ok: false, message: "Error al registrar la compra." });
+    const msg = error.message === "Compra no encontrada." || error.message === "La compra ya se encuentra anulada."
+      ? error.message 
+      : "Error al anular la compra.";
+    return res.status(msg === "Error al anular la compra." ? 500 : 400).json({ ok: false, message: msg });
   }
 };

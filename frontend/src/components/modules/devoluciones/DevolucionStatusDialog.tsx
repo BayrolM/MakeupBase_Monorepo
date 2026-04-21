@@ -1,5 +1,5 @@
-import { Edit, X, CheckCircle2 } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../ui/dialog';
+import { Edit, CheckCircle2, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../ui/dialog';
 import { Button } from '../../ui/button';
 import { Label } from '../../ui/label';
 import { Textarea } from '../../ui/textarea';
@@ -10,7 +10,10 @@ interface DevolucionStatusDialogProps {
   onOpenChange: (open: boolean) => void;
   devolucion: any;
   motivoDecision: string;
+  nuevoEstado: string;
+  isSaving: boolean;
   onMotivoChange: (val: string) => void;
+  onEstadoChange: (val: string) => void;
   onConfirm: (status: string) => void;
 }
 
@@ -19,7 +22,10 @@ export function DevolucionStatusDialog({
   onOpenChange,
   devolucion,
   motivoDecision,
+  nuevoEstado,
+  isSaving,
   onMotivoChange,
+  onEstadoChange,
   onConfirm
 }: DevolucionStatusDialogProps) {
   if (!devolucion) return null;
@@ -35,7 +41,7 @@ export function DevolucionStatusDialog({
             </div>
             <div>
               <DialogTitle className="text-xl font-bold text-gray-900 leading-tight">Cambiar Estado</DialogTitle>
-              <DialogDescription className="text-sm text-gray-400 mt-0.5">Gestión de auditoría de devolución</DialogDescription>
+              <DialogDescription className="text-sm text-gray-400 mt-0.5">Devolución DEV-{devolucion.id}</DialogDescription>
             </div>
           </div>
         </DialogHeader>
@@ -44,7 +50,7 @@ export function DevolucionStatusDialog({
           <div className="space-y-4">
             <div className="space-y-2">
               <Label className="text-gray-700 font-bold text-sm">Nuevo Estado</Label>
-              <Select defaultValue="en_revision" onValueChange={(v) => onConfirm(v)}>
+              <Select value={nuevoEstado} onValueChange={onEstadoChange}>
                 <SelectTrigger className="bg-gray-50 border-gray-200 text-gray-800 rounded-xl h-11">
                   <SelectValue placeholder="Seleccione nuevo estado" />
                 </SelectTrigger>
@@ -63,6 +69,7 @@ export function DevolucionStatusDialog({
                 onChange={(e) => onMotivoChange(e.target.value)}
                 className="bg-gray-50 border-gray-200 text-gray-800 rounded-2xl min-h-[100px] focus:ring-[#c47b96]/20 focus:border-[#c47b96] py-3 text-sm font-medium"
                 placeholder="Explica detalladamente por qué se aprobó o rechazó esta solicitud de devolución..."
+                disabled={isSaving}
               />
               <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest text-right">Mínimo: 3 caracteres</p>
             </div>
@@ -78,9 +85,22 @@ export function DevolucionStatusDialog({
           </div>
         </div>
 
-        <div className="flex flex-col px-8 pb-8 pt-2 gap-3">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl h-11 font-bold text-sm">
-            Cancelar Operación
+        <div className="flex gap-3 px-8 pb-8 pt-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl h-11 font-bold text-sm flex-1" disabled={isSaving}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={() => onConfirm(nuevoEstado)} 
+            disabled={isSaving || !motivoDecision.trim() || motivoDecision.trim().length < 3}
+            className="rounded-xl font-bold h-11 text-sm border-0 shadow-lg shadow-[#c47b96]/20 transition-all hover:scale-[1.02] active:scale-95 text-white flex-1" 
+            style={{ backgroundColor: "#c47b96" }}
+          >
+            {isSaving ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Procesando...
+              </span>
+            ) : "Confirmar Cambio"}
           </Button>
         </div>
       </DialogContent>

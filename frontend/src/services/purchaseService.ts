@@ -4,7 +4,7 @@ export interface PurchaseDetail {
   id_producto: number;
   id_variante?: number;
   cantidad: number;
-  precio_compra: number;
+  precio_unitario: number;
 }
 
 export interface Purchase {
@@ -33,7 +33,18 @@ export const purchaseService = {
     observaciones?: string;
     detalles: PurchaseDetail[];
   }) {
-    const response = await api.post("/compras", data);
+    // Note: The backend endpoint expects "items", so we must map "detalles" to "items"
+    const payload = {
+      id_proveedor: data.id_proveedor,
+      observaciones: data.observaciones,
+      items: data.detalles
+    };
+    const response = await api.post("/compras", payload);
     return response.data;
   },
+
+  async anular(id: number) {
+    const response = await api.put(`/compras/${id}/anular`);
+    return response.data;
+  }
 };
