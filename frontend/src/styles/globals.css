@@ -31,8 +31,18 @@
   --luxury-deep: #2e1020;
   --luxury-pink: #7b1347;
   --luxury-pink-soft: #c47b96;
+  --luxury-accent-dark: #a85d77;
+  --luxury-accent-soft: #fce8f0;
   --luxury-cream: #fffff2;
+  --luxury-bg-soft: #fff5f8;
+  --luxury-bg-header: #fffafa;
+  --luxury-text-dark: #1a1a1a;
+  --luxury-text-secondary: #4b5563;
+  --luxury-text-muted: #9ca3af;
   --luxury-shadow: rgba(196, 123, 150, 0.3);
+  --luxury-shadow-xs: rgba(196, 123, 150, 0.06);
+  --luxury-shadow-sm: rgba(196, 123, 150, 0.12);
+  --luxury-shadow-lg: rgba(196, 123, 150, 0.25);
 }
 
 /* Tailwind v4 CSS Theme Variables */
@@ -110,4 +120,53 @@
 .border, [class*="border-"], .border-b, .border-t, .border-l, .border-r {
   border-color: #fad6e3 !important;
   border-style: solid !important;
+}
+
+/* Category Cards Hover Effect */
+.category-card {
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.category-card:hover {
+  background: linear-gradient(135deg, var(--luxury-pink-soft) 0%, var(--luxury-accent-dark) 100%) !important;
+  transform: translateY(-6px);
+  box-shadow: 0 15px 35px var(--luxury-shadow-sm) !important;
+  border-color: transparent !important;
+}
+
+.category-card:hover .cat-title {
+  color: #ffffff !important;
+}
+
+.category-card:hover .cat-subtitle {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.category-card:hover .cat-icon-box {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+
+/* Luxury Slider Styles */
+[data-slot="slider-track"] {
+  background-color: var(--luxury-accent-soft) !important;
+  height: 6px !important;
+}
+
+[data-slot="slider-range"] {
+  background: linear-gradient(90deg, var(--luxury-pink-soft), var(--luxury-pink)) !important;
+}
+
+[data-slot="slider-thumb"] {
+  width: 18px !important;
+  height: 18px !important;
+  border: 2.5px solid var(--luxury-pink) !important;
+  background: #ffffff !important;
+  box-shadow: 0 2px 8px var(--luxury-shadow) !important;
+}
+
+[data-slot="slider-thumb"]:hover,
+[data-slot="slider-thumb"]:focus-visible {
+  ring-color: var(--luxury-shadow) !important;
+  box-shadow: 0 0 0 4px var(--luxury-shadow-sm), 0 2px 8px var(--luxury-shadow) !important;
 }

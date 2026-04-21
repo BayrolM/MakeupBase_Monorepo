@@ -16,8 +16,15 @@ import {
   Truck,
   Shield,
   Tag,
+  Facebook,
+  Instagram,
+  Twitter,
+  MapPin,
+  Mail,
+  Phone,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ProductCard } from "./ProductCard";
 
 interface InicioViewProps {
   isPublic?: boolean;
@@ -28,18 +35,24 @@ interface InicioViewProps {
 
 type Section = "inicio" | "catalogo" | "nosotros" | "contacto";
 
-// COLORS FROM OFFICIAL DESIGN
-const COLORS = {
-  accent: "#c47b96",
-  accentDark: "#a85d77",
-  accentDeep: "#7b1347",
-  accentSoft: "#f0d5e0",
-  bgSoft: "#fdf5f8",
-  bgHeader: "#fff8fb",
-  textDark: "#1a1a1a",
-  textSecondary: "#4b5563",
-  textMuted: "#9ca3af",
+const V = (name: string) => `var(--luxury-${name})`;
+const C = {
+  accent: V("pink-soft"),
+  accentDark: V("accent-dark"),
+  accentDeep: V("pink"),
+  accentSoft: V("accent-soft"),
+  bgSoft: V("bg-soft"),
+  bgHeader: V("bg-header"),
+  textDark: V("text-dark"),
+  textSecondary: V("text-secondary"),
+  textMuted: V("text-muted"),
   white: "#ffffff",
+  deep: V("deep"),
+  cream: V("cream"),
+  shadow: V("shadow"),
+  shadowXs: V("shadow-xs"),
+  shadowSm: V("shadow-sm"),
+  shadowLg: V("shadow-lg"),
 };
 
 export function InicioView({
@@ -88,7 +101,7 @@ export function InicioView({
     },
     {
       image:
-        "https://images.unsplash.com/photo-1596462502278-27bfdc4033c8?q=80&w=2080&auto=format&fit=crop",
+        "https://www.shutterstock.com/image-photo/professional-decorative-cosmetics-makeup-products-260nw-1990650542.jpg",
       title: "Cuidado de la Piel",
       subtitle:
         "Rutinas personalizadas con las mejores marcas globales. Tu piel merece el lujo de lo natural.",
@@ -96,7 +109,7 @@ export function InicioView({
     },
     {
       image:
-        "https://images.unsplash.com/photo-1620916566398-39f1143bc7be?q=80&w=1974&auto=format&fit=crop",
+        "https://img.freepik.com/vector-gratis/banner-venta-belleza-realista-oferta_52683-94987.jpg?semt=ais_hybrid&w=740&q=80",
       title: "Fragancias de Lujo",
       subtitle:
         "Encuentra el aroma que define tu esencia. Perfumería importada con sellos de autenticidad.",
@@ -179,20 +192,9 @@ export function InicioView({
           <div
             style={{
               fontFamily: "'DM Sans', sans-serif",
-              background: COLORS.white,
+              background: C.white,
             }}
           >
-            {/* LOGGED IN SECTION */}
-            {!isPublic && (
-              <div
-                style={{
-                  background: COLORS.bgHeader,
-                  borderBottom: `1px solid ${COLORS.accentSoft}`,
-                  padding: 0,
-                }}
-              ></div>
-            )}
-
             {/* FULLSCREEN AUTO-PLAY CAROUSEL */}
             <section
               style={{
@@ -327,7 +329,7 @@ export function InicioView({
                             style={{
                               background:
                                 "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
-                              color: COLORS.accentDeep,
+                              color: C.accentDeep,
                               border: "none",
                               padding: "16px 40px",
                               borderRadius: "50px",
@@ -360,6 +362,12 @@ export function InicioView({
                     </CarouselItem>
                   ))}
                 </CarouselContent>
+
+                {/* Carousel Navigation Controls (Previous / Next) */}
+                <div className="hidden md:block">
+                  <CarouselPrevious className="absolute left-6 lg:left-12 top-1/2 -translate-y-1/2 border-white/20 bg-black/20 hover:bg-white/20 hover:text-white text-white h-14 w-14 rounded-2xl backdrop-blur-md transition-all shadow-xl z-50" />
+                  <CarouselNext className="absolute right-6 lg:right-12 top-1/2 -translate-y-1/2 border-white/20 bg-black/20 hover:bg-white/20 hover:text-white text-white h-14 w-14 rounded-2xl backdrop-blur-md transition-all shadow-xl z-50" />
+                </div>
               </Carousel>
 
               {/* Progress Indicators */}
@@ -377,6 +385,8 @@ export function InicioView({
                 {slides.map((_, i) => (
                   <button
                     key={i}
+                    onClick={() => api?.scrollTo(i)}
+                    aria-label={`Ir a la imagen ${i + 1}`}
                     style={{
                       width: "8px",
                       height: "8px",
@@ -407,7 +417,7 @@ export function InicioView({
             <div
               style={{
                 margin: "5rem 2rem 4rem",
-                background: `linear-gradient(120deg, ${COLORS.accentDeep} 0%, ${COLORS.accent} 60%, ${COLORS.accentDark} 100%)`,
+                background: `linear-gradient(120deg, ${C.accentDeep} 0%, ${C.accent} 60%, ${C.accentDark} 100%)`,
                 borderRadius: "24px",
                 padding: "3rem 4rem",
                 display: "flex",
@@ -440,7 +450,9 @@ export function InicioView({
                     marginBottom: "8px",
                   }}
                 >
-                  Descubre las <em style={{ fontStyle: "italic" }}>novedades</em> de la semana
+                  Descubre las{" "}
+                  <em style={{ fontStyle: "italic" }}>novedades</em> de la
+                  semana
                 </h3>
                 <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.8)" }}>
                   Nuevos productos exclusivos han llegado a nuestro catálogo.
@@ -454,7 +466,7 @@ export function InicioView({
                 }
                 style={{
                   background: "white",
-                  color: COLORS.accentDeep,
+                  color: C.accentDeep,
                   border: "none",
                   padding: "14px 36px",
                   borderRadius: "32px",
@@ -492,13 +504,13 @@ export function InicioView({
                     fontFamily: "'Cormorant Garamond', serif",
                     fontSize: "36px",
                     fontWeight: 300,
-                    color: COLORS.textDark,
+                    color: C.textDark,
                   }}
                 >
                   Explora por{" "}
                   <span
                     style={{
-                      color: COLORS.accent,
+                      color: C.accent,
                       fontStyle: "italic",
                       fontWeight: 400,
                     }}
@@ -515,7 +527,7 @@ export function InicioView({
                   style={{
                     fontSize: "13px",
                     fontWeight: 600,
-                    color: COLORS.accentDeep,
+                    color: C.accentDeep,
                     background: "none",
                     border: "none",
                     cursor: "pointer",
@@ -542,57 +554,49 @@ export function InicioView({
                         ? onNavigate("catalogo", cat.id)
                         : setActiveSection("catalogo")
                     }
+                    className="category-card"
                     style={{
                       background: "white",
                       borderRadius: "20px",
                       padding: "2rem 1rem",
                       textAlign: "center",
-                      border: `1px solid ${COLORS.accentSoft}`,
+                      border: `1px solid ${C.accent}`,
                       cursor: "pointer",
-                      transition:
-                        "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
                       position: "relative",
                       overflow: "hidden",
                     }}
-                    onMouseEnter={(e) => {
-                      const el = e.currentTarget;
-                      el.style.transform = "translateY(-6px)";
-                      el.style.boxShadow = `0 15px 35px ${COLORS.accent}20`;
-                      el.style.borderColor = COLORS.accent;
-                    }}
-                    onMouseLeave={(e) => {
-                      const el = e.currentTarget;
-                      el.style.transform = "translateY(0)";
-                      el.style.boxShadow = "none";
-                      el.style.borderColor = COLORS.accentSoft;
-                    }}
                   >
                     <div
+                      className="cat-icon-box"
                       style={{
                         width: "56px",
                         height: "56px",
                         borderRadius: "16px",
-                        background: COLORS.bgSoft,
+                        background: C.bgSoft,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         margin: "0 auto 15px",
-                        color: COLORS.accentDeep,
+                        color: C.accentDeep,
                       }}
                     >
                       <Tag className="w-6 h-6" />
                     </div>
                     <div
+                      className="cat-title"
                       style={{
                         fontSize: "14px",
                         fontWeight: 700,
-                        color: COLORS.textDark,
+                        color: C.textDark,
                         marginBottom: "4px",
                       }}
                     >
                       {cat.nombre}
                     </div>
-                    <div style={{ fontSize: "12px", color: COLORS.textMuted }}>
+                    <div
+                      className="cat-subtitle"
+                      style={{ fontSize: "12px", color: C.textMuted }}
+                    >
                       {
                         productos.filter(
                           (p) =>
@@ -621,13 +625,13 @@ export function InicioView({
                     fontFamily: "'Cormorant Garamond', serif",
                     fontSize: "36px",
                     fontWeight: 300,
-                    color: COLORS.textDark,
+                    color: C.textDark,
                   }}
                 >
                   Nuestros{" "}
                   <span
                     style={{
-                      color: COLORS.accent,
+                      color: C.accent,
                       fontStyle: "italic",
                       fontWeight: 400,
                     }}
@@ -644,7 +648,7 @@ export function InicioView({
                   style={{
                     fontSize: "13px",
                     fontWeight: 600,
-                    color: COLORS.accentDeep,
+                    color: C.accentDeep,
                     background: "none",
                     border: "none",
                     cursor: "pointer",
@@ -666,206 +670,19 @@ export function InicioView({
                   const categoria = categorias.find(
                     (c) => c.id === producto.categoriaId,
                   );
+                  const badges = [
+                    { label: "MÁS VENDIDO", color: C.accentDeep },
+                    { label: "NUEVO", color: C.accent },
+                  ];
                   return (
-                    <div
+                    <ProductCard
                       key={producto.id}
-                      style={{
-                        background: "white",
-                        borderRadius: "24px",
-                        border: "1px solid rgba(0,0,0,0.08)",
-                        overflow: "hidden",
-                        cursor: "pointer",
-                        transition:
-                          "all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1)",
-                        position: "relative",
-                        boxShadow: "0 4px 20px rgba(0,0,0,0.04)",
-                      }}
-                      onMouseEnter={(e) => {
-                        const el = e.currentTarget;
-                        el.style.transform = "translateY(-12px)";
-                        el.style.boxShadow = `0 30px 60px ${COLORS.accent}20`;
-                        el.style.borderColor = COLORS.accentSoft;
-                      }}
-                      onMouseLeave={(e) => {
-                        const el = e.currentTarget;
-                        el.style.transform = "translateY(0)";
-                        el.style.boxShadow = "0 4px 20px rgba(0,0,0,0.04)";
-                        el.style.borderColor = "rgba(0,0,0,0.08)";
-                      }}
-                    >
-                      {index === 0 && (
-                        <div
-                          style={{
-                            position: "absolute",
-                            top: "15px",
-                            left: "15px",
-                            background: COLORS.accentDeep,
-                            color: "white",
-                            fontSize: "10px",
-                            fontWeight: 700,
-                            padding: "4px 12px",
-                            borderRadius: "20px",
-                            zIndex: 1,
-                            letterSpacing: "0.5px",
-                          }}
-                        >
-                          MÁS VENDIDO
-                        </div>
-                      )}
-                      {index === 1 && (
-                        <div
-                          style={{
-                            position: "absolute",
-                            top: "15px",
-                            left: "15px",
-                            background: COLORS.accent,
-                            color: "white",
-                            fontSize: "10px",
-                            fontWeight: 700,
-                            padding: "4px 12px",
-                            borderRadius: "20px",
-                            zIndex: 1,
-                            letterSpacing: "0.5px",
-                          }}
-                        >
-                          NUEVO
-                        </div>
-                      )}
-
-                      <div
-                        style={{
-                          width: "100%",
-                          height: "220px",
-                          background: COLORS.bgSoft,
-                          overflow: "hidden",
-                          position: "relative",
-                        }}
-                      >
-                        {producto.imagenUrl ? (
-                          <img
-                            src={producto.imagenUrl}
-                            alt={producto.nombre}
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
-                            }}
-                          />
-                        ) : (
-                          <div
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                          >
-                            <Package
-                              style={{
-                                width: 64,
-                                height: 64,
-                                color: COLORS.accent,
-                                opacity: 0.3,
-                              }}
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      <div style={{ padding: "1.5rem" }}>
-                        <div
-                          style={{
-                            fontSize: "10px",
-                            color: COLORS.textMuted,
-                            letterSpacing: "2px",
-                            textTransform: "uppercase",
-                            marginBottom: "6px",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {categoria?.nombre || "BELLEZA"}
-                        </div>
-                        <h4
-                          style={{
-                            fontFamily: "'Cormorant Garamond', serif",
-                            fontSize: "20px",
-                            fontWeight: 700,
-                            color: COLORS.textDark,
-                            marginBottom: "8px",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {producto.nombre}
-                        </h4>
-                        <div
-                          style={{
-                            color: "#f59e0b",
-                            fontSize: "12px",
-                            marginBottom: "15px",
-                          }}
-                        >
-                          ★★★★★{" "}
-                          <span
-                            style={{
-                              color: COLORS.textMuted,
-                              marginLeft: "6px",
-                            }}
-                          >
-                            4.8
-                          </span>
-                        </div>
-
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontSize: "20px",
-                              fontWeight: 800,
-                              color: COLORS.accentDeep,
-                            }}
-                          >
-                            {formatCurrency(producto.precioVenta)}
-                          </span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAddToCart(producto.id);
-                            }}
-                            style={{
-                              width: "40px",
-                              height: "40px",
-                              borderRadius: "50%",
-                              background: `linear-gradient(135deg, ${COLORS.accent} 0%, ${COLORS.accentDeep} 100%)`,
-                              color: "white",
-                              border: "none",
-                              fontSize: "24px",
-                              cursor: "pointer",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              transition: "transform 0.2s",
-                              boxShadow: `0 5px 15px ${COLORS.accent}40`,
-                            }}
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.transform = "scale(1.15)")
-                            }
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.transform = "scale(1)")
-                            }
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                      producto={producto}
+                      categoryName={categoria?.nombre}
+                      badge={badges[index]?.label}
+                      badgeColor={badges[index]?.color}
+                      onAddToCart={() => handleAddToCart(producto.id)}
+                    />
                   );
                 })}
               </div>
@@ -874,9 +691,9 @@ export function InicioView({
             {/* BENEFICIOS */}
             <section
               style={{
-                background: COLORS.bgHeader,
-                borderTop: `1px solid ${COLORS.accentSoft}`,
-                borderBottom: `1px solid ${COLORS.accentSoft}`,
+                background: C.bgHeader,
+                borderTop: `1px solid ${C.accentSoft}`,
+                borderBottom: `1px solid ${C.accentSoft}`,
                 padding: "4rem 2rem",
               }}
             >
@@ -909,8 +726,8 @@ export function InicioView({
                         alignItems: "center",
                         justifyContent: "center",
                         marginBottom: "1rem",
-                        color: COLORS.accentDeep,
-                        boxShadow: `0 8px 20px ${COLORS.accent}10`,
+                        color: C.accentDeep,
+                        boxShadow: `0 8px 20px ${C.shadowXs}`,
                       }}
                     >
                       <b.icon className="w-7 h-7" />
@@ -920,7 +737,7 @@ export function InicioView({
                         style={{
                           fontSize: "15px",
                           fontWeight: 700,
-                          color: COLORS.textDark,
+                          color: C.textDark,
                           marginBottom: "6px",
                         }}
                       >
@@ -929,7 +746,7 @@ export function InicioView({
                       <p
                         style={{
                           fontSize: "13px",
-                          color: COLORS.textSecondary,
+                          color: C.textSecondary,
                           lineHeight: 1.5,
                         }}
                       >
@@ -949,13 +766,13 @@ export function InicioView({
                     fontFamily: "'Cormorant Garamond', serif",
                     fontSize: "42px",
                     fontWeight: 300,
-                    color: COLORS.textDark,
+                    color: C.textDark,
                   }}
                 >
                   Lo que dicen nuestras{" "}
                   <span
                     style={{
-                      color: COLORS.accent,
+                      color: C.accent,
                       fontStyle: "italic",
                       fontWeight: 400,
                     }}
@@ -977,19 +794,19 @@ export function InicioView({
                   {
                     initials: "MP",
                     name: "María Paula",
-                    color: `linear-gradient(135deg, ${COLORS.accent}, ${COLORS.accentDeep})`,
+                    color: `linear-gradient(135deg, ${C.accent}, ${C.accentDeep})`,
                     text: '"Los productos son increíbles. El nivel de atención y la calidad superaron mis expectativas. En 3 semanas noté diferencia real en mi piel."',
                   },
                   {
                     initials: "VS",
                     name: "Valentina S.",
-                    color: `linear-gradient(135deg, ${COLORS.accentDark}, ${COLORS.accent})`,
+                    color: `linear-gradient(135deg, ${C.accentDark}, ${C.accent})`,
                     text: '"Llevo 2 años comprando aquí. El envío es rapidísimo y el empaque es toda una experiencia de lujo. Mi marca favorita sin duda."',
                   },
                   {
                     initials: "LG",
                     name: "Laura G.",
-                    color: `linear-gradient(135deg, ${COLORS.accentDeep}, ${COLORS.accentDark})`,
+                    color: `linear-gradient(135deg, ${C.accentDeep}, ${C.accentDark})`,
                     text: '"Asesoría experta que realmente entiende lo que tu piel necesita. Productos originales y de altísima calidad. ¡Totalmente recomendado!"',
                   },
                 ].map((t) => (
@@ -997,7 +814,7 @@ export function InicioView({
                     key={t.name}
                     style={{
                       background: "white",
-                      border: `1px solid ${COLORS.accentSoft}`,
+                      border: `1px solid ${C.accent}`,
                       borderRadius: "24px",
                       padding: "2rem",
                       boxShadow: "0 5px 15px rgba(0,0,0,0.02)",
@@ -1032,7 +849,7 @@ export function InicioView({
                           style={{
                             fontSize: "15px",
                             fontWeight: 700,
-                            color: COLORS.textDark,
+                            color: C.textDark,
                           }}
                         >
                           {t.name}
@@ -1045,7 +862,7 @@ export function InicioView({
                     <p
                       style={{
                         fontSize: "14px",
-                        color: COLORS.textSecondary,
+                        color: C.textSecondary,
                         lineHeight: 1.7,
                         fontStyle: "italic",
                       }}
@@ -1057,30 +874,183 @@ export function InicioView({
               </div>
             </section>
 
-            {/* FOOTER */}
+            {/* FOOTER — Inspired by Moon Travel style */}
             <footer
-              style={{
-                background: COLORS.textDark,
-                color: "rgba(255,255,255,0.6)",
-                padding: "3rem 2rem",
-                textAlign: "center",
-              }}
+              style={{ backgroundColor: "#1a0a14" }}
+              className="text-white"
             >
+              {/* Top accent gradient line */}
               <div
                 style={{
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontSize: "24px",
-                  color: "white",
-                  letterSpacing: "4px",
-                  marginBottom: "1rem",
+                  height: "3px",
+                  background:
+                    "linear-gradient(90deg, #c47b96 0%, #e092b2 40%, #a85d77 70%, #7b1347 100%)",
+                }}
+              />
+
+              {/* Main Footer Content */}
+              <div className="max-w-7xl mx-auto px-6 lg:px-10 py-12">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-16">
+                  {/* Column 1: Brand + Description */}
+                  <div className="space-y-4">
+                    <img
+                      src="/logo.png"
+                      alt="Glamour ML"
+                      className="h-16 w-auto object-contain"
+                      style={{
+                        filter: "drop-shadow(0 2px 8px rgba(196,123,150,0.25))",
+                      }}
+                    />
+                    <p className="text-white/60 text-[13px] leading-relaxed italic max-w-[240px]">
+                      Elevando tu rutina de belleza con productos de alta gama y
+                      fórmulas exclusivas.
+                    </p>
+                  </div>
+
+                  {/* Column 2: Contacto */}
+                  <div>
+                    <h4
+                      className="font-semibold mb-5 tracking-wider"
+                      style={{ fontSize: "15px", color: "white" }}
+                    >
+                      Contacto
+                    </h4>
+                    <ul className="space-y-3">
+                      <li className="flex items-center gap-2.5">
+                        <MapPin className="w-4 h-4 text-[#c47b96] flex-shrink-0" />
+                        <span className="text-white/70 text-[13px]">
+                          Medellín, Colombia
+                        </span>
+                      </li>
+                      <li className="flex items-center gap-2.5">
+                        <Phone className="w-4 h-4 text-[#c47b96] flex-shrink-0" />
+                        <span className="text-white/70 text-[13px]">
+                          WhatsApp: +57 300 123 4567
+                        </span>
+                      </li>
+                      <li className="flex items-center gap-2.5">
+                        <Mail className="w-4 h-4 text-[#c47b96] flex-shrink-0" />
+                        <span className="text-white/70 text-[13px]">
+                          hola@glamourml.com
+                        </span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Column 3: Información Legal */}
+                  <div>
+                    <h4
+                      className="font-semibold mb-5 tracking-wider"
+                      style={{ fontSize: "15px", color: "white" }}
+                    >
+                      Información Legal
+                    </h4>
+                    <ul className="space-y-3">
+                      <li>
+                        <a
+                          href="#"
+                          className="text-white/70 hover:text-[#c47b96] transition-colors text-[13px]"
+                        >
+                          Políticas de Envío
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          href="#"
+                          className="text-white/70 hover:text-[#c47b96] transition-colors text-[13px]"
+                        >
+                          Cambios y Devoluciones
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          href="#"
+                          className="text-white/70 hover:text-[#c47b96] transition-colors text-[13px]"
+                        >
+                          Preguntas Frecuentes
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          href="#"
+                          className="text-white/70 hover:text-[#c47b96] transition-colors text-[13px]"
+                        >
+                          Términos y Condiciones
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Column 4: Síguenos */}
+                  <div>
+                    <h4
+                      className="font-semibold mb-5 tracking-wider"
+                      style={{ fontSize: "15px", color: "white" }}
+                    >
+                      Síguenos
+                    </h4>
+                    <div className="flex gap-3">
+                      <a
+                        href="#"
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-all"
+                        style={{ backgroundColor: "rgba(196,123,150,0.2)" }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.backgroundColor = "#c47b96")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.backgroundColor =
+                            "rgba(196,123,150,0.2)")
+                        }
+                      >
+                        <Instagram className="w-4 h-4" />
+                      </a>
+                      <a
+                        href="#"
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-all"
+                        style={{ backgroundColor: "rgba(196,123,150,0.2)" }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.backgroundColor = "#c47b96")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.backgroundColor =
+                            "rgba(196,123,150,0.2)")
+                        }
+                      >
+                        <Facebook className="w-4 h-4" />
+                      </a>
+                      <a
+                        href="#"
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-all"
+                        style={{ backgroundColor: "rgba(196,123,150,0.2)" }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.backgroundColor = "#c47b96")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.backgroundColor =
+                            "rgba(196,123,150,0.2)")
+                        }
+                      >
+                        <Twitter className="w-4 h-4" />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Bar — centered, like Moon Travel */}
+              <div
+                style={{
+                  borderTop: "1px solid rgba(196,123,150,0.15)",
+                  backgroundColor: "#140810",
                 }}
               >
-                GLAMOUR ML
+                <div className="max-w-7xl mx-auto px-6 lg:px-10 py-5 text-center space-y-2">
+                  <p className="text-white/50 text-[11px] tracking-wider">
+                    © {new Date().getFullYear()} Glamour ML. Todos los derechos
+                    reservados.
+                  </p>
+                </div>
               </div>
-              <p style={{ fontSize: "12px", letterSpacing: "1px" }}>
-                © 2026 Belleza & Cuidado Personal. Todos los derechos
-                reservados.
-              </p>
             </footer>
           </div>
         );

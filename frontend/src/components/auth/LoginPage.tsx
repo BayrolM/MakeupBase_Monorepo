@@ -1,10 +1,21 @@
 import { useState } from 'react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Checkbox } from '../ui/checkbox';
 import { ThemeToggle } from '../ThemeToggle';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Info, Key, User } from 'lucide-react';
+
+/* ── Luxury CSS variable helpers ── */
+const V = (name: string) => `var(--luxury-${name})`;
+const C = {
+  bgSoft: V('bg-soft'),
+  accent: V('pink-soft'),
+  accentDark: V('accent-dark'),
+  accentDeep: V('pink'),
+  textDark: V('text-dark'),
+  textMuted: V('text-muted'),
+  shadowSm: V('shadow-sm'),
+  shadow: V('shadow'),
+  white: '#ffffff',
+  danger: '#ef4444',
+};
 
 interface LoginPageProps {
   onLogin: (email: string, password: string) => boolean | void | Promise<boolean>;
@@ -49,183 +60,234 @@ export function LoginPage({ onLogin, onNavigateToRegister, onNavigateToRecover, 
     onLogin(email, password);
   };
 
+  // Luxury Input Field Minimalist
+  const InputField = ({ label, id, value, onChange, error, type = "text", placeholder = "" }: any) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <label htmlFor={id} style={{ fontSize: '13px', fontWeight: 600, color: C.textDark, opacity: 0.8 }}>
+        {label}
+      </label>
+      <input
+        id={id}
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        style={{
+          width: '100%', height: '48px', borderRadius: '8px',
+          border: `1px solid ${error ? C.danger : C.accent}`,
+          padding: '0 16px', outline: 'none', fontSize: '14px',
+          color: C.textDark, background: 'rgba(255,255,255,0.8)', boxSizing: 'border-box',
+          transition: 'all 0.3s ease',
+        }}
+        onFocus={(e) => {
+          e.currentTarget.style.borderColor = C.accentDeep;
+          e.currentTarget.style.background = C.white;
+          e.currentTarget.style.boxShadow = `0 4px 12px rgba(176,96,128,0.08)`;
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.borderColor = error ? C.danger : C.accent;
+          e.currentTarget.style.background = 'rgba(255,255,255,0.8)';
+          e.currentTarget.style.boxShadow = 'none';
+        }}
+      />
+      {error && <p style={{ color: C.danger, fontSize: '12px', margin: 0, marginTop: '2px' }}>{error}</p>}
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
-      {/* Theme Toggle */}
-      <ThemeToggle />
+    <div style={{ minHeight: '100vh', background: C.bgSoft, display: 'flex', alignItems: 'center', justifyItems: 'center', padding: '16px', position: 'relative', fontFamily: "'DM Sans', sans-serif", overflow: 'hidden' }}>
       
-      {/* Back to Home Button - Top Left Corner */}
+      {/* Soft Background Blur Elements */}
+      <div style={{ position: 'absolute', top: '-10%', left: '-5%', width: '400px', height: '400px', background: C.accent, borderRadius: '50%', filter: 'blur(100px)', opacity: 0.4, pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: '-10%', right: '-5%', width: '400px', height: '400px', background: C.accentDeep, borderRadius: '50%', filter: 'blur(120px)', opacity: 0.15, pointerEvents: 'none' }} />
+
+      {/* Theme Toggle */}
+      <div style={{ position: 'absolute', top: '24px', right: '24px', zIndex: 10 }}>
+        <ThemeToggle />
+      </div>
+      
+      {/* Back to Home Button */}
       {onBack && (
-        <div className="absolute top-6 left-6 z-10">
+        <div style={{ position: 'absolute', top: '24px', left: '24px', zIndex: 10 }}>
           <button
             onClick={onBack}
-            className="flex items-center gap-2 text-foreground-secondary hover:text-primary transition-colors group"
-            style={{ fontSize: '14px', fontWeight: 500 }}
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: '8px', 
+              color: C.textMuted, background: 'none', border: 'none', 
+              cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+              transition: 'color 0.2s', padding: '8px 12px', borderRadius: '8px',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = C.textDark;
+              e.currentTarget.style.background = 'rgba(0,0,0,0.03)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = C.textMuted;
+              e.currentTarget.style.background = 'none';
+            }}
           >
-            <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+            <ChevronLeft style={{ width: 16, height: 16 }} />
             <span>Volver al inicio</span>
           </button>
         </div>
       )}
 
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-3 mb-5">
-          <div className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center bg-black">
-            <img src="/logo.png" alt="Glamour ML Logo" className="w-full h-full object-cover" />
-          </div>
-        </div>
+      {/* Main Content Container */}
+      <div style={{ width: '100%', maxWidth: '900px', display: 'flex', flexDirection: 'column', md: {flexDirection: 'row'}, margin: '0 auto', gap: '40px', alignItems: 'center', zIndex: 2 }} className="md:flex-row">
         
-        <div className="text-center mb-8">
-          <h1 className="text-foreground mb-2" style={{ fontSize: '32px', fontWeight: 600 }}>
-            GLAMOUR ML
-          </h1>
-          <p className="text-foreground-secondary" style={{ fontSize: '16px' }}>
-            Bienvenida a tu plataforma de gestión
-          </p>
-        </div>
-
-        {/* Demo Credentials Info */}
-        <div className="bg-surface border border-border rounded-xl p-5 mb-6">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-primary">
-                <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="currentColor" strokeWidth="2"/>
-                <path d="M6 21V19C6 16.7909 7.79086 15 10 15H14C16.2091 15 18 16.7909 18 19V21" stroke="currentColor" strokeWidth="2"/>
-              </svg>
-            </div>
-            <h3 className="text-foreground" style={{ fontSize: '14px', fontWeight: 600 }}>
-              Cuentas de Prueba
-            </h3>
-          </div>
+        {/* Left Side: Branding & Info */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '20px' }}>
           
-          <div className="grid gap-3">
-            {/* Admin Account */}
-            <div className="bg-card border border-border rounded-lg p-3 hover:border-primary/30 transition-colors">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-6 h-6 rounded bg-primary/20 flex items-center justify-center">
-                  <span className="text-primary" style={{ fontSize: '11px', fontWeight: 600 }}>A</span>
-                </div>
-                <span className="text-foreground" style={{ fontSize: '13px', fontWeight: 600 }}>
-                  Administrador
-                </span>
-              </div>
-              <div className="space-y-1 pl-8">
-                <p className="text-foreground-secondary" style={{ fontSize: '12px' }}>
-                  <span className="text-foreground-secondary/70">Email:</span>{' '}
-                  <span className="text-primary font-mono">admin@glamour.com</span>
-                </p>
-                <p className="text-foreground-secondary" style={{ fontSize: '12px' }}>
-                  <span className="text-foreground-secondary/70">Pass:</span>{' '}
-                  <span className="text-primary font-mono">admin123</span>
-                </p>
-              </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '16px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', boxShadow: `0 8px 24px rgba(0,0,0,0.1)` }}>
+              <img src="/logo.png" alt="Glamour ML Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
-
-            {/* Client Account */}
-            <div className="bg-card border border-border rounded-lg p-3 hover:border-primary/30 transition-colors">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-6 h-6 rounded bg-primary-light/30 flex items-center justify-center">
-                  <span className="text-primary" style={{ fontSize: '11px', fontWeight: 600 }}>C</span>
-                </div>
-                <span className="text-foreground" style={{ fontSize: '13px', fontWeight: 600 }}>
-                  Cliente
-                </span>
-              </div>
-              <div className="space-y-1 pl-8">
-                <p className="text-foreground-secondary" style={{ fontSize: '12px' }}>
-                  <span className="text-foreground-secondary/70">Email:</span>{' '}
-                  <span className="text-primary font-mono">carlos.cliente@mail.com</span>
-                </p>
-                <p className="text-foreground-secondary" style={{ fontSize: '12px' }}>
-                  <span className="text-foreground-secondary/70">Pass:</span>{' '}
-                  <span className="text-primary font-mono">cliente123</span>
-                </p>
-              </div>
+            <div>
+              <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '32px', fontWeight: 600, color: C.textDark, margin: 0, lineHeight: 1.1 }}>
+                GLAMOUR ML
+              </h1>
+              <p style={{ color: C.textMuted, fontSize: '14px', margin: 0, letterSpacing: '1px', textTransform: 'uppercase' }}>
+                Acceso Exclusivo
+              </p>
             </div>
           </div>
 
-          <p className="text-foreground-secondary text-center mt-3" style={{ fontSize: '11px' }}>
-            La vista dependerá del rol con el que inicies sesión
+          <p style={{ color: C.textDark, fontSize: '16px', lineHeight: 1.6, marginBottom: '40px', maxWidth: '360px', opacity: 0.8 }}>
+            Ingresa a tu cuenta para gestionar tus pedidos, guardar tus productos favoritos y disfrutar de una experiencia personalizada.
           </p>
+
+          {/* Elegant Demo Credentials Box */}
+          <div style={{ background: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(10px)', borderRadius: '16px', padding: '24px', border: '1px solid rgba(255,255,255,0.8)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+              <Info style={{ width: 16, height: 16, color: C.accentDeep }} />
+              <h3 style={{ fontSize: '13px', fontWeight: 700, color: C.textDark, textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>
+                Cuentas de Prueba
+              </h3>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              
+              {/* Admin Account Button */}
+              <div 
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: C.white, borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s', border: '1px solid transparent', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}
+                onClick={() => { setEmail('admin@glamour.com'); setPassword('admin123'); }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.transform = 'translateX(4px)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'translateX(0)'; }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: C.bgSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Key style={{ width: 14, height: 14, color: C.textDark }} />
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: C.textDark, margin: 0 }}>Administrador</p>
+                    <p style={{ fontSize: '11px', color: C.textMuted, margin: 0 }}>admin@glamour.com</p>
+                  </div>
+                </div>
+                <span style={{ fontSize: '11px', color: C.accentDeep, fontWeight: 600 }}>Usar</span>
+              </div>
+
+              {/* Client Account Button */}
+              <div 
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: C.white, borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s', border: '1px solid transparent', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}
+                onClick={() => { setEmail('carlos.cliente@mail.com'); setPassword('cliente123'); }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.transform = 'translateX(4px)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'translateX(0)'; }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: C.bgSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <User style={{ width: 14, height: 14, color: C.textDark }} />
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: C.textDark, margin: 0 }}>Cliente</p>
+                    <p style={{ fontSize: '11px', color: C.textMuted, margin: 0 }}>carlos.cliente@mail.com</p>
+                  </div>
+                </div>
+                <span style={{ fontSize: '11px', color: C.accentDeep, fontWeight: 600 }}>Usar</span>
+              </div>
+
+            </div>
+          </div>
         </div>
 
-        {/* Login Form */}
-        <div className="bg-card border border-border rounded-lg p-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground">
-                Email <span className="text-danger">*</span>
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={`bg-input-background border-border text-foreground ${errors.email ? 'border-danger' : ''}`}
-                placeholder="correo@ejemplo.com"
-              />
-              {errors.email && (
-                <p className="text-danger" style={{ fontSize: '13px' }}>{errors.email}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground">
-                Contraseña <span className="text-danger">*</span>
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={`bg-input-background border-border text-foreground ${errors.password ? 'border-danger' : ''}`}
-                placeholder="••••••••"
-              />
-              {errors.password && (
-                <p className="text-danger" style={{ fontSize: '13px' }}>{errors.password}</p>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="remember"
-                checked={rememberMe}
-                onCheckedChange={(checked: boolean) => setRememberMe(checked)}
-                className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-              />
-              <label htmlFor="remember" className="text-foreground-secondary cursor-pointer" style={{ fontSize: '14px' }}>
-                Recordar sesión
-              </label>
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-11"
-            >
-              🎀 INGRESAR
-            </Button>
-          </form>
-
-          <div className="mt-6 space-y-3 text-center">
-            <button
-              onClick={onNavigateToRecover}
-              className="text-primary hover:text-primary/80 transition-colors"
-              style={{ fontSize: '14px' }}
-            >
-              ¿Olvidaste tu contraseña?
-            </button>
+        {/* Right Side: Minimalist Login Form */}
+        <div style={{ flex: 1, width: '100%', maxWidth: '420px' }}>
+          <div style={{ background: C.white, borderRadius: '24px', padding: '48px', border: `1px solid ${C.accentDeep}`, boxShadow: `0 20px 60px rgba(0,0,0,0.04)` }}>
             
-            <div className="flex items-center justify-center gap-2">
-              <span className="text-foreground-secondary" style={{ fontSize: '14px' }}>
-                ¿No tienes cuenta?
+            <h2 style={{ fontSize: '24px', fontWeight: 600, color: C.textDark, marginBottom: '8px', fontFamily: "'Cormorant Garamond', serif" }}>Iniciar Sesión</h2>
+            <p style={{ fontSize: '14px', color: C.textMuted, marginBottom: '32px' }}>Qué gusto verte de nuevo.</p>
+
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <InputField 
+                label="Correo electrónico" id="email" type="email" value={email} 
+                onChange={(e: any) => setEmail(e.target.value)} 
+                error={errors.email} placeholder="correo@ejemplo.com"
+              />
+
+              <div style={{ position: 'relative' }}>
+                <InputField 
+                  label="Contraseña" id="password" type="password" value={password} 
+                  onChange={(e: any) => setPassword(e.target.value)} 
+                  error={errors.password} placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={onNavigateToRecover}
+                  style={{ position: 'absolute', right: '0', top: '0', background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer', fontSize: '12px', fontWeight: 500, transition: 'color 0.2s' }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = C.accentDeep}
+                  onMouseLeave={(e) => e.currentTarget.style.color = C.textMuted}
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '-8px' }}>
+                <input
+                  type="checkbox"
+                  id="remember"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  style={{ width: '16px', height: '16px', accentColor: C.textDark, cursor: 'pointer', border: '1px solid rgba(0,0,0,0.1)' }}
+                />
+                <label htmlFor="remember" style={{ color: C.textDark, cursor: 'pointer', fontSize: '13px', fontWeight: 500, opacity: 0.8 }}>
+                  Mantener sesión iniciada
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                style={{
+                  width: '100%', height: '52px', borderRadius: '12px',
+                  background: C.textDark, color: C.white, border: 'none', cursor: 'pointer',
+                  fontSize: '14px', fontWeight: 600, letterSpacing: '0.5px',
+                  boxShadow: `0 8px 24px rgba(0,0,0,0.1)`, transition: 'all 0.2s',
+                  marginTop: '8px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = `0 12px 32px rgba(0,0,0,0.15)`;
+                  e.currentTarget.style.background = '#000000';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = `0 8px 24px rgba(0,0,0,0.1)`;
+                  e.currentTarget.style.background = C.textDark;
+                }}
+              >
+                INGRESAR
+              </button>
+            </form>
+
+            <div style={{ marginTop: '32px', textAlign: 'center', paddingTop: '24px', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+              <span style={{ color: C.textMuted, fontSize: '14px', marginRight: '6px' }}>
+                ¿Aún no tienes cuenta?
               </span>
               <button
                 onClick={onNavigateToRegister}
-                className="text-primary hover:text-primary/80 transition-colors"
-                style={{ fontSize: '14px', fontWeight: 500 }}
+                style={{ background: 'none', border: 'none', color: C.textDark, cursor: 'pointer', fontSize: '14px', fontWeight: 600, transition: 'color 0.2s' }}
+                onMouseEnter={(e) => e.currentTarget.style.color = C.accentDeep}
+                onMouseLeave={(e) => e.currentTarget.style.color = C.textDark}
               >
-                Regístrate
+                Regístrate ahora
               </button>
             </div>
           </div>

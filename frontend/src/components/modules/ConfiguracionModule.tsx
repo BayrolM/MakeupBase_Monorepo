@@ -13,7 +13,7 @@ import {
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Checkbox } from "../ui/checkbox";
-import { Plus, Pencil, Shield } from "lucide-react";
+import { Plus, Pencil, Shield, Settings } from "lucide-react";
 
 const MODULOS = [
   "usuarios",
@@ -102,6 +102,7 @@ export function ConfiguracionModule() {
       <PageHeader
         title="Configuración"
         subtitle="Gestión de roles y permisos"
+        icon={Settings}
         actionButton={{
           label: "Nuevo Rol",
           icon: Plus,

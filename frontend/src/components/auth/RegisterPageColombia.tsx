@@ -1,10 +1,24 @@
 import { useState } from 'react';
 import { Button } from '../ui/button';
-import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { UserRole } from '../../lib/store';
 import { ChevronLeft, User, Hash, Mail, Phone, Lock, MapPin, Building2, CreditCard, Eye, EyeOff } from 'lucide-react';
+
+/* ── Luxury CSS variable helpers ── */
+const V = (name: string) => `var(--luxury-${name})`;
+const C = {
+  bgSoft: V('bg-soft'),
+  accent: V('pink-soft'),
+  accentDark: V('accent-dark'),
+  accentDeep: V('pink'),
+  textDark: V('text-dark'),
+  textMuted: V('text-muted'),
+  shadowSm: V('shadow-sm'),
+  shadow: V('shadow'),
+  white: '#ffffff',
+  danger: '#ef4444',
+};
 
 interface RegisterPageProps {
   onRegister: (data: {
@@ -123,249 +137,323 @@ export function RegisterPageColombia({ onRegister, onNavigateToLogin, onBack }: 
     setIsLoading(false);
   };
 
-  const field = (name: string) => ({
+  const fieldProps = (name: string) => ({
     value: (formData as any)[name],
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => handleChange(name, e.target.value),
-    className: `h-11 w-full rounded-xl border text-sm text-gray-800 bg-white placeholder:text-gray-400 px-4 transition-all outline-none focus:ring-2 ${
-      errors[name]
-        ? 'border-rose-400 focus:ring-rose-200'
-        : 'border-gray-200 focus:border-[#7b1347] focus:ring-[#7b1347]/15'
-    }`,
   });
 
   return (
-    <div className="min-h-screen flex" style={{ background: '#f6f3f5' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', background: C.bgSoft, fontFamily: "'DM Sans', sans-serif" }}>
 
       {/* ── Panel izquierdo decorativo ── */}
       <div
         className="hidden lg:flex flex-col justify-between w-[420px] flex-shrink-0 px-10 py-10"
         style={{
-          background: `
-            radial-gradient(ellipse at 80% 10%, rgba(196,123,150,0.45) 0%, transparent 55%),
-            radial-gradient(ellipse at 10% 80%, rgba(80,25,40,0.6) 0%, transparent 55%),
-            linear-gradient(158deg, #1a0a12 0%, #2e1020 40%, #4a2035 100%)
-          `,
+          background: `linear-gradient(135deg, ${C.textDark} 0%, ${C.accentDeep} 100%)`,
+          position: 'relative',
+          overflow: 'hidden'
         }}
       >
-        {/* Logo */}
-        <div>
+        {/* Decorative blur circles */}
+        <div style={{ position: 'absolute', top: '-10%', left: '-20%', width: '300px', height: '300px', background: C.white, borderRadius: '50%', filter: 'blur(100px)', opacity: 0.1, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: '-10%', right: '-20%', width: '300px', height: '300px', background: C.accent, borderRadius: '50%', filter: 'blur(100px)', opacity: 0.2, pointerEvents: 'none' }} />
+
+        {/* Logo & Content */}
+        <div style={{ position: 'relative', zIndex: 2 }}>
           {onBack && (
             <button
               onClick={onBack}
-              className="flex items-center gap-2 text-white/60 hover:text-white transition-colors text-sm mb-10"
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.7)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, marginBottom: '40px', transition: 'color 0.2s' }}
+              onMouseEnter={(e) => e.currentTarget.style.color = C.white}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft style={{ width: 16, height: 16 }} />
               Volver al inicio
             </button>
           )}
-          <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20 mb-6">
-            <img src="/logo.png" alt="Glamour ML" className="w-full h-full object-cover" />
+          <div style={{ width: '80px', height: '80px', borderRadius: '16px', overflow: 'hidden', boxShadow: `0 8px 30px rgba(0,0,0,0.2)`, border: '1px solid rgba(255,255,255,0.2)', marginBottom: '24px', background: '#000' }}>
+            <img src="/logo.png" alt="Glamour ML" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
-          <h2 className="text-3xl font-bold text-white leading-tight mb-3">
+          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '36px', fontWeight: 600, color: C.white, lineHeight: 1.1, marginBottom: '12px' }}>
             Bienvenida a<br />Glamour ML
           </h2>
-          <p className="text-white/60 text-sm leading-relaxed">
+          <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px', lineHeight: 1.6 }}>
             Crea tu cuenta y descubre nuestra colección de productos de belleza y cuidado personal.
           </p>
         </div>
 
         {/* Decoración inferior */}
-        <div className="space-y-3">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative', zIndex: 2 }}>
           {['Catálogo exclusivo de productos', 'Seguimiento de tus pedidos', 'Ofertas y descuentos especiales'].map(item => (
-            <div key={item} className="flex items-center gap-3">
-              <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(196,123,150,0.3)' }}>
-                <div className="w-2 h-2 rounded-full bg-[#c47b96]" />
+            <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '20px', height: '20px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.1)' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: C.white }} />
               </div>
-              <span className="text-white/70 text-sm">{item}</span>
+              <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px' }}>{item}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* ── Panel derecho: formulario ── */}
-      <div className="flex-1 overflow-y-auto flex flex-col">
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
 
         {/* Header móvil */}
-        <div className="lg:hidden flex items-center justify-between px-6 pt-6 pb-4">
+        <div className="lg:hidden" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 24px 16px 24px' }}>
           {onBack && (
-            <button onClick={onBack} className="flex items-center gap-1.5 text-gray-500 hover:text-[#7b1347] text-sm font-medium transition-colors">
-              <ChevronLeft className="w-4 h-4" /> Volver
+            <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: '6px', color: C.textMuted, background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}>
+              <ChevronLeft style={{ width: 16, height: 16 }} /> Volver
             </button>
           )}
-          <div className="w-10 h-10 rounded-xl overflow-hidden shadow border border-gray-200">
-            <img src="/logo.png" alt="Glamour ML" className="w-full h-full object-cover" />
+          <div style={{ width: '40px', height: '40px', borderRadius: '12px', overflow: 'hidden', border: `1px solid ${C.accent}`, background: '#000' }}>
+            <img src="/logo.png" alt="Glamour ML" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col justify-center px-6 lg:px-14 py-8 max-w-xl w-full mx-auto lg:mx-0">
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '32px', maxWidth: '640px', width: '100%', margin: '0 auto' }}>
 
-          {/* Título */}
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900">Crear cuenta</h1>
-            <p className="text-gray-500 text-sm mt-1">Completa tus datos para registrarte</p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-
-            {/* Identificación */}
-            <div className="space-y-4">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Identificación</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-                    <CreditCard className="w-3.5 h-3.5 text-[#7b1347]" /> Tipo Doc. <span className="text-rose-500">*</span>
-                  </Label>
-                  <Select value={formData.tipoDocumento} onValueChange={v => setFormData(p => ({ ...p, tipoDocumento: v }))}>
-                    <SelectTrigger className="h-11 rounded-xl border-gray-200 bg-white text-gray-800 text-sm focus:border-[#7b1347] focus:ring-[#7b1347]/15">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="CC">Cédula de Ciudadanía</SelectItem>
-                      <SelectItem value="TI">Tarjeta de Identidad</SelectItem>
-                      <SelectItem value="CE">Cédula de Extranjería</SelectItem>
-                      <SelectItem value="PAS">Pasaporte</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-                    <Hash className="w-3.5 h-3.5 text-[#7b1347]" /> Número <span className="text-rose-500">*</span>
-                  </Label>
-                  <input {...field('numeroDocumento')} placeholder="1234567890" maxLength={10} />
-                  {errors.numeroDocumento && <p className="text-rose-500 text-xs">{errors.numeroDocumento}</p>}
-                </div>
-              </div>
+          <div style={{ background: C.white, borderRadius: '24px', padding: '40px', border: `1px solid ${C.accentDeep}`, boxShadow: `0 20px 60px rgba(0,0,0,0.04)` }}>
+            {/* Título */}
+            <div style={{ marginBottom: '32px' }}>
+              <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '28px', fontWeight: 600, color: C.textDark, margin: '0 0 4px 0' }}>Crear cuenta</h1>
+              <p style={{ color: C.textMuted, fontSize: '14px', margin: 0 }}>Completa tus datos para registrarte</p>
             </div>
 
-            {/* Datos personales */}
-            <div className="space-y-4">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Datos Personales</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-[#7b1347]" /> Nombre <span className="text-rose-500">*</span>
-                  </Label>
-                  <input {...field('nombres')} placeholder="Juan" maxLength={80} />
-                  {errors.nombres && <p className="text-rose-500 text-xs">{errors.nombres}</p>}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-[#7b1347]" /> Apellido <span className="text-rose-500">*</span>
-                  </Label>
-                  <input {...field('apellidos')} placeholder="Pérez" maxLength={80} />
-                  {errors.apellidos && <p className="text-rose-500 text-xs">{errors.apellidos}</p>}
-                </div>
-              </div>
-            </div>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
-            {/* Contacto */}
-            <div className="space-y-4">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Contacto</p>
-              <div className="space-y-1.5">
-                <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-[#7b1347]" /> Email <span className="text-rose-500">*</span>
-                </Label>
-                <input {...field('email')} type="email" placeholder="correo@ejemplo.com" maxLength={100} />
-                {errors.email && <p className="text-rose-500 text-xs">{errors.email}</p>}
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-[#7b1347]" /> Teléfono <span className="text-rose-500">*</span>
-                </Label>
-                <input {...field('telefono')} placeholder="3001234567" maxLength={15} />
-                {errors.telefono && <p className="text-rose-500 text-xs">{errors.telefono}</p>}
-              </div>
-            </div>
-
-            {/* Residencia */}
-            <div className="space-y-4">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Residencia</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-                    <Building2 className="w-3.5 h-3.5 text-[#7b1347]" /> Ciudad
-                  </Label>
-                  <input {...field('ciudad')} placeholder="Medellín" maxLength={50} />
-                  {errors.ciudad && <p className="text-rose-500 text-xs">{errors.ciudad}</p>}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-[#7b1347]" /> Dirección
-                  </Label>
-                  <input {...field('direccion')} placeholder="Cra 80 #25-35" maxLength={30} />
-                  {errors.direccion && <p className="text-rose-500 text-xs">{errors.direccion}</p>}
-                </div>
-              </div>
-            </div>
-
-            {/* Seguridad */}
-            <div className="space-y-4">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Seguridad</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5 text-[#7b1347]" /> Contraseña <span className="text-rose-500">*</span>
-                  </Label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={formData.password}
-                      onChange={e => handleChange('password', e.target.value)}
-                      placeholder="Mínimo 8 caracteres"
-                      maxLength={225}
-                      className={`h-11 w-full rounded-xl border text-sm text-gray-800 bg-white placeholder:text-gray-400 px-4 pr-10 transition-all outline-none focus:ring-2 ${errors.password ? 'border-rose-400 focus:ring-rose-200' : 'border-gray-200 focus:border-[#7b1347] focus:ring-[#7b1347]/15'}`}
-                    />
-                    <button type="button" onClick={() => setShowPassword(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+              {/* Identificación */}
+              <div>
+                <p style={{ fontSize: '11px', fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Identificación</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: C.textDark, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <CreditCard style={{ width: 14, height: 14, color: C.accentDeep }} /> Tipo Doc. <span style={{ color: C.danger }}>*</span>
+                    </label>
+                    <Select value={formData.tipoDocumento} onValueChange={v => setFormData(p => ({ ...p, tipoDocumento: v }))}>
+                      <SelectTrigger style={{ height: '44px', borderRadius: '8px', border: `1px solid ${C.accent}`, background: C.white, color: C.textDark, fontSize: '14px', outline: 'none', boxShadow: 'none' }}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent style={{ background: C.white, border: `1px solid ${C.accent}`, borderRadius: '12px' }}>
+                        <SelectItem value="CC">Cédula de Ciudadanía</SelectItem>
+                        <SelectItem value="TI">Tarjeta de Identidad</SelectItem>
+                        <SelectItem value="CE">Cédula de Extranjería</SelectItem>
+                        <SelectItem value="PAS">Pasaporte</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  {errors.password && <p className="text-rose-500 text-xs">{errors.password}</p>}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5 text-[#7b1347]" /> Confirmar <span className="text-rose-500">*</span>
-                  </Label>
-                  <div className="relative">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: C.textDark, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Hash style={{ width: 14, height: 14, color: C.accentDeep }} /> Número <span style={{ color: C.danger }}>*</span>
+                    </label>
                     <input
-                      type={showConfirm ? 'text' : 'password'}
-                      value={formData.confirmPassword}
-                      onChange={e => handleChange('confirmPassword', e.target.value)}
-                      placeholder="Repite tu contraseña"
-                      maxLength={225}
-                      className={`h-11 w-full rounded-xl border text-sm text-gray-800 bg-white placeholder:text-gray-400 px-4 pr-10 transition-all outline-none focus:ring-2 ${errors.confirmPassword ? 'border-rose-400 focus:ring-rose-200' : 'border-gray-200 focus:border-[#7b1347] focus:ring-[#7b1347]/15'}`}
+                      {...fieldProps('numeroDocumento')}
+                      placeholder="1234567890" maxLength={10}
+                      style={{ width: '100%', height: '44px', borderRadius: '8px', border: `1px solid ${errors.numeroDocumento ? C.danger : C.accent}`, padding: '0 16px', fontSize: '14px', color: C.textDark, outline: 'none', transition: 'border-color 0.2s', background: C.white }}
+                      onFocus={e => e.currentTarget.style.borderColor = C.accentDeep}
+                      onBlur={e => e.currentTarget.style.borderColor = errors.numeroDocumento ? C.danger : C.accent}
                     />
-                    <button type="button" onClick={() => setShowConfirm(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                      {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+                    {errors.numeroDocumento && <p style={{ color: C.danger, fontSize: '11px', margin: 0 }}>{errors.numeroDocumento}</p>}
                   </div>
-                  {errors.confirmPassword && <p className="text-rose-500 text-xs">{errors.confirmPassword}</p>}
                 </div>
               </div>
-            </div>
 
-            {/* Botón */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full h-12 rounded-xl font-semibold text-sm text-white transition-opacity hover:opacity-90 active:opacity-80 disabled:opacity-60 mt-2"
-              style={{ background: 'linear-gradient(135deg, #2e1020 0%, #7b1347 60%, #c47b96 100%)' }}
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Registrando...
-                </span>
-              ) : 'Crear mi cuenta'}
-            </button>
+              {/* Datos personales */}
+              <div>
+                <p style={{ fontSize: '11px', fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Datos Personales</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: C.textDark, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <User style={{ width: 14, height: 14, color: C.accentDeep }} /> Nombre <span style={{ color: C.danger }}>*</span>
+                    </label>
+                    <input
+                      {...fieldProps('nombres')}
+                      placeholder="Juan" maxLength={80}
+                      style={{ width: '100%', height: '44px', borderRadius: '8px', border: `1px solid ${errors.nombres ? C.danger : C.accent}`, padding: '0 16px', fontSize: '14px', color: C.textDark, outline: 'none', transition: 'border-color 0.2s', background: C.white }}
+                      onFocus={e => e.currentTarget.style.borderColor = C.accentDeep}
+                      onBlur={e => e.currentTarget.style.borderColor = errors.nombres ? C.danger : C.accent}
+                    />
+                    {errors.nombres && <p style={{ color: C.danger, fontSize: '11px', margin: 0 }}>{errors.nombres}</p>}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: C.textDark, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <User style={{ width: 14, height: 14, color: C.accentDeep }} /> Apellido <span style={{ color: C.danger }}>*</span>
+                    </label>
+                    <input
+                      {...fieldProps('apellidos')}
+                      placeholder="Pérez" maxLength={80}
+                      style={{ width: '100%', height: '44px', borderRadius: '8px', border: `1px solid ${errors.apellidos ? C.danger : C.accent}`, padding: '0 16px', fontSize: '14px', color: C.textDark, outline: 'none', transition: 'border-color 0.2s', background: C.white }}
+                      onFocus={e => e.currentTarget.style.borderColor = C.accentDeep}
+                      onBlur={e => e.currentTarget.style.borderColor = errors.apellidos ? C.danger : C.accent}
+                    />
+                    {errors.apellidos && <p style={{ color: C.danger, fontSize: '11px', margin: 0 }}>{errors.apellidos}</p>}
+                  </div>
+                </div>
+              </div>
 
-            <p className="text-center text-sm text-gray-500">
-              ¿Ya tienes cuenta?{' '}
-              <button type="button" onClick={onNavigateToLogin} className="font-semibold hover:opacity-80 transition-opacity" style={{ color: '#7b1347' }}>
-                Ingresar
+              {/* Contacto */}
+              <div>
+                <p style={{ fontSize: '11px', fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Contacto</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: C.textDark, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Mail style={{ width: 14, height: 14, color: C.accentDeep }} /> Email <span style={{ color: C.danger }}>*</span>
+                    </label>
+                    <input
+                      {...fieldProps('email')}
+                      type="email" placeholder="correo@ejemplo.com" maxLength={100}
+                      style={{ width: '100%', height: '44px', borderRadius: '8px', border: `1px solid ${errors.email ? C.danger : C.accent}`, padding: '0 16px', fontSize: '14px', color: C.textDark, outline: 'none', transition: 'border-color 0.2s', background: C.white }}
+                      onFocus={e => e.currentTarget.style.borderColor = C.accentDeep}
+                      onBlur={e => e.currentTarget.style.borderColor = errors.email ? C.danger : C.accent}
+                    />
+                    {errors.email && <p style={{ color: C.danger, fontSize: '11px', margin: 0 }}>{errors.email}</p>}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: C.textDark, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Phone style={{ width: 14, height: 14, color: C.accentDeep }} /> Teléfono <span style={{ color: C.danger }}>*</span>
+                    </label>
+                    <input
+                      {...fieldProps('telefono')}
+                      placeholder="3001234567" maxLength={15}
+                      style={{ width: '100%', height: '44px', borderRadius: '8px', border: `1px solid ${errors.telefono ? C.danger : C.accent}`, padding: '0 16px', fontSize: '14px', color: C.textDark, outline: 'none', transition: 'border-color 0.2s', background: C.white }}
+                      onFocus={e => e.currentTarget.style.borderColor = C.accentDeep}
+                      onBlur={e => e.currentTarget.style.borderColor = errors.telefono ? C.danger : C.accent}
+                    />
+                    {errors.telefono && <p style={{ color: C.danger, fontSize: '11px', margin: 0 }}>{errors.telefono}</p>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Residencia */}
+              <div>
+                <p style={{ fontSize: '11px', fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Residencia</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: C.textDark, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Building2 style={{ width: 14, height: 14, color: C.accentDeep }} /> Ciudad
+                    </label>
+                    <input
+                      {...fieldProps('ciudad')}
+                      placeholder="Medellín" maxLength={50}
+                      style={{ width: '100%', height: '44px', borderRadius: '8px', border: `1px solid ${errors.ciudad ? C.danger : C.accent}`, padding: '0 16px', fontSize: '14px', color: C.textDark, outline: 'none', transition: 'border-color 0.2s', background: C.white }}
+                      onFocus={e => e.currentTarget.style.borderColor = C.accentDeep}
+                      onBlur={e => e.currentTarget.style.borderColor = errors.ciudad ? C.danger : C.accent}
+                    />
+                    {errors.ciudad && <p style={{ color: C.danger, fontSize: '11px', margin: 0 }}>{errors.ciudad}</p>}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: C.textDark, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <MapPin style={{ width: 14, height: 14, color: C.accentDeep }} /> Dirección
+                    </label>
+                    <input
+                      {...fieldProps('direccion')}
+                      placeholder="Cra 80 #25-35" maxLength={30}
+                      style={{ width: '100%', height: '44px', borderRadius: '8px', border: `1px solid ${errors.direccion ? C.danger : C.accent}`, padding: '0 16px', fontSize: '14px', color: C.textDark, outline: 'none', transition: 'border-color 0.2s', background: C.white }}
+                      onFocus={e => e.currentTarget.style.borderColor = C.accentDeep}
+                      onBlur={e => e.currentTarget.style.borderColor = errors.direccion ? C.danger : C.accent}
+                    />
+                    {errors.direccion && <p style={{ color: C.danger, fontSize: '11px', margin: 0 }}>{errors.direccion}</p>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Seguridad */}
+              <div>
+                <p style={{ fontSize: '11px', fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Seguridad</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: C.textDark, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Lock style={{ width: 14, height: 14, color: C.accentDeep }} /> Contraseña <span style={{ color: C.danger }}>*</span>
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={formData.password}
+                        onChange={e => handleChange('password', e.target.value)}
+                        placeholder="Mínimo 8 chars" maxLength={225}
+                        style={{ width: '100%', height: '44px', borderRadius: '8px', border: `1px solid ${errors.password ? C.danger : C.accent}`, padding: '0 40px 0 16px', fontSize: '14px', color: C.textDark, outline: 'none', transition: 'border-color 0.2s', background: C.white, boxSizing: 'border-box' }}
+                        onFocus={e => e.currentTarget.style.borderColor = C.accentDeep}
+                        onBlur={e => e.currentTarget.style.borderColor = errors.password ? C.danger : C.accent}
+                      />
+                      <button type="button" onClick={() => setShowPassword(p => !p)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer' }}>
+                        {showPassword ? <EyeOff style={{ width: 16, height: 16 }} /> : <Eye style={{ width: 16, height: 16 }} />}
+                      </button>
+                    </div>
+                    {errors.password && <p style={{ color: C.danger, fontSize: '11px', margin: 0 }}>{errors.password}</p>}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: C.textDark, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Lock style={{ width: 14, height: 14, color: C.accentDeep }} /> Confirmar <span style={{ color: C.danger }}>*</span>
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showConfirm ? 'text' : 'password'}
+                        value={formData.confirmPassword}
+                        onChange={e => handleChange('confirmPassword', e.target.value)}
+                        placeholder="Repite contraseña" maxLength={225}
+                        style={{ width: '100%', height: '44px', borderRadius: '8px', border: `1px solid ${errors.confirmPassword ? C.danger : C.accent}`, padding: '0 40px 0 16px', fontSize: '14px', color: C.textDark, outline: 'none', transition: 'border-color 0.2s', background: C.white, boxSizing: 'border-box' }}
+                        onFocus={e => e.currentTarget.style.borderColor = C.accentDeep}
+                        onBlur={e => e.currentTarget.style.borderColor = errors.confirmPassword ? C.danger : C.accent}
+                      />
+                      <button type="button" onClick={() => setShowConfirm(p => !p)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer' }}>
+                        {showConfirm ? <EyeOff style={{ width: 16, height: 16 }} /> : <Eye style={{ width: 16, height: 16 }} />}
+                      </button>
+                    </div>
+                    {errors.confirmPassword && <p style={{ color: C.danger, fontSize: '11px', margin: 0 }}>{errors.confirmPassword}</p>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Botón */}
+              <button
+                type="submit"
+                disabled={isLoading}
+                style={{
+                  width: '100%', height: '52px', borderRadius: '12px',
+                  background: C.textDark, color: C.white, border: 'none', cursor: isLoading ? 'not-allowed' : 'pointer',
+                  fontSize: '14px', fontWeight: 600, letterSpacing: '0.5px',
+                  boxShadow: `0 8px 24px rgba(0,0,0,0.1)`, transition: 'all 0.2s',
+                  marginTop: '16px', opacity: isLoading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}
+                onMouseEnter={(e) => {
+                  if(!isLoading) {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = `0 12px 32px rgba(0,0,0,0.15)`;
+                    e.currentTarget.style.background = '#000000';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if(!isLoading) {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = `0 8px 24px rgba(0,0,0,0.1)`;
+                    e.currentTarget.style.background = C.textDark;
+                  }
+                }}
+              >
+                {isLoading ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: C.white, borderRadius: '50%' }} className="animate-spin" />
+                    Registrando...
+                  </span>
+                ) : 'Crear mi cuenta'}
               </button>
-            </p>
 
-          </form>
+              <div style={{ marginTop: '8px', textAlign: 'center' }}>
+                <span style={{ color: C.textMuted, fontSize: '14px', marginRight: '6px' }}>
+                  ¿Ya tienes cuenta?
+                </span>
+                <button
+                  type="button"
+                  onClick={onNavigateToLogin}
+                  style={{ background: 'none', border: 'none', color: C.textDark, cursor: 'pointer', fontSize: '14px', fontWeight: 600, transition: 'color 0.2s' }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = C.accentDeep}
+                  onMouseLeave={(e) => e.currentTarget.style.color = C.textDark}
+                >
+                  Ingresar
+                </button>
+              </div>
+
+            </form>
+          </div>
         </div>
       </div>
     </div>

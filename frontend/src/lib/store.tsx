@@ -441,11 +441,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setCurrentUser: (user: User | null) => {
       setCurrentUser(user);
       if (user) {
-        if (user.rol === 'cliente') {
-          setUserType('cliente');
+        if (user.rol === "cliente") {
+          setUserType("cliente");
         } else {
-          setUserType('admin');
+          setUserType("admin");
         }
+      } else {
+        setUserType("cliente");
       }
     },
     setUserType,

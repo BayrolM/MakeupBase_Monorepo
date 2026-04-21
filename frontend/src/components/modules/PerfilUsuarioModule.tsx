@@ -7,8 +7,25 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Separator } from '../ui/separator';
-import { User, Lock, Camera, Check, X } from 'lucide-react';
+import { User, Lock, Camera, Check, X, ShieldCheck, Mail, Phone, MapPin, CreditCard, Activity } from 'lucide-react';
 import { toast } from 'sonner';
+
+/* ── Luxury CSS variable helpers ── */
+const V = (name: string) => `var(--luxury-${name})`;
+const C = {
+  bgSoft: V('bg-soft'),
+  accent: V('pink-soft'),
+  accentDark: V('accent-dark'),
+  accentDeep: V('pink'),
+  textDark: V('text-dark'),
+  textMuted: V('text-muted'),
+  textSecondary: V('text-secondary'),
+  shadowSm: V('shadow-sm'),
+  shadow: V('shadow'),
+  white: '#ffffff',
+  danger: '#ef4444',
+  success: '#10b981',
+};
 
 export function PerfilUsuarioModule() {
   const { currentUser, updateUser } = useStore();
@@ -39,7 +56,6 @@ export function PerfilUsuarioModule() {
 
   const [photoFile, setPhotoFile] = useState<File | null>(null);
 
-  // Update form data when currentUser changes
   useEffect(() => {
     if (currentUser) {
       setInfoFormData({
@@ -56,66 +72,27 @@ export function PerfilUsuarioModule() {
     }
   }, [currentUser]);
 
-  // Validate email format
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
-  // Handle info form changes
   const handleInfoChange = (field: string, value: string) => {
     setInfoFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Save personal information
   const handleSaveInfo = async () => {
     if (!currentUser) return;
-
-    // Validations
-    if (!infoFormData.nombre.trim()) {
-      toast.error('Campo obligatorio', {
-        description: 'El nombre es obligatorio.',
-      });
+    if (!infoFormData.nombre.trim() || !infoFormData.apellido.trim() || !infoFormData.numeroDocumento.trim() || !infoFormData.telefono.trim() || !infoFormData.email.trim()) {
+      toast.error('Campos obligatorios');
       return;
     }
-
-    if (!infoFormData.apellido.trim()) {
-      toast.error('Campo obligatorio', {
-        description: 'El apellido es obligatorio.',
-      });
-      return;
-    }
-
-    if (!infoFormData.numeroDocumento.trim()) {
-      toast.error('Campo obligatorio', {
-        description: 'El número de documento es obligatorio.',
-      });
-      return;
-    }
-
-    if (!infoFormData.telefono.trim()) {
-      toast.error('Campo obligatorio', {
-        description: 'El teléfono es obligatorio.',
-      });
-      return;
-    }
-
-    if (!infoFormData.email.trim()) {
-      toast.error('Campo obligatorio', {
-        description: 'El correo electrónico es obligatorio.',
-      });
-      return;
-    }
-
     if (!validateEmail(infoFormData.email)) {
-      toast.error('Formato inválido', {
-        description: 'El formato del correo electrónico no es válido.',
-      });
+      toast.error('Formato inválido');
       return;
     }
 
     setIsSavingInfo(true);
-
     updateUser(currentUser.id, {
       nombre: infoFormData.nombre.trim(),
       apellido: infoFormData.apellido.trim(),
@@ -127,588 +104,327 @@ export function PerfilUsuarioModule() {
       pais: infoFormData.pais.trim(),
       email: infoFormData.email.trim(),
     });
-
     setIsSavingInfo(false);
     setIsEditingInfo(false);
-
-    toast.success('Información actualizada', {
-      description: 'Tus datos personales han sido actualizados exitosamente.',
-    });
+    toast.success('Información actualizada');
   };
 
-  // Save password
   const handleSavePassword = async () => {
     if (!currentUser) return;
-
-    // Validations
-    if (!passwordFormData.currentPassword) {
-      toast.error('Campo obligatorio', {
-        description: 'Debes ingresar tu contraseña actual.',
-      });
+    if (!passwordFormData.currentPassword || !passwordFormData.newPassword || !passwordFormData.confirmPassword) {
+      toast.error('Campos obligatorios');
       return;
     }
-
-    if (!passwordFormData.newPassword) {
-      toast.error('Campo obligatorio', {
-        description: 'Debes ingresar una nueva contraseña.',
-      });
-      return;
-    }
-
     if (passwordFormData.newPassword.length < 8) {
-      toast.error('Contraseña débil', {
-        description: 'La nueva contraseña debe tener al menos 8 caracteres.',
-      });
+      toast.error('Contraseña débil');
       return;
     }
-
-    if (!passwordFormData.confirmPassword) {
-      toast.error('Campo obligatorio', {
-        description: 'Debes confirmar la nueva contraseña.',
-      });
-      return;
-    }
-
     if (passwordFormData.newPassword !== passwordFormData.confirmPassword) {
-      toast.error('Las contraseñas no coinciden', {
-        description: 'La nueva contraseña y su confirmación deben ser iguales.',
-      });
+      toast.error('Las contraseñas no coinciden');
       return;
     }
-
-    // Verify current password (in a real app, this would be checked by the backend)
-    // For this prototype, we simulate the check
     if (passwordFormData.currentPassword !== 'admin123' && passwordFormData.currentPassword !== currentUser.passwordHash) {
-      toast.error('Contraseña actual incorrecta', {
-        description: 'La contraseña actual que ingresaste no es correcta.',
-      });
+      toast.error('Contraseña actual incorrecta');
       return;
     }
 
     setIsSavingPassword(true);
-
-    updateUser(currentUser.id, {
-      passwordHash: passwordFormData.newPassword, // In real app, this would be hashed
-    });
-
+    updateUser(currentUser.id, { passwordHash: passwordFormData.newPassword });
     setIsSavingPassword(false);
-    setPasswordFormData({
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-    });
-
-    toast.success('Contraseña actualizada', {
-      description: 'Tu contraseña ha sido actualizada exitosamente.',
-    });
+    setPasswordFormData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    toast.success('Contraseña actualizada');
   };
 
-  // Handle photo upload
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        toast.error('Archivo inválido', {
-          description: 'Solo se permiten archivos de imagen.',
-        });
-        return;
-      }
-
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Archivo muy grande', {
-          description: 'La imagen debe pesar menos de 5MB.',
-        });
-        return;
-      }
-
+      if (!file.type.startsWith('image/')) { toast.error('Solo imágenes'); return; }
+      if (file.size > 5 * 1024 * 1024) { toast.error('Máximo 5MB'); return; }
       setPhotoFile(file);
-
-      // Generate preview
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewPhoto(reader.result as string);
-      };
+      reader.onloadend = () => setPreviewPhoto(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
 
-  // Save photo
   const handleSavePhoto = async () => {
     if (!photoFile || !currentUser) return;
-
     setIsSavingPhoto(true);
-
-    // In real app, the photo would be uploaded to server/cloud storage
-    // For this prototype, we just simulate it
-    toast.success('Foto actualizada', {
-      description: 'Tu foto de perfil ha sido actualizada exitosamente.',
-    });
-
+    toast.success('Foto actualizada');
     setIsSavingPhoto(false);
     setPhotoFile(null);
     setPreviewPhoto(null);
   };
 
-  // Cancel info editing
-  const handleCancelInfo = () => {
-    setInfoFormData({
-      nombre: currentUser?.nombre || '',
-      apellido: currentUser?.apellido || '',
-      tipoDocumento: currentUser?.tipoDocumento || 'CC',
-      numeroDocumento: currentUser?.numeroDocumento || '',
-      telefono: currentUser?.telefono || '',
-      direccion: currentUser?.direccion || '',
-      ciudad: currentUser?.ciudad || '',
-      pais: currentUser?.pais || 'Colombia',
-      email: currentUser?.email || '',
-    });
-    setIsEditingInfo(false);
-  };
-
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-foreground-secondary">Usuario no encontrado</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: C.bgSoft }}>
+        <p style={{ color: C.textMuted }}>Usuario no encontrado</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen relative pb-12 w-full" style={{ background: C.bgSoft, fontFamily: "'DM Sans', sans-serif" }}>
       <PageHeader
-        title="Configuración"
-        subtitle="Gestiona tu información personal y configuración de cuenta"
+        title="Perfil de Usuario"
+        subtitle="Gestiona tu identidad y seguridad en la plataforma"
+        icon={User}
       />
 
-      <div className="p-8 space-y-6 max-w-5xl mx-auto">
-        {/* Photo Section */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
-                <Camera className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <CardTitle className="text-foreground">Foto de Perfil</CardTitle>
-                <p className="text-foreground-secondary" style={{ fontSize: '13px', marginTop: '2px' }}>
-                  Actualiza tu imagen de perfil
-                </p>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col md:flex-row items-center gap-6">
-              {/* Current/Preview Photo */}
-              <div className="w-32 h-32 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden border-4 border-primary/30">
+      <div className="px-8 pt-6 pb-8 space-y-8 w-full">
+        
+        {/* Top Section: Photo & Basic Info Summary (Explosive Layout) */}
+        <div className="grid grid-cols-12 gap-8 items-stretch">
+          
+          {/* Avatar Card - col-span-3 */}
+          <div className="col-span-12 xl:col-span-3" style={{ background: C.white, borderRadius: '24px', padding: '32px', boxShadow: C.shadowSm, border: `1px solid ${C.accent}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ position: 'relative', marginBottom: '20px' }}>
+              <div style={{ 
+                width: '160px', 
+                height: '160px', 
+                borderRadius: '50%', 
+                background: C.bgSoft, 
+                border: `5px solid ${C.accent}`, 
+                overflow: 'hidden', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                boxShadow: C.shadow
+              }}>
                 {previewPhoto ? (
                   <img src={previewPhoto} alt="Preview" className="w-full h-full object-cover" />
                 ) : (
-                  <User className="w-16 h-16 text-primary" />
+                  <User style={{ width: 80, height: 80, color: C.accentDeep }} />
                 )}
               </div>
+              <label htmlFor="photo-upload" style={{ 
+                position: 'absolute', 
+                bottom: '8px', 
+                right: '8px', 
+                width: '44px', 
+                height: '44px', 
+                borderRadius: '50%', 
+                background: C.accentDeep, 
+                color: C.white, 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                cursor: 'pointer',
+                boxShadow: C.shadow,
+                border: `3px solid ${C.white}`
+              }}>
+                <Camera size={20} />
+                <input id="photo-upload" type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+              </label>
+            </div>
 
-              {/* Upload Controls */}
-              <div className="flex-1 space-y-3">
-                <div className="flex flex-wrap gap-3">
-                  <label htmlFor="photo-upload" className="cursor-pointer">
-                    <input
-                      id="photo-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoChange}
-                      className="hidden"
-                    />
-                    <div className="inline-flex items-center justify-center gap-2 h-10 px-4 py-2 bg-surface hover:bg-surface/80 border border-border rounded-lg text-foreground transition-colors">
-                      <Camera className="w-4 h-4" />
-                      Seleccionar imagen
-                    </div>
-                  </label>
-
-                  {photoFile && (
-                    <Button
-                      onClick={handleSavePhoto}
-                      disabled={isSavingPhoto}
-                      className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
-                    >
-                      {isSavingPhoto ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                          Guardando...
-                        </>
-                      ) : (
-                        <>
-                          <Check className="w-4 h-4" />
-                          Actualizar foto
-                        </>
-                      )}
-                    </Button>
-                  )}
-                </div>
-
-                <p className="text-foreground-secondary" style={{ fontSize: '12px' }}>
-                  Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 5MB.
-                </p>
+            <div className="text-center">
+              <h3 style={{ fontSize: '24px', fontWeight: 800, color: C.textDark, margin: '0 0 4px 0' }}>{currentUser.nombre} {currentUser.apellido}</h3>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-100 text-pink-700 text-xs font-bold uppercase tracking-wider">
+                <ShieldCheck size={14} />
+                {currentUser.rol}
               </div>
             </div>
-          </CardContent>
-        </Card>
+            
+            {photoFile && (
+              <Button onClick={handleSavePhoto} disabled={isSavingPhoto} className="w-full luxury-button-premium mt-6">
+                {isSavingPhoto ? 'Guardando...' : 'Confirmar Nueva Foto'}
+              </Button>
+            )}
+          </div>
 
-        {/* Personal Information Section */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
-                  <User className="w-5 h-5 text-primary" />
+          {/* Quick Stats - col-span-9 - Spread horizontally */}
+          <div className="col-span-12 xl:col-span-9 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div style={{ background: C.white, borderRadius: '24px', padding: '32px', boxShadow: C.shadowSm, border: `1px solid ${C.accent}`, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: `${C.accentDeep}11`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Activity style={{ color: C.accentDeep }} size={28} />
+              </div>
+              <div>
+                <p style={{ fontSize: '13px', color: C.textMuted, margin: 0, fontWeight: 500 }}>Estado de Cuenta</p>
+                <p style={{ fontSize: '18px', fontWeight: 700, color: C.success, margin: 0 }}>Activa & Verificada</p>
+              </div>
+            </div>
+
+            <div style={{ background: C.white, borderRadius: '24px', padding: '32px', boxShadow: C.shadowSm, border: `1px solid ${C.accent}`, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: `${C.accentDeep}11`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Mail style={{ color: C.accentDeep }} size={28} />
+              </div>
+              <div className="overflow-hidden">
+                <p style={{ fontSize: '13px', color: C.textMuted, margin: 0, fontWeight: 500 }}>Email Principal</p>
+                <p style={{ fontSize: '16px', fontWeight: 700, color: C.textDark, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.email}</p>
+              </div>
+            </div>
+
+            <div style={{ background: C.white, borderRadius: '24px', padding: '32px', boxShadow: C.shadowSm, border: `1px solid ${C.accent}`, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: `${C.accentDeep}11`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Phone style={{ color: C.accentDeep }} size={28} />
+              </div>
+              <div>
+                <p style={{ fontSize: '13px', color: C.textMuted, margin: 0, fontWeight: 500 }}>Teléfono Contacto</p>
+                <p style={{ fontSize: '18px', fontWeight: 700, color: C.textDark, margin: 0 }}>{currentUser.telefono || 'No registrado'}</p>
+              </div>
+            </div>
+
+            <div style={{ background: C.white, borderRadius: '24px', padding: '32px', boxShadow: C.shadowSm, border: `1px solid ${C.accent}`, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: `${C.accentDeep}11`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <MapPin style={{ color: C.accentDeep }} size={28} />
+              </div>
+              <div>
+                <p style={{ fontSize: '13px', color: C.textMuted, margin: 0, fontWeight: 500 }}>Sede / Ciudad</p>
+                <p style={{ fontSize: '18px', fontWeight: 700, color: C.textDark, margin: 0 }}>{currentUser.ciudad || 'Medellín, CO'}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Section (Wide split) */}
+        <div className="grid grid-cols-12 gap-8">
+          
+          {/* Detailed Information - col-span-8 */}
+          <div className="col-span-12 xl:col-span-8" style={{ background: C.white, borderRadius: '24px', padding: '40px', boxShadow: C.shadow, border: `1px solid ${C.accent}` }}>
+            <div className="flex justify-between items-center mb-10 pb-6 border-b border-pink-50">
+              <div>
+                <h3 style={{ fontSize: '22px', fontWeight: 800, color: C.textDark, margin: 0 }}>Información Detallada</h3>
+                <p style={{ fontSize: '14px', color: C.textMuted, margin: '4px 0 0 0' }}>Gestión completa de datos de usuario y contacto legal</p>
+              </div>
+              {!isEditingInfo ? (
+                <button 
+                  onClick={() => setIsEditingInfo(true)}
+                  style={{ background: C.bgSoft, border: `1.5px solid ${C.accentDeep}`, padding: '10px 24px', borderRadius: '14px', color: C.accentDeep, fontWeight: 800, fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s' }}
+                  className="hover:bg-pink-100"
+                >
+                  EDITAR PERFIL
+                </button>
+              ) : (
+                <div className="flex gap-3">
+                  <button onClick={() => setIsEditingInfo(false)} style={{ background: 'none', border: 'none', color: C.textMuted, fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}>Descartar</button>
+                  <button onClick={handleSaveInfo} style={{ background: C.accentDeep, border: 'none', padding: '10px 24px', borderRadius: '14px', color: C.white, fontWeight: 800, fontSize: '14px', cursor: 'pointer', boxShadow: C.shadow }}>GUARDAR CAMBIOS</button>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
+              <div className="space-y-3">
+                <Label style={{ color: C.textSecondary, fontWeight: 700, fontSize: '14px' }}>Nombre Completo *</Label>
+                <Input value={infoFormData.nombre} onChange={(e) => handleInfoChange('nombre', e.target.value)} disabled={!isEditingInfo} style={{ height: '50px', borderRadius: '14px', border: `1.5px solid ${C.accent}`, background: isEditingInfo ? C.white : `${C.bgSoft}55`, fontSize: '15px' }} />
+              </div>
+              <div className="space-y-3">
+                <Label style={{ color: C.textSecondary, fontWeight: 700, fontSize: '14px' }}>Apellidos *</Label>
+                <Input value={infoFormData.apellido} onChange={(e) => handleInfoChange('apellido', e.target.value)} disabled={!isEditingInfo} style={{ height: '50px', borderRadius: '14px', border: `1.5px solid ${C.accent}`, background: isEditingInfo ? C.white : `${C.bgSoft}55`, fontSize: '15px' }} />
+              </div>
+              <div className="space-y-3">
+                <Label style={{ color: C.textSecondary, fontWeight: 700, fontSize: '14px' }}>Tipo de Identificación *</Label>
+                <Select value={infoFormData.tipoDocumento} onValueChange={(v) => handleInfoChange('tipoDocumento', v)} disabled={!isEditingInfo}>
+                  <SelectTrigger style={{ height: '50px', borderRadius: '14px', border: `1.5px solid ${C.accent}`, background: isEditingInfo ? C.white : `${C.bgSoft}55` }}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CC">Cédula de Ciudadanía</SelectItem>
+                    <SelectItem value="TI">Tarjeta de Identidad</SelectItem>
+                    <SelectItem value="CE">Cédula de Extranjería</SelectItem>
+                    <SelectItem value="PAS">Pasaporte</SelectItem>
+                    <SelectItem value="NIT">NIT (Empresas)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-3">
+                <Label style={{ color: C.textSecondary, fontWeight: 700, fontSize: '14px' }}>Número de Documento *</Label>
+                <Input value={infoFormData.numeroDocumento} onChange={(e) => handleInfoChange('numeroDocumento', e.target.value)} disabled={!isEditingInfo} style={{ height: '50px', borderRadius: '14px', border: `1.5px solid ${C.accent}`, background: isEditingInfo ? C.white : `${C.bgSoft}55`, fontSize: '15px' }} />
+              </div>
+              <div className="space-y-3">
+                <Label style={{ color: C.textSecondary, fontWeight: 700, fontSize: '14px' }}>Correo Electrónico Laboral *</Label>
+                <Input type="email" value={infoFormData.email} onChange={(e) => handleInfoChange('email', e.target.value)} disabled={!isEditingInfo} style={{ height: '50px', borderRadius: '14px', border: `1.5px solid ${C.accent}`, background: isEditingInfo ? C.white : `${C.bgSoft}55`, fontSize: '15px' }} />
+              </div>
+              <div className="space-y-3">
+                <Label style={{ color: C.textSecondary, fontWeight: 700, fontSize: '14px' }}>Teléfono Móvil *</Label>
+                <Input value={infoFormData.telefono} onChange={(e) => handleInfoChange('telefono', e.target.value)} disabled={!isEditingInfo} style={{ height: '50px', borderRadius: '14px', border: `1.5px solid ${C.accent}`, background: isEditingInfo ? C.white : `${C.bgSoft}55`, fontSize: '15px' }} />
+              </div>
+              <div className="space-y-3 md:col-span-2">
+                <Label style={{ color: C.textSecondary, fontWeight: 700, fontSize: '14px' }}>Dirección de Notificación</Label>
+                <Input value={infoFormData.direccion} onChange={(e) => handleInfoChange('direccion', e.target.value)} disabled={!isEditingInfo} style={{ height: '50px', borderRadius: '14px', border: `1.5px solid ${C.accent}`, background: isEditingInfo ? C.white : `${C.bgSoft}55`, fontSize: '15px' }} />
+              </div>
+              <div className="space-y-3">
+                <Label style={{ color: C.textSecondary, fontWeight: 700, fontSize: '14px' }}>Ciudad / Distrito</Label>
+                <Input value={infoFormData.ciudad} onChange={(e) => handleInfoChange('ciudad', e.target.value)} disabled={!isEditingInfo} style={{ height: '50px', borderRadius: '14px', border: `1.5px solid ${C.accent}`, background: isEditingInfo ? C.white : `${C.bgSoft}55`, fontSize: '15px' }} />
+              </div>
+              <div className="space-y-3">
+                <Label style={{ color: C.textSecondary, fontWeight: 700, fontSize: '14px' }}>País / Región</Label>
+                <Input value={infoFormData.pais} onChange={(e) => handleInfoChange('pais', e.target.value)} disabled={!isEditingInfo} style={{ height: '50px', borderRadius: '14px', border: `1.5px solid ${C.accent}`, background: isEditingInfo ? C.white : `${C.bgSoft}55`, fontSize: '15px' }} />
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar Section: Security & Help - col-span-4 */}
+          <div className="col-span-12 xl:col-span-4 space-y-8">
+            
+            {/* Password Card */}
+            <div style={{ background: C.white, borderRadius: '24px', padding: '32px', boxShadow: C.shadow, border: `1px solid ${C.accent}` }}>
+              <div className="flex items-center gap-3 mb-8">
+                <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: `${C.accentDeep}11`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Lock style={{ width: 24, height: 24, color: C.accentDeep }} />
                 </div>
                 <div>
-                  <CardTitle className="text-foreground">Información Personal</CardTitle>
-                  <p className="text-foreground-secondary" style={{ fontSize: '13px', marginTop: '2px' }}>
-                    Actualiza tus datos personales
-                  </p>
+                  <h3 style={{ fontSize: '20px', fontWeight: 800, color: C.textDark, margin: 0 }}>Seguridad</h3>
+                  <p style={{ fontSize: '12px', color: C.textMuted, margin: 0 }}>Protección de cuenta</p>
                 </div>
               </div>
 
-              {!isEditingInfo && (
-                <Button
-                  onClick={() => setIsEditingInfo(true)}
-                  variant="outline"
-                  className="border-border text-foreground hover:bg-surface"
-                >
-                  Editar
-                </Button>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {/* Basic Information */}
-              <div>
-                <h3 className="text-foreground mb-4" style={{ fontSize: '15px', fontWeight: 600 }}>
-                  Datos Básicos
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="nombre" className="text-foreground">
-                      Nombre <span className="text-danger">*</span>
-                    </Label>
-                    <Input
-                      id="nombre"
-                      value={infoFormData.nombre}
-                      onChange={(e) => handleInfoChange('nombre', e.target.value)}
-                      disabled={!isEditingInfo}
-                      className="bg-input-background border-border text-foreground disabled:opacity-60"
-                      placeholder="Tu nombre"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="apellido" className="text-foreground">
-                      Apellido <span className="text-danger">*</span>
-                    </Label>
-                    <Input
-                      id="apellido"
-                      value={infoFormData.apellido}
-                      onChange={(e) => handleInfoChange('apellido', e.target.value)}
-                      disabled={!isEditingInfo}
-                      className="bg-input-background border-border text-foreground disabled:opacity-60"
-                      placeholder="Tu apellido"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="tipoDocumento" className="text-foreground">
-                      Tipo de Documento <span className="text-danger">*</span>
-                    </Label>
-                    <Select
-                      value={infoFormData.tipoDocumento}
-                      onValueChange={(value) => handleInfoChange('tipoDocumento', value)}
-                      disabled={!isEditingInfo}
-                    >
-                      <SelectTrigger className="bg-input-background border-border text-foreground disabled:opacity-60">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-card border-border">
-                        <SelectItem value="CC" className="text-foreground hover:bg-surface">
-                          Cédula de Ciudadanía
-                        </SelectItem>
-                        <SelectItem value="TI" className="text-foreground hover:bg-surface">
-                          Tarjeta de Identidad
-                        </SelectItem>
-                        <SelectItem value="CE" className="text-foreground hover:bg-surface">
-                          Cédula de Extranjería
-                        </SelectItem>
-                        <SelectItem value="PAS" className="text-foreground hover:bg-surface">
-                          Pasaporte
-                        </SelectItem>
-                        <SelectItem value="NIT" className="text-foreground hover:bg-surface">
-                          NIT
-                        </SelectItem>
-                        <SelectItem value="OTRO" className="text-foreground hover:bg-surface">
-                          Otro
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="numeroDocumento" className="text-foreground">
-                      Número de Documento <span className="text-danger">*</span>
-                    </Label>
-                    <Input
-                      id="numeroDocumento"
-                      value={infoFormData.numeroDocumento}
-                      onChange={(e) => handleInfoChange('numeroDocumento', e.target.value)}
-                      disabled={!isEditingInfo}
-                      className="bg-input-background border-border text-foreground disabled:opacity-60"
-                      placeholder="Número de documento"
-                    />
-                  </div>
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <Label style={{ fontSize: '13px', color: C.textSecondary, fontWeight: 600 }}>Contraseña Actual</Label>
+                  <Input type="password" value={passwordFormData.currentPassword} onChange={(e) => setPasswordFormData({...passwordFormData, currentPassword: e.target.value})} style={{ height: '48px', borderRadius: '14px', border: `1.5px solid ${C.accent}` }} placeholder="••••••••" />
                 </div>
-              </div>
-
-              <Separator className="bg-border" />
-
-              {/* Contact Information */}
-              <div>
-                <h3 className="text-foreground mb-4" style={{ fontSize: '15px', fontWeight: 600 }}>
-                  Información de Contacto
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="telefono" className="text-foreground">
-                      Teléfono <span className="text-danger">*</span>
-                    </Label>
-                    <Input
-                      id="telefono"
-                      value={infoFormData.telefono}
-                      onChange={(e) => handleInfoChange('telefono', e.target.value)}
-                      disabled={!isEditingInfo}
-                      className="bg-input-background border-border text-foreground disabled:opacity-60"
-                      placeholder="+57 300 123 4567"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-foreground">
-                      Correo Electrónico <span className="text-danger">*</span>
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={infoFormData.email}
-                      onChange={(e) => handleInfoChange('email', e.target.value)}
-                      disabled={!isEditingInfo}
-                      className="bg-input-background border-border text-foreground disabled:opacity-60"
-                      placeholder="correo@ejemplo.com"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label style={{ fontSize: '13px', color: C.textSecondary, fontWeight: 600 }}>Nueva Contraseña</Label>
+                  <Input type="password" value={passwordFormData.newPassword} onChange={(e) => setPasswordFormData({...passwordFormData, newPassword: e.target.value})} style={{ height: '48px', borderRadius: '14px', border: `1.5px solid ${C.accent}` }} placeholder="Mín. 8 caracteres" />
                 </div>
-              </div>
-
-              <Separator className="bg-border" />
-
-              {/* Location Information */}
-              <div>
-                <h3 className="text-foreground mb-4" style={{ fontSize: '15px', fontWeight: 600 }}>
-                  Ubicación
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="direccion" className="text-foreground">
-                      Dirección
-                    </Label>
-                    <Input
-                      id="direccion"
-                      value={infoFormData.direccion}
-                      onChange={(e) => handleInfoChange('direccion', e.target.value)}
-                      disabled={!isEditingInfo}
-                      className="bg-input-background border-border text-foreground disabled:opacity-60"
-                      placeholder="Calle 123 # 45-67"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="ciudad" className="text-foreground">
-                      Ciudad
-                    </Label>
-                    <Input
-                      id="ciudad"
-                      value={infoFormData.ciudad}
-                      onChange={(e) => handleInfoChange('ciudad', e.target.value)}
-                      disabled={!isEditingInfo}
-                      className="bg-input-background border-border text-foreground disabled:opacity-60"
-                      placeholder="Medellín"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="pais" className="text-foreground">
-                      País
-                    </Label>
-                    <Input
-                      id="pais"
-                      value={infoFormData.pais}
-                      onChange={(e) => handleInfoChange('pais', e.target.value)}
-                      disabled={!isEditingInfo}
-                      className="bg-input-background border-border text-foreground disabled:opacity-60"
-                      placeholder="Colombia"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label style={{ fontSize: '13px', color: C.textSecondary, fontWeight: 600 }}>Confirmar Nueva</Label>
+                  <Input type="password" value={passwordFormData.confirmPassword} onChange={(e) => setPasswordFormData({...passwordFormData, confirmPassword: e.target.value})} style={{ height: '48px', borderRadius: '14px', border: `1.5px solid ${C.accent}` }} placeholder="Confirmar contraseña" />
                 </div>
-              </div>
-
-              {/* Action Buttons */}
-              {isEditingInfo && (
-                <div className="flex justify-end gap-3 pt-4">
-                  <Button
-                    onClick={handleCancelInfo}
-                    variant="outline"
-                    disabled={isSavingInfo}
-                    className="border-border text-foreground hover:bg-surface gap-2"
-                  >
-                    <X className="w-4 h-4" />
-                    Cancelar
-                  </Button>
-                  <Button
-                    onClick={handleSaveInfo}
-                    disabled={isSavingInfo}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
-                  >
-                    {isSavingInfo ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                        Guardando...
-                      </>
-                    ) : (
-                      <>
-                        <Check className="w-4 h-4" />
-                        Guardar cambios
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Security Section */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
-                <Lock className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <CardTitle className="text-foreground">Seguridad</CardTitle>
-                <p className="text-foreground-secondary" style={{ fontSize: '13px', marginTop: '2px' }}>
-                  Cambia tu contraseña
-                </p>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4 max-w-md">
-              <div className="space-y-2">
-                <Label htmlFor="currentPassword" className="text-foreground">
-                  Contraseña Actual <span className="text-danger">*</span>
-                </Label>
-                <Input
-                  id="currentPassword"
-                  type="password"
-                  value={passwordFormData.currentPassword}
-                  onChange={(e) => setPasswordFormData({ ...passwordFormData, currentPassword: e.target.value })}
-                  className="bg-input-background border-border text-foreground"
-                  placeholder="Tu contraseña actual"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="newPassword" className="text-foreground">
-                  Nueva Contraseña <span className="text-danger">*</span>
-                </Label>
-                <Input
-                  id="newPassword"
-                  type="password"
-                  value={passwordFormData.newPassword}
-                  onChange={(e) => setPasswordFormData({ ...passwordFormData, newPassword: e.target.value })}
-                  className="bg-input-background border-border text-foreground"
-                  placeholder="Mínimo 8 caracteres"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-foreground">
-                  Confirmar Nueva Contraseña <span className="text-danger">*</span>
-                </Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={passwordFormData.confirmPassword}
-                  onChange={(e) => setPasswordFormData({ ...passwordFormData, confirmPassword: e.target.value })}
-                  className="bg-input-background border-border text-foreground"
-                  placeholder="Confirma tu nueva contraseña"
-                />
-              </div>
-
-              <div className="pt-4">
-                <Button
-                  onClick={handleSavePassword}
-                  disabled={isSavingPassword}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
-                >
-                  {isSavingPassword ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                      Actualizando...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-4 h-4" />
-                      Actualizar contraseña
-                    </>
-                  )}
+                <Button onClick={handleSavePassword} className="w-full luxury-button-premium mt-4 h-12" disabled={isSavingPassword}>
+                  {isSavingPassword ? 'Procesando...' : 'ACTUALIZAR CREDENCIALES'}
                 </Button>
               </div>
-
-              <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 mt-4">
-                <p className="text-foreground-secondary" style={{ fontSize: '12px' }}>
-                  💡 <span className="text-foreground">Recomendación:</span> Utiliza una contraseña segura con al menos 8 caracteres, que incluya mayúsculas, minúsculas, números y símbolos.
-                </p>
-              </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Role Information (Read-only) */}
-        <Card className="bg-card border-border border-l-4 border-l-primary">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                <User className="w-6 h-6 text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="text-foreground-secondary" style={{ fontSize: '13px' }}>
-                  Rol de Usuario
-                </p>
-                <p className="text-foreground" style={{ fontSize: '16px', fontWeight: 600, marginTop: '2px' }}>
-                  {currentUser.rol === 'admin' ? 'Administrador' : 
-                   currentUser.rol === 'vendedor' ? 'Vendedor' : 
-                   currentUser.rol === 'bodeguero' ? 'Bodeguero' : 
-                   currentUser.rol === 'cliente' ? 'Cliente' : 'Sin rol'}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-foreground-secondary" style={{ fontSize: '11px' }}>
-                  Los roles y permisos son asignados por administradores
-                </p>
-              </div>
+            {/* Support Card with larger impact */}
+            <div style={{ 
+              background: `linear-gradient(135deg, ${C.accentDeep} 0%, #4a2035 100%)`, 
+              borderRadius: '24px', 
+              padding: '40px 32px', 
+              boxShadow: C.shadow, 
+              color: C.white,
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              {/* Decorative circle */}
+              <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
+              
+              <h4 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 12px 0', position: 'relative' }}>Soporte Especializado</h4>
+              <p style={{ fontSize: '14px', opacity: 0.9, margin: '0 0 24px 0', lineHeight: '1.6', position: 'relative' }}>
+                ¿Tienes dudas sobre tus permisos o necesitas ajustes avanzados en tu cuenta corporativa?
+              </p>
+              <button style={{ 
+                background: C.white, 
+                border: 'none', 
+                padding: '14px 20px', 
+                borderRadius: '16px', 
+                color: C.accentDeep, 
+                fontSize: '13px', 
+                fontWeight: 800, 
+                width: '100%', 
+                cursor: 'pointer',
+                boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                position: 'relative'
+              }}>
+                CONTACTAR A SISTEMAS
+              </button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+
+        </div>
       </div>
     </div>
   );

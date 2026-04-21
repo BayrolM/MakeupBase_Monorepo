@@ -3,7 +3,7 @@ import { ThemeProvider } from "./lib/theme-context";
 import { AppSidebar } from "./components/AppSidebar";
 import { Dashboard } from "./components/Dashboard";
 import { SidebarProvider } from "./components/ui/sidebar";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { UsuariosModule } from "./components/modules/UsuariosModule";
 import { ClientesViewModule } from "./components/modules/ClientesViewModule";
 import { ProductsModule } from "./components/modules/ProductsModule";
@@ -23,10 +23,12 @@ import { InicioView } from "./components/client/InicioView";
 import { CatalogoView } from "./components/client/CatalogoView";
 import { FavoritosView } from "./components/client/FavoritosView";
 import { MisPedidosView } from "./components/client/MisPedidosView";
-import { HistorialView } from "./components/client/HistorialView";
+import { NosotrosView } from "./components/client/NosotrosView";
+import { ContactoView } from "./components/client/ContactoView";
+
 import { PerfilView } from "./components/client/PerfilView";
 import { CheckoutView } from "./components/client/CheckoutView";
-import { FloatingCart } from "./components/client/FloatingCart";
+
 import { ClientNavbar } from "./components/client/ClientNavbar";
 import { Toaster, toast } from "sonner";
 import {
@@ -91,6 +93,15 @@ function AppContent() {
     userType === "admin" ? "dashboard" : "inicio",
   );
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Solucionar el bug de scroll al cambiar de página
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [currentRoute]);
 
   const loadPublicData = async () => {
     try {
@@ -626,8 +637,19 @@ function AppContent() {
             onNavigate={(route) => setCurrentRoute(route as Route)}
           />
         );
-      case "historial":
-        return <HistorialView />;
+      case "nosotros":
+        return (
+          <NosotrosView
+            onNavigate={(route) => setCurrentRoute(route as Route)}
+          />
+        );
+      case "contacto":
+        return (
+          <ContactoView
+            onNavigate={(route) => setCurrentRoute(route as Route)}
+          />
+        );
+
       case "perfil":
         if (!isAuthenticated) {
           setShowAuthPage(true);
@@ -657,7 +679,7 @@ function AppContent() {
     setCurrentUser(null);
     setIsAuthenticated(false);
     setAuthPage("login");
-    setCurrentRoute("dashboard");
+    setCurrentRoute("inicio");
 
     toast.info("Sesión cerrada", {
       description: "Has cerrado sesión correctamente",
@@ -681,7 +703,7 @@ function AppContent() {
           }}
           onLogout={handleLogout}
         />
-        <main className="flex-1">{renderContent()}</main>
+        <main ref={scrollContainerRef} className="flex-1">{renderContent()}</main>
       </div>
     );
   }
@@ -698,7 +720,7 @@ function AppContent() {
           currentRoute={currentRoute}
           onLogout={handleLogout}
         />
-        <main className="flex-1 overflow-auto">{renderContent()}</main>
+        <main ref={scrollContainerRef} className="flex-1 overflow-auto">{renderContent()}</main>
       </div>
     </SidebarProvider>
   );

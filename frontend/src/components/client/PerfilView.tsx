@@ -1,15 +1,27 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../../lib/store';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Checkbox } from '../ui/checkbox';
-import { UserCircle, CheckCircle, Lock, Eye, EyeOff, Camera, Loader2 } from 'lucide-react';
+import { UserCircle, CheckCircle, Lock, Eye, EyeOff, Camera, Loader2, Save, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { authService } from '../../services/authService';
 import { supabase } from '../../lib/supabase';
 import { toast } from 'sonner';
 import { useRef } from 'react';
+
+/* ── Luxury CSS variable helpers ── */
+const V = (name: string) => `var(--luxury-${name})`;
+const C = {
+  bgSoft: V('bg-soft'),
+  accent: V('pink-soft'),
+  accentDark: V('accent-dark'),
+  accentDeep: V('pink'),
+  textDark: V('text-dark'),
+  textMuted: V('text-muted'),
+  shadowSm: V('shadow-sm'),
+  shadow: V('shadow'),
+  white: '#ffffff',
+  danger: '#ef4444',
+  success: '#10b981',
+};
 
 export function PerfilView() {
   const { currentUser, setCurrentUser } = useStore();
@@ -42,7 +54,6 @@ export function PerfilView() {
     notificacionesPush: false,
   });
 
-  // Sync with currentUser if it changes (e.g. after refresh)
   useEffect(() => {
     if (currentUser) {
       setFormData(prev => ({
@@ -56,6 +67,7 @@ export function PerfilView() {
       }));
     }
   }, [currentUser]);
+
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateEmail = (email: string) => {
@@ -66,14 +78,9 @@ export function PerfilView() {
   const handleSave = async () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.nombres) {
-      newErrors.nombres = 'El nombre es obligatorio';
-    }
+    if (!formData.nombres) newErrors.nombres = 'El nombre es obligatorio';
+    if (!formData.apellidos) newErrors.apellidos = 'El apellido es obligatorio';
     
-    if (!formData.apellidos) {
-      newErrors.apellidos = 'El apellido es obligatorio';
-    }
-
     if (!formData.email) {
       newErrors.email = 'El email es obligatorio';
     } else if (!validateEmail(formData.email)) {
@@ -86,13 +93,8 @@ export function PerfilView() {
       newErrors.telefono = 'El teléfono debe contener solo números';
     }
 
-    if (!formData.direccion) {
-      newErrors.direccion = 'La dirección es obligatoria';
-    }
-
-    if (!formData.ciudad) {
-      newErrors.ciudad = 'La ciudad es obligatoria';
-    }
+    if (!formData.direccion) newErrors.direccion = 'La dirección es obligatoria';
+    if (!formData.ciudad) newErrors.ciudad = 'La ciudad es obligatoria';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -103,7 +105,6 @@ export function PerfilView() {
     setErrors({});
     
     try {
-      // Update profile in backend
       await authService.updateProfile({
         nombres: formData.nombres,
         apellidos: formData.apellidos,
@@ -112,7 +113,6 @@ export function PerfilView() {
         ciudad: formData.ciudad,
       });
 
-      // Update current user in store
       if (currentUser) {
         setCurrentUser({
           ...currentUser,
@@ -145,47 +145,31 @@ export function PerfilView() {
     const file = event.target.files?.[0];
     if (!file || !currentUser) return;
 
-    // Validaciones básicas
     if (!file.type.startsWith('image/')) {
-      toast.error('Formato inválido', {
-        description: 'Por favor selecciona una imagen (PNG, JPG, etc.)'
-      });
+      toast.error('Formato inválido', { description: 'Por favor selecciona una imagen (PNG, JPG, etc.)' });
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      toast.error('Archivo muy pesado', {
-        description: 'La imagen debe ser menor a 2MB'
-      });
+      toast.error('Archivo muy pesado', { description: 'La imagen debe ser menor a 2MB' });
       return;
     }
 
     setIsUploading(true);
     const fileExt = file.name.split('.').pop();
     const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
-    const filePath = fileName; // No usar subcarpetas redundantes si el bucket ya es 'avatars'
 
     try {
-      // 1. Subir a Supabase Storage
-      // NOTA: El usuario debe crear un bucket llamado 'avatars' y ponerlo público
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file, {
-          upsert: true,
-          contentType: file.type
-        });
+        .upload(fileName, file, { upsert: true, contentType: file.type });
 
       if (uploadError) throw uploadError;
 
-      // 2. Obtener URL pública
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
 
-      // 3. Actualizar backend
       await authService.updateProfile({ foto_perfil: publicUrl });
       
-      // 4. Actualizar store local
       setCurrentUser({
         ...currentUser,
         foto_perfil: publicUrl
@@ -205,14 +189,14 @@ export function PerfilView() {
   const handleChangePassword = async () => {
     const newErrors: Record<string, string> = {};
 
-    if (!passwordData.currentPassword) {
-      newErrors.currentPassword = 'La contraseña actual es obligatoria';
-    }
+    if (!passwordData.currentPassword) newErrors.currentPassword = 'La contraseña actual es obligatoria';
+    
     if (!passwordData.newPassword) {
       newErrors.newPassword = 'La nueva contraseña es obligatoria';
     } else if (passwordData.newPassword.length < 6) {
       newErrors.newPassword = 'La contraseña debe tener al menos 6 caracteres';
     }
+    
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       newErrors.confirmPassword = 'Las contraseñas no coinciden';
     }
@@ -239,234 +223,266 @@ export function PerfilView() {
     }
   };
 
+  // Luxury UI Form Components
+  const InputField = ({ label, id, value, onChange, disabled, error, type = "text", placeholder = "" }: any) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <label htmlFor={id} style={{ fontSize: '13px', fontWeight: 600, color: C.textMuted }}>
+        {label} <span style={{ color: C.danger }}>*</span>
+      </label>
+      <input
+        id={id}
+        type={type}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        placeholder={placeholder}
+        style={{
+          width: '100%', height: '44px', borderRadius: '12px',
+          border: `1px solid ${error ? C.danger : C.accentDark}`,
+          padding: '0 16px', outline: 'none', fontSize: '14px',
+          color: disabled ? C.textMuted : C.textDark,
+          background: disabled ? '#f9fafb' : C.white,
+          boxSizing: 'border-box',
+          transition: 'all 0.2s',
+        }}
+        onFocus={(e) => {
+          if(!disabled) e.currentTarget.style.borderColor = C.accentDeep;
+          if(!disabled) e.currentTarget.style.boxShadow = `0 0 0 3px ${C.accent}`;
+        }}
+        onBlur={(e) => {
+          if(!disabled) e.currentTarget.style.borderColor = error ? C.danger : C.accentDark;
+          e.currentTarget.style.boxShadow = 'none';
+        }}
+      />
+      {error && <p style={{ color: C.danger, fontSize: '12px', margin: 0 }}>{error}</p>}
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b border-border bg-surface">
-        <div className="max-w-4xl mx-auto px-8 py-6">
-          <div className="flex items-center gap-3 mb-2">
-            <UserCircle className="w-8 h-8 text-primary" />
-            <h1 className="text-foreground" style={{ fontSize: '32px', fontWeight: 600 }}>
+    <div style={{ minHeight: '100vh', background: C.bgSoft, fontFamily: "'DM Sans', sans-serif" }}>
+      
+      {/* ── HERO HEADER ── */}
+      <div
+        style={{
+          background: `linear-gradient(135deg, ${C.textDark} 0%, ${C.accentDeep} 100%)`,
+          padding: '40px 0',
+          position: 'relative',
+          overflow: 'hidden',
+          marginBottom: '40px'
+        }}
+      >
+        <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 32px', position: 'relative', zIndex: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
+            <div style={{
+              width: '48px', height: '48px',
+              borderRadius: '16px',
+              background: 'rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(10px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <UserCircle style={{ width: 24, height: 24, color: C.white }} />
+            </div>
+            <h1 style={{ 
+              fontFamily: "'Cormorant Garamond', serif", 
+              fontSize: '42px', 
+              fontWeight: 600, 
+              color: C.white, 
+              margin: 0 
+            }}>
               Mi Perfil
             </h1>
           </div>
-          <p className="text-foreground-secondary" style={{ fontSize: '16px' }}>
-            Gestiona tu información personal
+          <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '16px', margin: '0 0 0 64px' }}>
+            Gestiona tu información personal y preferencias
           </p>
+        </div>
+        
+        {/* Decoración */}
+        <div style={{ position: 'absolute', right: '5%', top: '-20%', fontSize: '150px', opacity: 0.05, transform: 'rotate(15deg)', pointerEvents: 'none' }}>
+          ✿
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-8 py-12">
+      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 32px 80px 32px' }}>
+        
         {/* Success Message */}
         {showSuccess && (
-          <div className="bg-success/20 border border-success text-success rounded-lg p-4 mb-6 flex items-center gap-3">
-            <CheckCircle className="w-5 h-5" />
-            <p style={{ fontSize: '14px' }}>
+          <div style={{ 
+            background: 'rgba(16, 185, 129, 0.1)', 
+            border: `1px solid ${C.success}`, 
+            color: C.success, 
+            borderRadius: '12px', 
+            padding: '16px', 
+            marginBottom: '24px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px' 
+          }}>
+            <CheckCircle style={{ width: 20, height: 20 }} />
+            <p style={{ fontSize: '14px', margin: 0, fontWeight: 500 }}>
               Tus cambios se han guardado exitosamente
             </p>
           </div>
         )}
 
-        <div className="bg-card border border-border rounded-lg p-8">
+        <div style={{ background: C.white, borderRadius: '24px', padding: '40px', border: `1px solid ${C.accent}`, boxShadow: `0 8px 30px ${C.shadowSm}` }}>
+          
           {/* Avatar Section */}
-          <div className="flex items-center gap-6 pb-8 border-b border-border mb-8">
-            <div className="relative group">
-              <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden border-2 border-primary/10">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '24px', paddingBottom: '32px', borderBottom: `1px solid ${C.accent}`, marginBottom: '32px' }}>
+            <div style={{ position: 'relative' }} className="group">
+              <div style={{ 
+                width: '96px', height: '96px', 
+                borderRadius: '50%', 
+                background: C.bgSoft, 
+                display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                overflow: 'hidden', 
+                border: `2px solid ${C.accentDark}` 
+              }}>
                 {isUploading ? (
-                  <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                  <Loader2 style={{ width: 32, height: 32, color: C.accentDeep }} className="animate-spin" />
                 ) : currentUser?.foto_perfil ? (
-                  <img src={currentUser.foto_perfil} alt="PFP" className="w-full h-full object-cover" />
+                  <img src={currentUser.foto_perfil} alt="PFP" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
-                  <UserCircle className="w-16 h-16 text-primary" />
+                  <UserCircle style={{ width: 64, height: 64, color: C.accentDeep, opacity: 0.5 }} />
                 )}
               </div>
               <button 
                 onClick={handleFileClick}
-                disabled={isUploading}
-                className="absolute bottom-0 right-0 p-2 bg-primary text-primary-foreground rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                disabled={isUploading || !isEditing}
+                style={{
+                  position: 'absolute', bottom: 0, right: 0,
+                  width: '32px', height: '32px', borderRadius: '50%',
+                  background: isEditing ? C.accentDeep : '#e5e7eb',
+                  color: C.white, border: 'none', cursor: isEditing && !isUploading ? 'pointer' : 'not-allowed',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: `0 4px 10px ${C.shadowSm}`,
+                  transition: 'transform 0.2s'
+                }}
               >
-                <Camera className="w-4 h-4" />
+                <Camera style={{ width: 16, height: 16 }} />
               </button>
               <input
                 type="file"
                 ref={fileInputRef}
-                className="hidden"
+                style={{ display: 'none' }}
                 accept="image/*"
                 onChange={handleFileUpload}
               />
             </div>
             <div>
-              <h3 className="text-foreground mb-2" style={{ fontSize: '20px', fontWeight: 600 }}>
+              <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '28px', fontWeight: 600, color: C.textDark, margin: '0 0 8px 0' }}>
                 {formData.nombres} {formData.apellidos}
               </h3>
-              <Button
-                size="sm"
-                variant="outline"
+              <button
                 onClick={handleFileClick}
-                disabled={isUploading}
-                className="border-border text-foreground hover:bg-surface"
+                disabled={isUploading || !isEditing}
+                style={{
+                  background: 'none',
+                  border: `1px solid ${C.accentDark}`,
+                  color: C.textDark,
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: isEditing && !isUploading ? 'pointer' : 'not-allowed',
+                  opacity: isEditing ? 1 : 0.5,
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={(e) => { if(isEditing && !isUploading) e.currentTarget.style.background = C.bgSoft }}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
               >
-                {isUploading ? 'Subiendo...' : 'Cambiar foto'}
-              </Button>
+                {isUploading ? 'Subiendo...' : 'Cambiar foto de perfil'}
+              </button>
             </div>
           </div>
 
           {/* Form */}
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="nombres" className="text-foreground">
-                  Nombres <span className="text-danger">*</span>
-                </Label>
-                <Input
-                  id="nombres"
-                  value={formData.nombres}
-                  onChange={(e) => setFormData({ ...formData, nombres: e.target.value })}
-                  disabled={!isEditing || isSaving}
-                  className={`bg-input-background border-border text-foreground ${errors.nombres ? 'border-danger' : ''}`}
-                  placeholder="Nombres"
-                />
-                {errors.nombres && (
-                  <p className="text-danger" style={{ fontSize: '13px' }}>{errors.nombres}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="apellidos" className="text-foreground">
-                  Apellidos <span className="text-danger">*</span>
-                </Label>
-                <Input
-                  id="apellidos"
-                  value={formData.apellidos}
-                  onChange={(e) => setFormData({ ...formData, apellidos: e.target.value })}
-                  disabled={!isEditing || isSaving}
-                  className={`bg-input-background border-border text-foreground ${errors.apellidos ? 'border-danger' : ''}`}
-                  placeholder="Apellidos"
-                />
-                {errors.apellidos && (
-                  <p className="text-danger" style={{ fontSize: '13px' }}>{errors.apellidos}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-foreground">
-                  Email <span className="text-danger">*</span>
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  disabled={!isEditing || isSaving}
-                  className={`bg-input-background border-border text-foreground ${errors.email ? 'border-danger' : ''}`}
-                  placeholder="correo@ejemplo.com"
-                />
-                {errors.email && (
-                  <p className="text-danger" style={{ fontSize: '13px' }}>{errors.email}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="telefono" className="text-foreground">
-                  Teléfono <span className="text-danger">*</span>
-                </Label>
-                <Input
-                  id="telefono"
-                  value={formData.telefono}
-                  onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                  disabled={!isEditing || isSaving}
-                  className={`bg-input-background border-border text-foreground ${errors.telefono ? 'border-danger' : ''}`}
-                  placeholder="3001234567"
-                />
-                {errors.telefono && (
-                  <p className="text-danger" style={{ fontSize: '13px' }}>{errors.telefono}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="ciudad" className="text-foreground">
-                  Ciudad <span className="text-danger">*</span>
-                </Label>
-                <Input
-                  id="ciudad"
-                  value={formData.ciudad}
-                  onChange={(e) => setFormData({ ...formData, ciudad: e.target.value })}
-                  disabled={!isEditing || isSaving}
-                  className={`bg-input-background border-border text-foreground ${errors.ciudad ? 'border-danger' : ''}`}
-                  placeholder="Medellín"
-                />
-                {errors.ciudad && (
-                  <p className="text-danger" style={{ fontSize: '13px' }}>{errors.ciudad}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="direccion" className="text-foreground">
-                Dirección <span className="text-danger">*</span>
-              </Label>
-              <Input
-                id="direccion"
-                value={formData.direccion}
-                onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
-                disabled={!isEditing || isSaving}
-                className={`bg-input-background border-border text-foreground ${errors.direccion ? 'border-danger' : ''}`}
-                placeholder="Calle 31C #89-35"
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+              <InputField 
+                label="Nombres" id="nombres" value={formData.nombres} 
+                onChange={(e: any) => setFormData({ ...formData, nombres: e.target.value })} 
+                disabled={!isEditing || isSaving} error={errors.nombres} 
               />
-              {errors.direccion && (
-                <p className="text-danger" style={{ fontSize: '13px' }}>{errors.direccion}</p>
-              )}
+              <InputField 
+                label="Apellidos" id="apellidos" value={formData.apellidos} 
+                onChange={(e: any) => setFormData({ ...formData, apellidos: e.target.value })} 
+                disabled={!isEditing || isSaving} error={errors.apellidos} 
+              />
+              <InputField 
+                label="Email" id="email" type="email" value={formData.email} 
+                onChange={(e: any) => setFormData({ ...formData, email: e.target.value })} 
+                disabled={!isEditing || isSaving} error={errors.email} placeholder="correo@ejemplo.com"
+              />
+              <InputField 
+                label="Teléfono" id="telefono" value={formData.telefono} 
+                onChange={(e: any) => setFormData({ ...formData, telefono: e.target.value })} 
+                disabled={!isEditing || isSaving} error={errors.telefono} placeholder="3001234567"
+              />
+              <InputField 
+                label="Ciudad" id="ciudad" value={formData.ciudad} 
+                onChange={(e: any) => setFormData({ ...formData, ciudad: e.target.value })} 
+                disabled={!isEditing || isSaving} error={errors.ciudad} placeholder="Medellín"
+              />
             </div>
+
+            <InputField 
+              label="Dirección" id="direccion" value={formData.direccion} 
+              onChange={(e: any) => setFormData({ ...formData, direccion: e.target.value })} 
+              disabled={!isEditing || isSaving} error={errors.direccion} placeholder="Calle 31C #89-35"
+            />
 
             {/* Preferences */}
-            <div className="pt-6 border-t border-border space-y-4">
-              <h3 className="text-foreground" style={{ fontSize: '16px', fontWeight: 600 }}>
+            <div style={{ paddingTop: '24px', borderTop: `1px solid ${C.accent}`, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: C.textDark, margin: 0 }}>
                 Preferencias
               </h3>
               
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="ofertas"
+              <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: isEditing ? 'pointer' : 'default', opacity: isEditing ? 1 : 0.6 }}>
+                <input
+                  type="checkbox"
                   checked={formData.recibirOfertas}
-                  onCheckedChange={(checked: boolean) => setFormData({ ...formData, recibirOfertas: checked })}
+                  onChange={(e) => setFormData({ ...formData, recibirOfertas: e.target.checked })}
                   disabled={!isEditing || isSaving}
-                  className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                  style={{ width: '18px', height: '18px', accentColor: C.accentDeep, cursor: isEditing ? 'pointer' : 'default' }}
                 />
-                <label htmlFor="ofertas" className="text-foreground cursor-pointer" style={{ fontSize: '14px' }}>
-                  Recibir ofertas por email
-                </label>
-              </div>
+                <span style={{ fontSize: '14px', color: C.textDark }}>Recibir ofertas por email</span>
+              </label>
 
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="notificaciones"
+              <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: isEditing ? 'pointer' : 'default', opacity: isEditing ? 1 : 0.6 }}>
+                <input
+                  type="checkbox"
                   checked={formData.notificacionesPush}
-                  onCheckedChange={(checked: boolean) => setFormData({ ...formData, notificacionesPush: checked })}
+                  onChange={(e) => setFormData({ ...formData, notificacionesPush: e.target.checked })}
                   disabled={!isEditing || isSaving}
-                  className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                  style={{ width: '18px', height: '18px', accentColor: C.accentDeep, cursor: isEditing ? 'pointer' : 'default' }}
                 />
-                <label htmlFor="notificaciones" className="text-foreground cursor-pointer" style={{ fontSize: '14px' }}>
-                  Notificaciones push
-                </label>
-              </div>
+                <span style={{ fontSize: '14px', color: C.textDark }}>Notificaciones push</span>
+              </label>
             </div>
 
             {/* Actions */}
-            <div className="pt-6 flex items-center gap-4">
+            <div style={{ paddingTop: '32px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
               {isEditing ? (
                 <>
-                  <Button
+                  <button
                     onClick={handleSave}
                     disabled={isSaving}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground min-w-[150px]"
+                    style={{
+                      background: `linear-gradient(135deg, ${C.textDark} 0%, ${C.accentDeep} 100%)`,
+                      color: C.white, border: 'none', padding: '14px 32px', borderRadius: '12px',
+                      fontSize: '14px', fontWeight: 600, cursor: isSaving ? 'not-allowed' : 'pointer',
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      boxShadow: `0 8px 20px ${C.shadowSm}`
+                    }}
                   >
-                    {isSaving ? 'Guardando...' : '🎀 GUARDAR CAMBIOS'}
-                  </Button>
-                  <Button
+                    {isSaving ? <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" /> : <Save style={{ width: 16, height: 16 }} />}
+                    {isSaving ? 'Guardando...' : 'Guardar Cambios'}
+                  </button>
+                  <button
                     onClick={() => {
                       setIsEditing(false);
                       setErrors({});
-                      // Reset form to current user data
                       if (currentUser) {
                         setFormData({
                           nombres: currentUser.nombres,
@@ -480,29 +496,41 @@ export function PerfilView() {
                         });
                       }
                     }}
-                    variant="outline"
-                    className="border-border text-foreground hover:bg-surface"
                     disabled={isSaving}
+                    style={{
+                      background: 'none', color: C.textDark, border: `1px solid ${C.accentDark}`,
+                      padding: '14px 32px', borderRadius: '12px', fontSize: '14px', fontWeight: 600,
+                      cursor: isSaving ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px'
+                    }}
                   >
+                    <X style={{ width: 16, height: 16 }} />
                     Cancelar
-                  </Button>
+                  </button>
                 </>
               ) : (
                 <>
-                  <Button
+                  <button
                     onClick={() => setIsEditing(true)}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                    style={{
+                      background: `linear-gradient(135deg, ${C.textDark} 0%, ${C.accentDeep} 100%)`,
+                      color: C.white, border: 'none', padding: '14px 32px', borderRadius: '12px',
+                      fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                      boxShadow: `0 8px 20px ${C.shadowSm}`
+                    }}
                   >
                     Editar Perfil
-                  </Button>
-                  <Button
-                    variant="outline"
+                  </button>
+                  <button
                     onClick={() => setIsPasswordDialogOpen(true)}
-                    className="border-border text-foreground hover:bg-surface gap-2"
+                    style={{
+                      background: 'none', color: C.textDark, border: `1px solid ${C.accentDark}`,
+                      padding: '14px 32px', borderRadius: '12px', fontSize: '14px', fontWeight: 600,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px'
+                    }}
                   >
-                    <Lock className="w-4 h-4" />
+                    <Lock style={{ width: 16, height: 16 }} />
                     Cambiar contraseña
-                  </Button>
+                  </button>
                 </>
               )}
             </div>
@@ -518,89 +546,80 @@ export function PerfilView() {
           setPasswordErrors({});
         }
       }}>
-        <DialogContent className="bg-card border-border max-w-md">
+        <DialogContent style={{ background: C.white, border: `1px solid ${C.accent}`, borderRadius: '24px' }}>
           <DialogHeader>
-            <DialogTitle className="text-foreground">Cambiar Contraseña</DialogTitle>
-            <DialogDescription className="text-foreground-secondary">
+            <DialogTitle style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '24px', color: C.textDark }}>Cambiar Contraseña</DialogTitle>
+            <DialogDescription style={{ color: C.textMuted }}>
               Ingresa tu contraseña actual y la nueva que deseas utilizar.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="currentPassword">Contraseña Actual</Label>
-              <div className="relative">
-                <Input
-                  id="currentPassword"
-                  type={showCurrentPassword ? "text" : "password"}
-                  value={passwordData.currentPassword}
-                  onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                  className={`bg-input-background border-border pr-10 ${passwordErrors.currentPassword ? 'border-danger' : ''}`}
-                  disabled={isChangingPassword}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-secondary"
-                >
-                  {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              {passwordErrors.currentPassword && <p className="text-danger text-xs">{passwordErrors.currentPassword}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">Nueva Contraseña</Label>
-              <div className="relative">
-                <Input
-                  id="newPassword"
-                  type={showNewPassword ? "text" : "password"}
-                  value={passwordData.newPassword}
-                  onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                  className={`bg-input-background border-border pr-10 ${passwordErrors.newPassword ? 'border-danger' : ''}`}
-                  disabled={isChangingPassword}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-secondary"
-                >
-                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              {passwordErrors.newPassword && <p className="text-danger text-xs">{passwordErrors.newPassword}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmar Nueva Contraseña</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={passwordData.confirmPassword}
-                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                className={`bg-input-background border-border ${passwordErrors.confirmPassword ? 'border-danger' : ''}`}
-                disabled={isChangingPassword}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '16px' }}>
+            <div style={{ position: 'relative' }}>
+              <InputField 
+                label="Contraseña Actual" id="currentPassword" 
+                type={showCurrentPassword ? "text" : "password"} 
+                value={passwordData.currentPassword} 
+                onChange={(e: any) => setPasswordData({ ...passwordData, currentPassword: e.target.value })} 
+                disabled={isChangingPassword} error={passwordErrors.currentPassword} 
               />
-              {passwordErrors.confirmPassword && <p className="text-danger text-xs">{passwordErrors.confirmPassword}</p>}
+              <button
+                type="button"
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                style={{ position: 'absolute', right: '16px', top: '38px', background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted }}
+              >
+                {showCurrentPassword ? <EyeOff style={{ width: 16, height: 16 }} /> : <Eye style={{ width: 16, height: 16 }} />}
+              </button>
             </div>
+
+            <div style={{ position: 'relative' }}>
+              <InputField 
+                label="Nueva Contraseña" id="newPassword" 
+                type={showNewPassword ? "text" : "password"} 
+                value={passwordData.newPassword} 
+                onChange={(e: any) => setPasswordData({ ...passwordData, newPassword: e.target.value })} 
+                disabled={isChangingPassword} error={passwordErrors.newPassword} 
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                style={{ position: 'absolute', right: '16px', top: '38px', background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted }}
+              >
+                {showNewPassword ? <EyeOff style={{ width: 16, height: 16 }} /> : <Eye style={{ width: 16, height: 16 }} />}
+              </button>
+            </div>
+
+            <InputField 
+              label="Confirmar Nueva Contraseña" id="confirmPassword" 
+              type="password" value={passwordData.confirmPassword} 
+              onChange={(e: any) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })} 
+              disabled={isChangingPassword} error={passwordErrors.confirmPassword} 
+            />
           </div>
 
-          <DialogFooter>
-            <Button
-              variant="outline"
+          <DialogFooter style={{ marginTop: '24px', gap: '12px' }}>
+            <button
               onClick={() => setIsPasswordDialogOpen(false)}
               disabled={isChangingPassword}
-              className="border-border"
+              style={{
+                background: 'none', color: C.textDark, border: `1px solid ${C.accentDark}`,
+                padding: '12px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, cursor: 'pointer'
+              }}
             >
               Cancelar
-            </Button>
-            <Button
+            </button>
+            <button
               onClick={handleChangePassword}
               disabled={isChangingPassword}
-              className="bg-primary text-primary-foreground min-w-[120px]"
+              style={{
+                background: `linear-gradient(135deg, ${C.textDark} 0%, ${C.accentDeep} 100%)`,
+                color: C.white, border: 'none', padding: '12px 24px', borderRadius: '10px',
+                fontSize: '14px', fontWeight: 600, cursor: isChangingPassword ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', gap: '8px'
+              }}
             >
               {isChangingPassword ? 'Cambiando...' : 'Cambiar Contraseña'}
-            </Button>
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

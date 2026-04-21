@@ -239,24 +239,40 @@ export function AppSidebar({ onNavigate, currentRoute, onLogout }: AppSidebarPro
           )}
         </SidebarContent>
 
-        <SidebarFooter className="p-4 border-t border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#6a2840] flex items-center justify-center text-white text-xs">
+        <SidebarFooter className="p-4 border-none">
+          <div 
+            className="flex items-center gap-3 p-2 rounded-lg transition-all cursor-pointer group"
+            style={{ background: 'transparent' }}
+            onClick={() => onNavigate('configuracion')}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            <div className="w-8 h-8 rounded-full bg-[#6a2840] flex items-center justify-center text-white text-xs transition-transform group-hover:scale-105">
               {currentUser?.nombres?.charAt(0) || 'U'}
             </div>
 
             <div>
-              <p style={{
-                fontSize: '11px',
-                color: '#fff',
-                textShadow: '0 0 7px rgba(220,150,175,0.5)'
-              }}>
+              <p 
+                className="transition-colors group-hover:text-white"
+                style={{
+                  fontSize: '11px',
+                  color: '#fff',
+                  textShadow: '0 0 7px rgba(220,150,175,0.5)'
+                }}
+              >
                 {currentUser?.nombres || 'Usuario'}
               </p>
-              <p style={{
-                fontSize: '9px',
-                color: 'rgba(215,150,175,0.5)'
-              }}>
+              <p 
+                className="transition-all group-hover:text-[rgba(215,150,175,0.85)]"
+                style={{
+                  fontSize: '9px',
+                  color: 'rgba(215,150,175,0.5)'
+                }}
+              >
                 {currentUser?.rol || 'Admin'}
               </p>
             </div>
@@ -264,11 +280,19 @@ export function AppSidebar({ onNavigate, currentRoute, onLogout }: AppSidebarPro
 
           <button
             onClick={() => setShowLogoutDialog(true)}
-            className="mt-3 flex items-center gap-2 text-[11px]"
+            className="mt-3 flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-lg transition-all hover:bg-white/5 group"
             style={{ color: 'rgba(215,150,175,0.45)' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'rgba(215,150,175,0.85)';
+              e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'rgba(215,150,175,0.45)';
+              e.currentTarget.style.background = 'transparent';
+            }}
           >
-            <LogOut className="w-3 h-3" />
-            Cerrar sesión
+            <LogOut className="w-3 h-3 transition-colors group-hover:text-white" />
+            <span className="transition-colors group-hover:text-white">Cerrar sesión</span>
           </button>
         </SidebarFooter>
       </div>

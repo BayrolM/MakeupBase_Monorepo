@@ -30,7 +30,7 @@ const COLORS = {
   accent: "#c47b96",
   accentDark: "#a85d77",
   accentDeep: "#7b1347",
-  accentSoft: "#f0d5e0",
+  accentSoft: "#fce8f0", // Actualizado al rosa suave global
 };
 
 export function ClientNavbar({
@@ -69,12 +69,17 @@ export function ClientNavbar({
   const shippingCost = CONFIG.COSTO_ENVIO;
   const total = cartTotal + shippingCost;
 
+  // Use a ref so validateStock doesn't re-create on every carrito change
+  const carritoRef = useRef(carrito);
+  carritoRef.current = carrito;
+
   const validateStock = useCallback(async () => {
-    if (carrito.length === 0) return;
+    const currentCarrito = carritoRef.current;
+    if (currentCarrito.length === 0) return;
     setIsValidating(true);
     const issues: Record<string, { available: number; requested: number }> = {};
     try {
-      for (const item of carrito) {
+      for (const item of currentCarrito) {
         try {
           const freshProduct = await productService.getById(
             parseInt(item.productoId, 10),
@@ -107,12 +112,14 @@ export function ClientNavbar({
     } finally {
       setIsValidating(false);
     }
-  }, [carrito, updateCarritoQuantity]);
+  }, [updateCarritoQuantity]);
 
+  // Only validate when the cart OPENS, not on every quantity change
   useEffect(() => {
-    if (isCartOpen && carrito.length > 0) validateStock();
+    if (isCartOpen && carritoRef.current.length > 0) validateStock();
     if (!isCartOpen) setStockIssues({});
-  }, [isCartOpen, carrito.length, validateStock]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCartOpen]);
 
   const hasBlockingIssues = Object.values(stockIssues).some(
     (i) => i.available === 0,
@@ -150,7 +157,7 @@ export function ClientNavbar({
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-40 w-full border-b border-border bg-white dark:bg-background">
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-2">
           <div className="flex items-center justify-between gap-4">
             {/* Logo + Nav links juntos */}
@@ -158,7 +165,7 @@ export function ClientNavbar({
               {/* Logo */}
               <button
                 onClick={() => onNavigate("inicio")}
-                className="flex items-center gap-3 flex-shrink-0"
+                className="flex items-center gap-3 flex-shrink-0 cursor-pointer"
               >
                 <div className="w-12 h-12 rounded-xl overflow-hidden border border-border shadow-sm bg-black flex-shrink-0">
                   <img
@@ -189,12 +196,12 @@ export function ClientNavbar({
                   <button
                     key={route}
                     onClick={() => onNavigate(route)}
-                    className={`px-4 py-2 rounded-lg transition-colors ${
+                    className={`px-4 py-2 rounded-lg transition-colors cursor-pointer font-medium ${
                       isActive(route)
-                        ? "bg-primary/10 text-primary"
-                        : "text-foreground-secondary hover:text-primary hover:bg-primary/5"
+                        ? "bg-[#fce8f0] text-[#7b1347] shadow-sm"
+                        : "text-gray-600 hover:text-[#7b1347] hover:bg-[#fce8f0]/60"
                     }`}
-                    style={{ fontSize: "14px", fontWeight: 500 }}
+                    style={{ fontSize: "14px" }}
                   >
                     {label}
                   </button>
@@ -209,7 +216,7 @@ export function ClientNavbar({
                 <button
                   onClick={() => onNavigate("favoritos")}
                   title="Favoritos"
-                  className={`relative p-2 rounded-lg transition-colors ${
+                  className={`relative p-2 rounded-lg transition-colors cursor-pointer ${
                     isActive("favoritos")
                       ? "bg-primary/10 text-primary"
                       : "text-foreground-secondary hover:text-primary hover:bg-primary/5"
@@ -228,7 +235,7 @@ export function ClientNavbar({
                 <button
                   onClick={() => setIsCartOpen(true)}
                   title="Carrito"
-                  className={`relative p-2 rounded-lg transition-colors ${
+                  className={`relative p-2 rounded-lg transition-colors cursor-pointer ${
                     isCartOpen
                       ? "bg-primary/10 text-primary"
                       : "text-foreground-secondary hover:text-primary hover:bg-primary/5"
@@ -236,9 +243,19 @@ export function ClientNavbar({
                 >
                   <ShoppingCart className="w-5 h-5" />
                   {cartItemCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
-                      {cartItemCount > 9 ? "9+" : cartItemCount}
-                    </span>
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: "2px",
+                        right: "2px",
+                        width: "10px",
+                        height: "10px",
+                        borderRadius: "50%",
+                        background: "var(--luxury-pink)",
+                        border: "2px solid white",
+                        boxShadow: "0 0 6px var(--luxury-shadow)",
+                      }}
+                    />
                   )}
                 </button>
               )}
@@ -248,7 +265,7 @@ export function ClientNavbar({
                 <button
                   onClick={() => onNavigate("mis-pedidos")}
                   title="Mis Pedidos"
-                  className={`relative p-2 rounded-lg transition-colors ${
+                  className={`relative p-2 rounded-lg transition-colors cursor-pointer ${
                     isActive("mis-pedidos")
                       ? "bg-primary/10 text-primary"
                       : "text-foreground-secondary hover:text-primary hover:bg-primary/5"
@@ -292,8 +309,23 @@ export function ClientNavbar({
                   </button>
 
                   {dropdownOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-52 bg-card border border-border rounded-xl shadow-xl overflow-hidden z-50">
-                      <div className="px-4 py-3 border-b border-border">
+                    <>
+                      <style>{`
+                        @keyframes dropdownFade {
+                          from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+                          to { opacity: 1; transform: translateY(0) scale(1); }
+                        }
+                      `}</style>
+                      <div 
+                        className="absolute right-0 top-full mt-2 w-52 rounded-xl shadow-xl overflow-hidden z-50"
+                        style={{ 
+                          backgroundColor: '#ffffff', 
+                          border: '1px solid var(--luxury-pink-soft)',
+                          animation: 'dropdownFade 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                          transformOrigin: 'top right'
+                        }}
+                      >
+                        <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--luxury-pink-soft)' }}>
                         <p className="text-sm font-semibold text-foreground truncate">
                           {currentUser?.nombres} {currentUser?.apellidos}
                         </p>
@@ -328,19 +360,20 @@ export function ClientNavbar({
                         </button>
                       </div>
                     </div>
+                    </>
                   )}
                 </div>
               ) : (
-                <div className="flex items-center gap-2 ml-2 h-10">
+                <div className="flex items-center gap-3 ml-2 h-10">
                   <button
                     onClick={() => onNavigate("login")}
-                    className="px-4 py-2 text-sm font-semibold text-primary/80 hover:text-primary transition-colors h-full"
+                    className="px-5 py-2 text-sm font-semibold text-primary/80 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors cursor-pointer h-full"
                   >
                     Entrar
                   </button>
                   <button
                     onClick={() => onNavigate("register")}
-                    className="px-5 py-0 h-9 text-sm font-bold text-white rounded-xl transition-all shadow-md active:scale-95"
+                    className="px-8 py-0 h-9 text-sm font-bold text-white rounded-xl transition-all shadow-md active:scale-95 hover:brightness-110 hover:shadow-lg cursor-pointer"
                     style={{
                       background: `linear-gradient(135deg, ${COLORS.accent} 0%, ${COLORS.accentDark} 100%)`,
                       boxShadow: `0 4px 12px ${COLORS.accent}40`,
@@ -358,18 +391,56 @@ export function ClientNavbar({
       {/* Drawer del Carrito */}
       <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
         <SheetContent
-          className="p-0 border-l border-border bg-background"
-          style={{ maxWidth: "440px" }}
+          className="p-0"
+          style={{
+            maxWidth: "440px",
+            background: "var(--luxury-bg-soft)",
+            borderLeft: "1px solid var(--luxury-accent-soft)",
+          }}
         >
           <div className="flex flex-col h-full">
-            <SheetHeader className="p-6 border-b border-border">
-              <SheetTitle className="flex items-center gap-3 font-serif text-xl font-bold">
-                <ShoppingCart
-                  className="w-6 h-6"
-                  style={{ color: COLORS.accent }}
-                />
+            <SheetHeader
+              className="p-6"
+              style={{
+                borderBottom: "1px solid var(--luxury-accent-soft)",
+                background: "var(--luxury-bg-header)",
+              }}
+            >
+              <div
+                style={{
+                  height: "3px",
+                  background: "linear-gradient(90deg, var(--luxury-pink-soft), var(--luxury-pink))",
+                  borderRadius: "4px",
+                  marginBottom: "16px",
+                }}
+              />
+              <SheetTitle
+                className="flex items-center gap-3 font-serif text-xl font-bold"
+                style={{ color: "var(--luxury-text-dark)" }}
+              >
+                <div
+                  style={{
+                    width: "40px",
+                    height: "40px",
+                    borderRadius: "14px",
+                    background: "linear-gradient(135deg, var(--luxury-pink-soft), var(--luxury-pink))",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: "0 4px 12px var(--luxury-shadow)",
+                  }}
+                >
+                  <ShoppingCart className="w-5 h-5 text-white" />
+                </div>
                 Mi Carrito
-                <span className="text-sm font-medium text-foreground-secondary normal-case">
+                <span
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    color: "var(--luxury-text-muted)",
+                    textTransform: "none",
+                  }}
+                >
                   ({cartItemCount}{" "}
                   {cartItemCount === 1 ? "producto" : "productos"})
                 </span>
@@ -379,16 +450,40 @@ export function ClientNavbar({
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {carrito.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="w-20 h-20 rounded-full bg-accent-soft/30 flex items-center justify-center mb-4">
+                  <div
+                    style={{
+                      width: "80px",
+                      height: "80px",
+                      borderRadius: "50%",
+                      background: "var(--luxury-accent-soft)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginBottom: "16px",
+                    }}
+                  >
                     <ShoppingCart
                       className="w-10 h-10"
-                      style={{ color: COLORS.accent }}
+                      style={{ color: "var(--luxury-pink-soft)" }}
                     />
                   </div>
-                  <h3 className="text-lg font-semibold text-foreground">
+                  <h3
+                    style={{
+                      fontFamily: "'Cormorant Garamond', serif",
+                      fontSize: "20px",
+                      fontWeight: 600,
+                      color: "var(--luxury-text-dark)",
+                    }}
+                  >
                     Tu carrito está vacío
                   </h3>
-                  <p className="text-sm text-foreground-secondary mt-1">
+                  <p
+                    style={{
+                      fontSize: "13px",
+                      color: "var(--luxury-text-muted)",
+                      marginTop: "6px",
+                    }}
+                  >
                     Descubre nuestros productos en el catálogo
                   </p>
                   <button
@@ -396,7 +491,24 @@ export function ClientNavbar({
                       onNavigate("catalogo");
                       setIsCartOpen(false);
                     }}
-                    className="mt-6 px-8 py-2.5 rounded-xl border border-border text-sm font-bold hover:bg-surface transition-colors"
+                    style={{
+                      marginTop: "24px",
+                      padding: "10px 32px",
+                      borderRadius: "14px",
+                      border: "1.5px solid var(--luxury-pink-soft)",
+                      background: "transparent",
+                      fontSize: "13px",
+                      fontWeight: 700,
+                      color: "var(--luxury-pink)",
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "var(--luxury-accent-soft)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                    }}
                   >
                     Ir al catálogo
                   </button>
@@ -414,11 +526,16 @@ export function ClientNavbar({
                     return (
                       <div
                         key={item.productoId}
-                        className={`flex gap-4 p-4 rounded-xl border transition-all ${
+                        className={`flex gap-4 p-4 rounded-xl transition-all ${
                           hasStockIssue
                             ? "bg-red-50/50 border-red-200"
-                            : "bg-surface border-border hover:shadow-md"
+                            : ""
                         }`}
+                        style={{
+                          border: hasStockIssue ? undefined : "1.5px solid var(--luxury-accent-soft)",
+                          background: hasStockIssue ? undefined : "white",
+                          boxShadow: hasStockIssue ? undefined : "0 2px 12px var(--luxury-shadow-xs)",
+                        }}
                       >
                         <div className="w-20 h-20 rounded-lg overflow-hidden border border-border flex-shrink-0 bg-white">
                           <img
@@ -453,7 +570,7 @@ export function ClientNavbar({
 
                           <p
                             className="text-sm font-bold mt-1"
-                            style={{ color: COLORS.accent }}
+                            style={{ color: "var(--luxury-pink)" }}
                           >
                             {formatCurrency(producto.precioVenta)}
                           </p>
@@ -511,19 +628,30 @@ export function ClientNavbar({
             </div>
 
             {carrito.length > 0 && (
-              <div className="p-6 border-t border-border bg-surface/50">
+              <div
+                className="p-6"
+                style={{
+                  borderTop: "1px solid var(--luxury-accent-soft)",
+                  background: "var(--luxury-bg-header)",
+                }}
+              >
                 <div className="space-y-3 mb-6">
-                  <div className="flex justify-between text-sm text-foreground-secondary">
+                  <div className="flex justify-between text-sm" style={{ color: "var(--luxury-text-secondary)" }}>
                     <span>Subtotal</span>
                     <span>{formatCurrency(cartTotal)}</span>
                   </div>
-                  <div className="flex justify-between text-sm text-foreground-secondary">
+                  <div className="flex justify-between text-sm" style={{ color: "var(--luxury-text-secondary)" }}>
                     <span>Envío</span>
                     <span>{formatCurrency(shippingCost)}</span>
                   </div>
-                  <div className="flex justify-between text-lg font-bold border-t border-dashed border-border pt-4">
-                    <span>Total</span>
-                    <span style={{ color: COLORS.accentDeep }}>
+                  <div
+                    className="flex justify-between text-lg font-bold pt-4"
+                    style={{
+                      borderTop: "1.5px dashed var(--luxury-accent-soft)",
+                    }}
+                  >
+                    <span style={{ color: "var(--luxury-text-dark)" }}>Total</span>
+                    <span style={{ color: "var(--luxury-pink)" }}>
                       {formatCurrency(total)}
                     </span>
                   </div>
@@ -548,10 +676,10 @@ export function ClientNavbar({
                   style={{
                     background: hasBlockingIssues
                       ? "#cbd5e1"
-                      : `linear-gradient(135deg, ${COLORS.accent} 0%, ${COLORS.accentDark} 100%)`,
+                      : "linear-gradient(135deg, var(--luxury-pink-soft) 0%, var(--luxury-pink) 100%)",
                     boxShadow: hasBlockingIssues
                       ? "none"
-                      : `0 10px 20px ${COLORS.accent}40`,
+                      : "0 10px 20px var(--luxury-shadow)",
                   }}
                 >
                   {hasBlockingIssues ? (
