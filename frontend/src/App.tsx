@@ -224,7 +224,9 @@ function AppContent() {
         direccionEnvio: o.direccion || "",
         pago_confirmado: !!o.pago_confirmado,
         comprobante_url: o.comprobante_url || "",
+        fechaVenta: o.fecha_venta || null,
         productos: (o.items || []).map((i: any) => ({
+
           productoId: (i.id_producto || i.id_detalle_pedido)?.toString() || "0",
           cantidad: i.cantidad || 0,
           precioUnitario: Number(i.precio_unitario) || 0,

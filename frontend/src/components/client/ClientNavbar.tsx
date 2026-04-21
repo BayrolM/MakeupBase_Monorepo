@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useStore } from "../../lib/store";
-import { ThemeToggle } from "../ThemeToggle";
 import {
   Heart,
   Package,
@@ -278,7 +277,7 @@ export function ClientNavbar({
               {/* Tema (Solo Logueado, Inline) */}
               {currentUser && (
                 <div className="flex items-center px-1">
-                  <ThemeToggle inline />
+
                 </div>
               )}
 

@@ -32,7 +32,7 @@ export function PedidoDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-white border border-gray-100 !w-[92vw] !max-w-[680px] rounded-2xl shadow-2xl p-0 overflow-hidden">
+      <DialogContent className="bg-white border border-gray-100 w-[92vw] max-w-[680px] sm:max-w-[680px] rounded-2xl shadow-2xl p-0 overflow-hidden">
         {/* Header con gradiente */}
         <div
           className="relative px-8 py-6"

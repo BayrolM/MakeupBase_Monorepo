@@ -83,7 +83,15 @@ export function VentaFormDialog({
           </button>
         </div>
 
-        <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+        <style dangerouslySetInnerHTML={{ __html: `
+          .no-scrollbar::-webkit-scrollbar { display: none; }
+          .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        `}} />
+
+        <div 
+          className="no-scrollbar overflow-y-auto"
+          style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: "16px", maxHeight: "70vh" }}
+        >
           {/* Fila superior: Cliente + Método de Pago */}
           <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: "16px" }}>
             {/* Cliente */}

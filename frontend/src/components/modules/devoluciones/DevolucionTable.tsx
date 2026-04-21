@@ -1,4 +1,4 @@
-import { Search, Hash, User, Calendar, FileText, Eye, X, Edit, Package, Filter } from 'lucide-react';
+import { Search, Hash, User, Calendar, FileText, Eye, X, Edit, Package } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { getEstadoColor, formatCurrency, canChangeEstado, canAnularDevolucion } from '../../../utils/devolucionUtils';
@@ -7,9 +7,7 @@ interface DevolucionTableProps {
   devoluciones: any[];
   clientes: any[];
   searchQuery: string;
-  filterEstado: string;
   onSearchChange: (query: string) => void;
-  onFilterEstadoChange: (estado: string) => void;
   onViewDetail: (dev: any) => void;
   onViewPdf: (dev: any) => void;
   onAnular: (dev: any) => void;
@@ -21,9 +19,7 @@ export function DevolucionTable({
   devoluciones,
   clientes,
   searchQuery,
-  filterEstado,
   onSearchChange,
-  onFilterEstadoChange,
   onViewDetail,
   onViewPdf,
   onAnular,
@@ -42,22 +38,6 @@ export function DevolucionTable({
               className="w-full h-10 pl-10 pr-10 bg-white border border-gray-200 rounded-lg text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#c47b96] focus:ring-2 focus:ring-[#c47b96]/20 transition-all duration-150"
               placeholder="Buscar por ID, cliente, estado, motivo o fecha..."
             />
-          </div>
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-400" />
-            <Select value={filterEstado} onValueChange={onFilterEstadoChange}>
-              <SelectTrigger className="w-[180px] bg-white border-gray-200 text-gray-700 rounded-lg h-10 text-sm">
-                <SelectValue placeholder="Todos los estados" />
-              </SelectTrigger>
-              <SelectContent className="bg-white border-gray-200 rounded-xl shadow-xl">
-                <SelectItem value="todos">Todos los estados</SelectItem>
-                <SelectItem value="pendiente">Pendiente</SelectItem>
-                <SelectItem value="en_revision">En Revisión</SelectItem>
-                <SelectItem value="aprobada">Aprobada</SelectItem>
-                <SelectItem value="rechazada">Rechazada</SelectItem>
-                <SelectItem value="anulada">Anulada</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </div>
         <div>

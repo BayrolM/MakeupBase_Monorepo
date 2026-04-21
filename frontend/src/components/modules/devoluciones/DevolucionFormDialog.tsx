@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { X, Plus, Search, Calendar, Package, Check, Loader2, Info } from "lucide-react";
-import { Dialog, DialogContent, DialogTitle } from "../../ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "../../ui/dialog";
 import { Label } from "../../ui/label";
 import { Input } from "../../ui/input";
+import { Button } from "../../ui/button";
 import {
   Select,
   SelectContent,
@@ -51,261 +52,171 @@ export function DevolucionFormDialog({
 }: DevolucionFormDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="border-0 rounded-2xl shadow-2xl p-0 flex flex-col"
-        style={{
-          backgroundColor: "#ffffff",
-          width: "95vw",
-          maxWidth: "700px",
-          maxHeight: "90vh",
-          overflow: "hidden",
-        }}
-      >
-        {/* ── Header con gradiente ── */}
-        <div
-          className="flex items-center justify-between px-6 py-4 shrink-0"
-          style={{ background: "linear-gradient(135deg, #7b2d45 0%, #c47b96 100%)" }}
-        >
-          <div className="flex items-center gap-3">
+      <DialogContent className="bg-white border border-gray-100 !w-[95vw] !max-w-[900px] rounded-2xl shadow-2xl p-0 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-6 pb-5 border-b border-gray-100 bg-white z-10">
+          <div className="flex items-center gap-4">
             <div
-              className="flex items-center justify-center rounded-xl"
+              className="flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
               style={{
-                width: 40,
-                height: 40,
-                backgroundColor: "rgba(255,255,255,0.15)",
-                border: "1px solid rgba(255,255,255,0.2)",
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: "linear-gradient(135deg,#c47b96,#e092b2)",
+                boxShadow: "0 2px 8px rgba(196,123,150,0.3)",
               }}
             >
-              <Package style={{ width: 18, height: 18, color: "white" }} />
+              <Package className="w-5 h-5" />
             </div>
             <div>
-              <DialogTitle className="text-base font-bold text-white leading-tight">
+              <DialogTitle className="text-base font-bold text-gray-900 leading-tight">
                 Registrar Devolución
               </DialogTitle>
-              <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.65)" }}>
-                Gestiona las devoluciones asociadas a ventas
-              </p>
+              <DialogDescription className="text-xs text-gray-400 mt-0.5">
+                Gestiona las devoluciones asociadas a ventas realizadas
+              </DialogDescription>
             </div>
           </div>
           <button
             onClick={() => onOpenChange(false)}
-            className="rounded-full transition-colors"
-            style={{ padding: 6, color: "rgba(255,255,255,0.6)", background: "transparent", border: "none", cursor: "pointer" }}
-            onMouseOver={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.15)")}
-            onMouseOut={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = "transparent")}
+            className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
           >
-            <X style={{ width: 16, height: 16 }} />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* ── Body ── */}
-        <div
-          className="flex-1 flex flex-col gap-5 p-6"
-          style={{ overflowY: "auto", backgroundColor: "#f9f9fb" }}
+        <style dangerouslySetInnerHTML={{ __html: `
+          .no-scrollbar::-webkit-scrollbar { display: none; }
+          .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        `}} />
+
+        {/* Body */}
+        <div 
+          className="no-scrollbar overflow-y-auto"
+          style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: "16px", maxHeight: "70vh" }}
         >
+          
           {/* Mensajes */}
           {successMessage && (
-            <div
-              style={{
-                backgroundColor: "#f0fdf4",
-                border: "1px solid #bbf7d0",
-                borderRadius: 12,
-                padding: "12px 16px",
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-              }}
-            >
-              <Check style={{ width: 16, height: 16, color: "#22c55e" }} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#15803d" }}>{successMessage}</span>
+            <div className="bg-green-50 border border-green-100 rounded-xl p-3 flex items-center gap-3">
+              <Check className="w-4 h-4 text-green-500" />
+              <span className="text-sm font-bold text-green-700">{successMessage}</span>
             </div>
           )}
           {errorMessage && (
-            <div
-              style={{
-                backgroundColor: "#fef2f2",
-                border: "1px solid #fecaca",
-                borderRadius: 12,
-                padding: "12px 16px",
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-              }}
-            >
-              <X style={{ width: 16, height: 16, color: "#ef4444" }} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#991b1b" }}>{errorMessage}</span>
+            <div className="bg-red-50 border border-red-100 rounded-xl p-3 flex items-center gap-3">
+              <X className="w-4 h-4 text-red-500" />
+              <span className="text-sm font-bold text-red-700">{errorMessage}</span>
             </div>
           )}
 
-          {/* Datos Generales */}
-          <div>
-            <p className="text-sm font-bold mb-3" style={{ color: "#1a1a2e" }}>
-              Datos de la Devolución
-            </p>
-            <div className="grid grid-cols-1 gap-4" style={{ gridTemplateColumns: "1fr 1fr" }}>
-              <div className="space-y-1">
-                <Label style={{ fontSize: 11, fontWeight: 700, color: "#888" }}>
-                  ID de Venta <span style={{ color: "#ef4444" }}>*</span>
-                </Label>
-                <div style={{ position: "relative" }}>
-                  <Input
-                    value={formData.ventaId}
-                    onChange={(e) => onVentaIdChange(e.target.value)}
-                    className="h-11 rounded-xl pr-10"
-                    style={{ backgroundColor: "white", borderColor: "#e5e7eb" }}
-                    placeholder="Ej: 6"
-                    disabled={isSaving}
-                  />
-                  <Search
-                    style={{
-                      width: 16, height: 16, color: "#aaa",
-                      position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)",
-                      pointerEvents: "none",
-                    }}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <Label style={{ fontSize: 11, fontWeight: 700, color: "#888" }}>
-                  Fecha Devolución <span style={{ color: "#ef4444" }}>*</span>
-                </Label>
+          {/* Fila superior: ID Venta + Fecha */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div style={{ background: "#f9fafb", borderRadius: "12px", padding: "16px" }}>
+              <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                <Search className="w-3.5 h-3.5" /> ID de Venta <span style={{ color: "#f87171" }}>*</span>
+              </p>
+              <div style={{ position: "relative" }}>
                 <Input
-                  type="date"
-                  value={formData.fechaDevolucion}
-                  onChange={(e) => onFieldChange("fechaDevolucion", e.target.value)}
-                  className="h-11 rounded-xl"
-                  style={{ backgroundColor: "white", borderColor: "#e5e7eb" }}
+                  value={formData.ventaId}
+                  onChange={(e) => onVentaIdChange(e.target.value)}
+                  className="h-10 rounded-lg pr-10 border-gray-200"
+                  placeholder="Ej: 6..."
                   disabled={isSaving}
                 />
+                <Search className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
-          </div>
 
-          {/* Motivo */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <Label style={{ fontSize: 11, fontWeight: 700, color: "#888" }}>
-                Motivo <span style={{ color: "#ef4444" }}>*</span>
-              </Label>
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: formData.motivo.length > 90 ? "#ef4444" : "#aaa",
-                }}
-              >
-                {formData.motivo.length}/100
-              </span>
+            <div style={{ background: "#f9fafb", borderRadius: "12px", padding: "16px" }}>
+              <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                <Calendar className="w-3.5 h-3.5" /> Fecha Devolución <span style={{ color: "#f87171" }}>*</span>
+              </p>
+              <Input
+                type="date"
+                value={formData.fechaDevolucion}
+                onChange={(e) => onFieldChange("fechaDevolucion", e.target.value)}
+                className="h-10 rounded-lg border-gray-200 bg-white"
+                disabled={isSaving}
+              />
             </div>
-            <textarea
-              value={formData.motivo}
-              onChange={(e) => {
-                if (e.target.value.length <= 100) onFieldChange("motivo", e.target.value);
-              }}
-              disabled={isSaving}
-              placeholder="Describa el motivo de la devolución (mínimo 5 caracteres)..."
-              style={{
-                width: "100%",
-                minHeight: 80,
-                backgroundColor: "white",
-                border: "1px solid #e5e7eb",
-                borderRadius: 12,
-                padding: "10px 14px",
-                fontSize: 13,
-                color: "#1a1a2e",
-                resize: "vertical",
-                outline: "none",
-                fontFamily: "inherit",
-              }}
-            />
           </div>
 
-          {/* Estado */}
-          <div className="space-y-1">
-            <Label style={{ fontSize: 11, fontWeight: 700, color: "#888" }}>
-              Estado de la Devolución
-            </Label>
-            <Select value={formData.estado} onValueChange={(v) => onFieldChange("estado", v)}>
-              <SelectTrigger
-                className="h-11 rounded-xl"
-                style={{ backgroundColor: "white", borderColor: "#e5e7eb" }}
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent style={{ backgroundColor: "white", zIndex: 9999, borderColor: "#e5e7eb" }}>
-                <SelectItem value="aprobada">Aprobada (Directo — Suma Stock)</SelectItem>
-                <SelectItem value="pendiente">Pendiente de Revisión</SelectItem>
-                <SelectItem value="rechazada">Rechazada</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Motivo y Estado */}
+          <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: "16px" }}>
+            <div style={{ background: "#f9fafb", borderRadius: "12px", padding: "16px" }}>
+              <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                Motivo de Devolución <span style={{ color: "#f87171" }}>*</span>
+              </p>
+              <textarea
+                value={formData.motivo}
+                onChange={(e) => {
+                  if (e.target.value.length <= 100) onFieldChange("motivo", e.target.value);
+                }}
+                disabled={isSaving}
+                placeholder="Describa el motivo..."
+                className="w-100 min-h-[40px] bg-white border border-gray-200 rounded-lg p-3 text-sm focus:outline-none transition-all"
+                style={{ width: "100%", resize: "none" }}
+              />
+              <div className="flex justify-end mt-1">
+                <span style={{ fontSize: "10px", fontWeight: 700, color: formData.motivo.length > 90 ? "#ef4444" : "#aaa" }}>
+                  {formData.motivo.length}/100
+                </span>
+              </div>
+            </div>
+
+            <div style={{ background: "#f9fafb", borderRadius: "12px", padding: "16px" }}>
+              <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "8px" }}>
+                Estado Inicial
+              </p>
+              <Select value={formData.estado} onValueChange={(v) => onFieldChange("estado", v)}>
+                <SelectTrigger className="h-10 rounded-lg bg-white border-gray-200">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white border-gray-100">
+                  <SelectItem value="aprobada">Aprobada (Suma Stock)</SelectItem>
+                  <SelectItem value="pendiente">Pendiente de Revisión</SelectItem>
+                  <SelectItem value="rechazada">Rechazada</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* ── Resumen de Venta ── */}
+          {/* Resumen de Venta */}
           {ventaData ? (
-            <>
-              <div
-                style={{
-                  backgroundColor: "#fdf2f6",
-                  borderRadius: 12,
-                  padding: "14px 16px",
-                  border: "1px solid #fad6e3",
-                }}
-              >
-                <div className="flex items-center gap-2" style={{ marginBottom: 8 }}>
-                  <Info style={{ width: 14, height: 14, color: "#c47b96" }} />
-                  <span style={{ fontSize: 10, fontWeight: 700, color: "#c47b96", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    Resumen de la Venta #{ventaData.id}
-                  </span>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div style={{ background: "#fff0f5", border: "1px solid #fce8f0", borderRadius: "12px", padding: "16px" }}>
+                <p style={{ fontSize: "11px", fontWeight: 700, color: "#c47b96", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Info className="w-3.5 h-3.5" /> Información de la Venta #{ventaData.id}
+                </p>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
                   <div>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 2 }}>Fecha</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#1a1a2e" }}>{ventaData.fecha}</span>
+                    <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-wider">Fecha Venta</span>
+                    <span className="text-sm font-bold text-gray-800">{ventaData.fecha}</span>
                   </div>
                   <div>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 2 }}>Cliente</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#1a1a2e" }}>
-                      {ventaData.clienteNombre || clientes.find((c) => c.id === ventaData.clienteId)?.nombre || "N/A"}
-                    </span>
+                    <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-wider">Cliente</span>
+                    <span className="text-sm font-bold text-gray-800">{ventaData.clienteNombre || "N/A"}</span>
                   </div>
                   <div>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 2 }}>Total Venta</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#c47b96" }}>{formatCurrency(ventaData.total || 0)}</span>
+                    <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-wider">Monto Venta</span>
+                    <span className="text-sm font-black text-[#c47b96]">{formatCurrency(ventaData.total || 0)}</span>
                   </div>
                 </div>
               </div>
 
-              {/* ── Productos a devolver ── */}
-              <div>
-                <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
-                  <div className="flex items-center gap-2">
-                    <Package style={{ width: 15, height: 15, color: "#c47b96" }} />
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#1a1a2e" }}>Productos a Devolver</span>
-                  </div>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: "#c47b96", backgroundColor: "#fdf2f6", padding: "4px 10px", borderRadius: 8 }}>
-                    {productosDevolver.filter((p) => p.selected).length} seleccionados
+              {/* Lista de productos para devolver */}
+              <div style={{ background: "#ffffff", border: "1px solid #f3f4f6", borderRadius: "12px", overflow: "hidden" }}>
+                <div className="flex items-center justify-between" style={{ background: "#f9fafb", padding: "12px 16px", borderBottom: "1px solid #f3f4f6" }}>
+                  <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", display: "flex", alignItems: "center", gap: "6px", margin: 0 }}>
+                    <Package className="w-3.5 h-3.5" /> Productos de la Venta
+                  </p>
+                  <span className="text-[10px] font-black text-[#c47b96] bg-[#fff0f5] px-2 py-0.5 rounded-full">
+                    {productosDevolver.filter(p => p.selected).length} SELECCIONADOS
                   </span>
                 </div>
-
-                <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, overflow: "hidden", backgroundColor: "white" }}>
-                  {/* Header */}
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "28px 2fr 80px 90px",
-                      gap: 0,
-                      padding: "10px 16px",
-                      backgroundColor: "#f9fafb",
-                      borderBottom: "1px solid #e5e7eb",
-                    }}
-                  >
-                    <span />
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "#6b7280" }}>Producto</span>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", textAlign: "center" }}>Comprado</span>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", textAlign: "center" }}>A Devolver</span>
-                  </div>
-
-                  {/* Body */}
+                
+                <div style={{ padding: "0 16px", maxHeight: "250px", overflowY: "auto" }}>
                   {(ventaData.productos || []).map((item: any, index: number) => {
                     const producto = productos.find((p) => p.id === item.productoId);
                     const isSelected = productosDevolver[index]?.selected || false;
@@ -313,58 +224,27 @@ export function DevolucionFormDialog({
                     return (
                       <div
                         key={index}
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "28px 2fr 80px 90px",
-                          gap: 0,
-                          padding: "12px 16px",
-                          borderBottom: index < (ventaData.productos || []).length - 1 ? "1px solid #f3f4f6" : "none",
-                          alignItems: "center",
-                          backgroundColor: isSelected ? "#fdf2f6" : "white",
-                          transition: "background 0.15s",
-                        }}
+                        className={`flex items-center gap-4 py-4 border-b border-gray-50 last:border-0 transition-colors ${isSelected ? "bg-pink-50/20" : ""}`}
                       >
-                        {/* Checkbox */}
-                        <div>
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => onToggleProducto(index)}
-                            disabled={isSaving}
-                            style={{ width: 16, height: 16, accentColor: "#c47b96", cursor: "pointer" }}
-                          />
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => onToggleProducto(index)}
+                          disabled={isSaving}
+                          className="w-5 h-5 rounded border-gray-300 text-[#c47b96] focus:ring-[#c47b96] cursor-pointer"
+                        />
+                        <div className="flex-1">
+                          <p className="font-bold text-sm text-gray-800">{producto?.nombre || "N/A"}</p>
+                          <p className="text-[10px] text-gray-400 font-medium">Precio Unit: {formatCurrency(item.precioUnitario)}</p>
                         </div>
-                        {/* Nombre */}
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: 13, color: "#1a1a2e" }}>
-                            {producto?.nombre || "Producto desconocido"}
-                          </div>
-                          <div style={{ fontSize: 10, color: "#aaa" }}>
-                            {formatCurrency(item.precioUnitario)} / unidad
-                          </div>
-                        </div>
-                        {/* Cantidad original */}
-                        <div style={{ textAlign: "center" }}>
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              width: 32,
-                              height: 32,
-                              borderRadius: 8,
-                              backgroundColor: "#f3f4f6",
-                              fontSize: 13,
-                              fontWeight: 800,
-                              color: "#374151",
-                              border: "1px solid #e5e7eb",
-                            }}
-                          >
+                        <div className="text-center w-20">
+                          <p className="text-[9px] font-bold text-gray-400 uppercase mb-1">Original</p>
+                          <span className="text-sm font-black text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200">
                             {item.cantidad}
                           </span>
                         </div>
-                        {/* Cantidad a devolver */}
-                        <div style={{ textAlign: "center" }}>
+                        <div className="text-center w-24">
+                          <p className="text-[9px] font-bold text-gray-400 uppercase mb-1">A Devolver</p>
                           <Input
                             type="number"
                             value={productosDevolver[index]?.cantidadADevolver || 0}
@@ -372,15 +252,7 @@ export function DevolucionFormDialog({
                             disabled={!isSelected || isSaving}
                             min={0}
                             max={item.cantidad}
-                            style={{
-                              height: 36,
-                              width: 70,
-                              textAlign: "center",
-                              fontWeight: 700,
-                              backgroundColor: isSelected ? "#fff" : "#f9fafb",
-                              borderColor: "#e5e7eb",
-                              margin: "0 auto",
-                            }}
+                            className="h-8 text-center font-black border-gray-200 rounded-lg text-sm bg-white"
                           />
                         </div>
                       </div>
@@ -388,94 +260,52 @@ export function DevolucionFormDialog({
                   })}
                 </div>
               </div>
-            </>
+            </div>
           ) : (
-            <div
-              style={{
-                padding: "48px 24px",
-                textAlign: "center",
-                backgroundColor: "white",
-                borderRadius: 12,
-                border: "1px dashed #d1d5db",
-              }}
-            >
-              <Search style={{ width: 32, height: 32, color: "#d1d5db", margin: "0 auto 12px auto" }} />
-              <p style={{ fontSize: 13, color: "#9ca3af", fontStyle: "italic" }}>
-                Ingresa el ID de una venta para cargar los productos.
-              </p>
+            <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/50">
+              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100 mb-3">
+                <Search className="w-6 h-6 text-gray-300" />
+              </div>
+              <p className="text-sm text-gray-400 font-medium italic">Ingresa un ID de Venta válido para cargar los productos</p>
             </div>
           )}
         </div>
 
-        {/* ── Footer ── */}
-        <div
-          className="shrink-0"
-          style={{
-            padding: "16px 24px",
-            borderTop: "1px solid #e5e7eb",
-            backgroundColor: "#fafafa",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
-        >
-          {/* Total */}
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Total Reembolso
-            </div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: "#c47b96" }}>
+        {/* Footer */}
+        <div className="flex items-center justify-between px-6 pb-6 pt-4 border-t border-gray-100 bg-white z-10">
+          <div className="bg-gradient-to-r from-[#fff0f5] to-[#fce8f0] rounded-xl border border-[#f0d5e0]" style={{ padding: "10px 20px", display: "flex", alignItems: "center", gap: "16px" }}>
+            <p style={{ fontSize: "11px", fontWeight: 700, color: "#c47b96", textTransform: "uppercase", letterSpacing: "0.07em", margin: 0 }}>
+              Monto a Reembolsar
+            </p>
+            <span className="text-[#c47b96] font-black text-2xl">
               {formatCurrency(totalDevolucion)}
-            </div>
+            </span>
           </div>
 
-          {/* Botones */}
-          <div style={{ display: "flex", gap: 10 }}>
-            <button
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
               onClick={() => onOpenChange(false)}
+              className="border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg px-5 h-10 text-sm"
               disabled={isSaving}
-              style={{
-                height: 42, padding: "0 20px", borderRadius: 10, fontWeight: 700, fontSize: 14,
-                border: "1px solid #e5e7eb", backgroundColor: "white", color: "#374151",
-                cursor: isSaving ? "not-allowed" : "pointer", opacity: isSaving ? 0.5 : 1,
-                transition: "background 0.15s",
-              }}
-              onMouseOver={(e) => { if (!isSaving) (e.currentTarget as HTMLElement).style.backgroundColor = "#f3f4f6"; }}
-              onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = "white"; }}
             >
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={onSave}
-              disabled={isSaving || !ventaData}
-              style={{
-                height: 42, padding: "0 24px", borderRadius: 10, fontWeight: 700, fontSize: 14,
-                border: "none",
-                backgroundColor: isSaving || !ventaData ? "#d1d5db" : "#c47b96",
-                color: "white",
-                cursor: isSaving || !ventaData ? "not-allowed" : "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                minWidth: 180, transition: "background 0.2s",
-              }}
-              onMouseOver={(e) => { if (!isSaving && ventaData) (e.currentTarget as HTMLElement).style.backgroundColor = "#b06a84"; }}
-              onMouseOut={(e) => { if (!isSaving && ventaData) (e.currentTarget as HTMLElement).style.backgroundColor = "#c47b96"; }}
+              disabled={isSaving || !ventaData || totalDevolucion === 0}
+              className="rounded-lg font-semibold px-6 h-10 text-sm border-0"
+              style={{ backgroundColor: (isSaving || !ventaData || totalDevolucion === 0) ? "#d1d5db" : "#c47b96", color: "white" }}
             >
               {isSaving ? (
-                <>
-                  <svg style={{ width: 16, height: 16 }} viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.3" />
-                    <path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor" opacity="0.8">
-                      <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite" />
-                    </path>
-                  </svg>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Procesando...
-                </>
+                </div>
               ) : (
                 "Confirmar Devolución"
               )}
-            </button>
+            </Button>
           </div>
         </div>
       </DialogContent>

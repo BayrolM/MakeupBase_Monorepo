@@ -12,7 +12,7 @@ import {
   Briefcase,
   MessageSquare,
 } from "lucide-react";
-import { Dialog, DialogContent, DialogTitle } from "../../ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "../../ui/dialog";
 import { formatCurrency, getEstadoColor } from "../../../utils/devolucionUtils";
 
 interface DevolucionDetailDialogProps {
@@ -42,252 +42,219 @@ export function DevolucionDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="border-0 rounded-2xl shadow-2xl p-0 flex flex-col"
-        style={{
-          backgroundColor: "#fff",
-          width: "95vw",
-          maxWidth: "640px",
-          maxHeight: "90vh",
-          overflow: "hidden",
-        }}
-      >
-        {/* ── Header ── */}
-        <div
-          className="shrink-0 px-6 py-5"
-          style={{ background: "linear-gradient(135deg, #2e1020 0%, #4a2035 100%)" }}
+      <DialogContent className="bg-white border border-gray-100 !w-[95vw] !max-w-[900px] rounded-2xl shadow-2xl p-0 overflow-hidden">
+        {/* Header con gradiente premium */}
+        <div 
+          className="flex items-center justify-between px-8 py-8 relative overflow-hidden"
+          style={{ background: "linear-gradient(135deg, #c47b96 0%, #e092b2 100%)" }}
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div
-                className="flex items-center justify-center rounded-xl"
-                style={{
-                  width: 40, height: 40,
-                  backgroundColor: "rgba(255,255,255,0.12)",
-                  border: "1px solid rgba(255,255,255,0.18)",
-                }}
-              >
-                <FileText style={{ width: 18, height: 18, color: "white" }} />
-              </div>
-              <div>
-                <DialogTitle className="text-base font-bold text-white" style={{ lineHeight: 1.3 }}>
-                  Detalle de Devolución
-                </DialogTitle>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <Hash style={{ width: 12, height: 12, color: "rgba(255,255,255,0.5)" }} />
-                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.8)", fontWeight: 700, fontFamily: "monospace" }}>
-                    DEV-{devolucion.id}
-                    {devolucion.ventaId ? ` · Venta #${devolucion.ventaId}` : ""}
-                  </span>
-                </div>
-              </div>
+          {/* Decoración de fondo */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl pointer-events-none" />
+          
+          <div className="flex items-center gap-5 z-10">
+            <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/30 shadow-lg">
+              <FileText className="w-7 h-7 text-white" />
             </div>
-            <div className="flex items-center gap-3">
-              {/* Status badge */}
-              <span
-                className="flex items-center gap-1.5 rounded-full"
-                style={{
-                  fontSize: 11, fontWeight: 800, padding: "5px 12px",
-                  backgroundColor: isAprobada ? "rgba(34,197,94,0.15)" : isAnulada || isRechazada ? "rgba(239,68,68,0.15)" : "rgba(234,179,8,0.15)",
-                  color: isAprobada ? "#16a34a" : isAnulada || isRechazada ? "#dc2626" : "#ca8a04",
-                }}
-              >
-                {isAprobada ? <CheckCircle2 style={{ width: 13, height: 13 }} /> : (isAnulada || isRechazada) ? <XCircle style={{ width: 13, height: 13 }} /> : null}
-                {statusInfo.label}
-              </span>
-              <button
-                onClick={() => onOpenChange(false)}
-                style={{ padding: 6, borderRadius: "50%", color: "rgba(255,255,255,0.5)", background: "transparent", border: "none", cursor: "pointer" }}
-              >
-                <X style={{ width: 16, height: 16 }} />
-              </button>
+            <div>
+              <DialogTitle className="text-xl font-bold text-white leading-tight">
+                Detalle de Devolución
+              </DialogTitle>
+              <DialogDescription className="text-white font-bold mt-0.5 font-mono tracking-wider opacity-90">
+                DEV-{devolucion.id}{devolucion.ventaId ? ` · VENTA #${devolucion.ventaId}` : ""}
+              </DialogDescription>
             </div>
+          </div>
+
+          <div className="flex items-center gap-3 z-10">
+            <span
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider shadow-sm border border-white/20 backdrop-blur-sm"
+              style={{
+                backgroundColor: isAprobada ? "rgba(34,197,94,0.25)" : isAnulada || isRechazada ? "rgba(239,68,68,0.25)" : "rgba(234,179,8,0.25)",
+                color: "#fff",
+              }}
+            >
+              {isAprobada ? <CheckCircle2 className="w-3.5 h-3.5" /> : (isAnulada || isRechazada) ? <XCircle className="w-3.5 h-3.5" /> : null}
+              {statusInfo.label}
+            </span>
+            <button
+              onClick={() => onOpenChange(false)}
+              className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all text-white border border-white/20"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
-        {/* ── Body ── */}
-        <div className="flex-1" style={{ overflowY: "auto", padding: 24 }}>
-          {/* Info Cards Row */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 24 }}>
-            {/* Cliente */}
-            <div style={{ backgroundColor: "#f9fafb", borderRadius: 12, padding: "14px 16px", border: "1px solid #f0f0f0" }}>
-              <div className="flex items-center gap-2" style={{ marginBottom: 6 }}>
-                <User style={{ width: 14, height: 14, color: "#c47b96" }} />
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                  Cliente
-                </span>
+        <style dangerouslySetInnerHTML={{ __html: `
+          .no-scrollbar::-webkit-scrollbar { display: none; }
+          .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        `}} />
+
+        {/* Body */}
+        <div 
+          className="no-scrollbar overflow-y-auto"
+          style={{ padding: "24px 32px", display: "flex", flexDirection: "column", gap: "24px", maxHeight: "65vh" }}
+        >
+          
+          {/* Fila de Cards de Información */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
+            <div style={{ backgroundColor: "#f9fafb", borderRadius: "16px", padding: "16px", border: "1px solid #f3f4f6" }}>
+              <div className="flex items-center gap-2 mb-2">
+                <User className="w-3.5 h-3.5 text-[#c47b96]" />
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cliente</span>
               </div>
-              <p style={{ fontSize: 14, fontWeight: 700, color: "#1a1a2e", margin: 0 }}>
+              <p className="text-sm font-bold text-gray-800 line-clamp-1">
                 {devolucion.clienteNombre || cliente?.nombre || "N/A"}
               </p>
               {devolucion.emailCliente && (
-                <p style={{ fontSize: 10, color: "#9ca3af", margin: "2px 0 0 0" }}>{devolucion.emailCliente}</p>
+                <p className="text-[10px] text-gray-400 mt-0.5 truncate">{devolucion.emailCliente}</p>
               )}
             </div>
-            {/* Fecha */}
-            <div style={{ backgroundColor: "#f9fafb", borderRadius: 12, padding: "14px 16px", border: "1px solid #f0f0f0" }}>
-              <div className="flex items-center gap-2" style={{ marginBottom: 6 }}>
-                <Calendar style={{ width: 14, height: 14, color: "#c47b96" }} />
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                  Fecha
-                </span>
+
+            <div style={{ backgroundColor: "#f9fafb", borderRadius: "16px", padding: "16px", border: "1px solid #f3f4f6" }}>
+              <div className="flex items-center gap-2 mb-2">
+                <Calendar className="w-3.5 h-3.5 text-[#c47b96]" />
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Fecha</span>
               </div>
-              <p style={{ fontSize: 14, fontWeight: 700, color: "#1a1a2e", margin: 0 }}>{devolucion.fecha}</p>
+              <p className="text-sm font-bold text-gray-800">
+                {devolucion.fecha}
+              </p>
             </div>
-            {/* Total */}
-            <div style={{ backgroundColor: "#fdf2f6", borderRadius: 12, padding: "14px 16px", border: "1px solid #fad6e3" }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "#c47b96", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>
-                Total Devuelto
-              </span>
-              <p style={{ fontSize: 20, fontWeight: 900, color: "#c47b96", margin: 0 }}>
+
+            <div style={{ background: "linear-gradient(to bottom right, #fdf2f6, #fffbff)", borderRadius: "16px", padding: "16px", border: "1px solid #fad6e3" }}>
+              <div className="flex items-center gap-2 mb-2">
+                <Package className="w-3.5 h-3.5 text-[#c47b96]" />
+                <span className="text-[10px] font-bold text-[#c47b96] uppercase tracking-widest">Monto Total</span>
+              </div>
+              <p className="text-xl font-black text-[#c47b96]">
                 {formatCurrency(devolucion.totalDevuelto)}
               </p>
             </div>
           </div>
 
-          {/* Empleado & Venta Ref */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
+          {/* Segunda Fila: Empleado y Ref Venta */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             {devolucion.empleadoNombre && (
-              <div style={{ backgroundColor: "#f9fafb", borderRadius: 12, padding: "12px 16px", border: "1px solid #f0f0f0" }}>
-                <div className="flex items-center gap-2" style={{ marginBottom: 4 }}>
-                  <Briefcase style={{ width: 14, height: 14, color: "#c47b96" }} />
-                  <span style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em" }}>Procesada por</span>
+              <div style={{ backgroundColor: "#f9fafb", borderRadius: "16px", padding: "16px", border: "1px solid #f3f4f6" }}>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Briefcase className="w-3.5 h-3.5 text-[#c47b96]" />
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Procesada por</span>
                 </div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "#1a1a2e", margin: 0 }}>{devolucion.empleadoNombre}</p>
+                <p className="text-sm font-bold text-gray-800">{devolucion.empleadoNombre}</p>
               </div>
             )}
             {devolucion.ventaId && (
-              <div style={{ backgroundColor: "#f9fafb", borderRadius: 12, padding: "12px 16px", border: "1px solid #f0f0f0" }}>
-                <div className="flex items-center gap-2" style={{ marginBottom: 4 }}>
-                  <FileText style={{ width: 14, height: 14, color: "#c47b96" }} />
-                  <span style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em" }}>Ref. Venta</span>
+              <div style={{ backgroundColor: "#f9fafb", borderRadius: "16px", padding: "16px", border: "1px solid #f3f4f6" }}>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <FileText className="w-3.5 h-3.5 text-[#c47b96]" />
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Ref. Venta</span>
                 </div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "#1a1a2e", margin: 0 }}>#{devolucion.ventaId}</p>
+                <p className="text-sm font-bold text-gray-800">Orden #{devolucion.ventaId}</p>
               </div>
             )}
           </div>
 
           {/* Motivo */}
-          <div style={{ backgroundColor: "#f9fafb", borderRadius: 12, padding: "12px 16px", border: "1px solid #f0f0f0", marginBottom: 24 }}>
-            <div className="flex items-center gap-2" style={{ marginBottom: 6 }}>
-              <MessageSquare style={{ width: 14, height: 14, color: "#c47b96" }} />
-              <span style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em" }}>Motivo</span>
+          <div style={{ backgroundColor: "#f9fafb", borderRadius: "16px", padding: "16px", border: "1px solid #f3f4f6" }}>
+            <div className="flex items-center gap-2 mb-2">
+              <MessageSquare className="w-3.5 h-3.5 text-[#c47b96]" />
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Motivo de la Devolución</span>
             </div>
-            <p style={{ fontSize: 13, color: "#374151", margin: 0, lineHeight: 1.6 }}>{devolucion.motivo}</p>
+            <p className="text-sm text-gray-700 leading-relaxed italic">"{devolucion.motivo}"</p>
           </div>
 
-          {/* Auditoría */}
+          {/* Seguimiento Auditoría */}
           {(devolucion.motivoDecision || devolucion.motivoAnulacion) && (
-            <div style={{ backgroundColor: "#fef2f2", borderRadius: 12, padding: "12px 16px", border: "1px solid #fecaca", marginBottom: 24 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>
-                Seguimiento de Auditoría
-              </span>
+            <div style={{ backgroundColor: "#fef2f2", borderRadius: "16px", padding: "16px", border: "1px solid #fecaca" }}>
+              <span className="text-[10px] font-black text-red-700 uppercase tracking-widest block mb-2">Seguimiento de Auditoría</span>
               {devolucion.motivoDecision && (
-                <p style={{ fontSize: 12, color: "#374151", margin: "0 0 4px 0" }}>
-                  <strong style={{ color: "#6b7280" }}>Decisión:</strong>{" "}
-                  <span style={{ fontStyle: "italic" }}>"{devolucion.motivoDecision}"</span>
+                <p className="text-[12px] text-gray-700 mb-1">
+                  <span className="font-bold">Decisión:</span> <span className="italic">"{devolucion.motivoDecision}"</span>
                 </p>
               )}
               {devolucion.motivoAnulacion && (
-                <p style={{ fontSize: 12, color: "#991b1b", margin: "0 0 2px 0" }}>
-                  <strong>Anulación:</strong>{" "}
-                  <span style={{ fontStyle: "italic" }}>"{devolucion.motivoAnulacion}"</span>
-                  {devolucion.fechaAnulacion && <span style={{ color: "#9ca3af", marginLeft: 8 }}>({devolucion.fechaAnulacion})</span>}
+                <p className="text-[12px] text-red-800">
+                  <span className="font-bold">Anulación:</span> <span className="italic">"{devolucion.motivoAnulacion}"</span>
+                  {devolucion.fechaAnulacion && <span className="text-gray-400 ml-2">({devolucion.fechaAnulacion})</span>}
                 </p>
               )}
             </div>
           )}
 
-          {/* Productos Table */}
+          {/* Tabla de Productos */}
           <div>
-            <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
+            <div className="flex items-center justify-between mb-3 px-1">
               <div className="flex items-center gap-2">
-                <Package style={{ width: 15, height: 15, color: "#c47b96" }} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#1a1a2e" }}>Productos Devueltos</span>
+                <Package className="w-4 h-4 text-[#c47b96]" />
+                <span className="text-xs font-black text-gray-800 uppercase tracking-wider">Productos Devueltos</span>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 800, color: "#c47b96", backgroundColor: "#fdf2f6", padding: "4px 10px", borderRadius: 8 }}>
-                {itemCount} {itemCount === 1 ? "item" : "items"}
+              <span className="text-[10px] font-black text-[#c47b96] bg-[#fff0f5] px-3 py-1 rounded-full uppercase">
+                {itemCount} {itemCount === 1 ? "ítem" : "ítems"}
               </span>
             </div>
 
-            <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, overflow: "hidden" }}>
+            <div style={{ border: "1px solid #f3f4f6", borderRadius: "16px", overflow: "hidden" }}>
               {/* Table Header */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "2fr 80px 1fr 1fr",
-                  gap: 0,
-                  padding: "10px 16px",
-                  backgroundColor: "#f9fafb",
-                  borderBottom: "1px solid #e5e7eb",
-                }}
-              >
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#6b7280" }}>Producto</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", textAlign: "center" }}>Cant.</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", textAlign: "right" }}>P. Unit.</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", textAlign: "right" }}>Subtotal</span>
+              <div className="grid grid-cols-12 gap-2 px-6 py-3 bg-[#f9fafb] border-b border-gray-100">
+                <div className="col-span-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Producto</div>
+                <div className="col-span-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Cant.</div>
+                <div className="col-span-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">P. Unit.</div>
+                <div className="col-span-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Subtotal</div>
               </div>
 
               {/* Table Body */}
-              {(devolucion.productos || []).length === 0 ? (
-                <div style={{ padding: "32px 16px", textAlign: "center", color: "#9ca3af", fontSize: 13 }}>
-                  No hay productos cargados en detalle.
-                </div>
-              ) : (
-                (devolucion.productos || []).map((item: any, i: number) => {
-                  const prod = productos.find((p) => p.id === item.productoId);
-                  const subtotal = item.subtotal || item.cantidad * (item.precioUnitario || 0);
-                  return (
-                    <div
-                      key={i}
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "2fr 80px 1fr 1fr",
-                        gap: 0,
-                        padding: "12px 16px",
-                        borderBottom: i < (devolucion.productos || []).length - 1 ? "1px solid #f3f4f6" : "none",
-                        alignItems: "center",
-                      }}
-                    >
-                      <div>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: "#1a1a2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
-                          {item.productoNombre || prod?.nombre || "Producto desconocido"}
-                        </span>
-                        <span style={{ fontSize: 10, color: "#aaa" }}>ID: {item.productoId}</span>
+              <div className="divide-y divide-gray-50 bg-white">
+                {(devolucion.productos || []).length === 0 ? (
+                  <div className="py-8 text-center text-gray-400 text-sm italic">No hay productos registrados</div>
+                ) : (
+                  (devolucion.productos || []).map((item: any, i: number) => {
+                    const prod = productos.find((p) => p.id === item.productoId);
+                    const subtotal = item.subtotal || item.cantidad * (item.precioUnitario || 0);
+                    return (
+                      <div key={i} className="grid grid-cols-12 gap-2 px-6 py-4 items-center hover:bg-gray-50/50 transition-colors">
+                        <div className="col-span-6">
+                          <span className="text-sm font-bold text-gray-800 block truncate">
+                            {item.productoNombre || prod?.nombre || "Producto desconocido"}
+                          </span>
+                          <span className="text-[10px] text-gray-400 font-medium">SKU: {item.productoId}</span>
+                        </div>
+                        <div className="col-span-2 text-center">
+                          <span className="inline-block px-2 py-0.5 bg-gray-100 rounded text-sm font-black text-gray-600 border border-gray-200">
+                            {item.cantidad}
+                          </span>
+                        </div>
+                        <div className="col-span-2 text-right text-xs font-bold text-gray-500">
+                          {formatCurrency(item.precioUnitario || 0)}
+                        </div>
+                        <div className="col-span-2 text-right text-sm font-black text-[#c47b96]">
+                          {formatCurrency(subtotal)}
+                        </div>
                       </div>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: "#374151", textAlign: "center" }}>
-                        {item.cantidad}
-                      </span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#6b7280", textAlign: "right" }}>
-                        {formatCurrency(item.precioUnitario || 0)}
-                      </span>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: "#c47b96", textAlign: "right" }}>
-                        {formatCurrency(subtotal)}
-                      </span>
-                    </div>
-                  );
-                })
-              )}
+                    );
+                  })
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* ── Footer ── */}
-        <div
-          className="shrink-0 flex items-center justify-end"
-          style={{ padding: "16px 24px", borderTop: "1px solid #e5e7eb", backgroundColor: "#fafafa", gap: 12 }}
-        >
+        {/* Footer con banner de total */}
+        <div className="flex items-center justify-between px-8 pb-8 pt-4 border-t border-gray-100 bg-white">
+          <div className="bg-gradient-to-r from-[#fff0f5] to-[#fce8f0] rounded-xl border border-[#f0d5e0]" style={{ padding: "10px 20px", display: "flex", alignItems: "center", gap: "16px" }}>
+            <p style={{ fontSize: "11px", fontWeight: 700, color: "#c47b96", textTransform: "uppercase", letterSpacing: "0.07em", margin: 0 }}>
+              Reembolso Total
+            </p>
+            <span className="text-[#c47b96] font-black text-2xl">
+              {formatCurrency(devolucion.totalDevuelto)}
+            </span>
+          </div>
+
           <button
             onClick={() => onOpenChange(false)}
-            style={{
-              height: 42, padding: "0 28px", borderRadius: 10, fontWeight: 700, fontSize: 13,
-              border: "none", backgroundColor: "#c47b96", color: "white", cursor: "pointer",
-              transition: "background 0.2s",
-            }}
-            onMouseOver={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = "#b06a84")}
-            onMouseOut={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = "#c47b96")}
+            className="h-12 px-10 rounded-xl font-bold text-sm text-white transition-all shadow-md hover:shadow-lg active:scale-95"
+            style={{ backgroundColor: "#c47b96" }}
           >
-            Cerrar
+            Cerrar Detalle
           </button>
         </div>
       </DialogContent>

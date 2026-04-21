@@ -107,8 +107,9 @@ export const obtener = async (req, res) => {
  */
 export const crear = async (req, res) => {
   try {
-    const { id_venta, id_usuario_cliente, motivo, estado, productos, fecha_devolucion } = req.body;
+    const { id_venta, id_usuario_cliente, motivo, estado, productos, fecha_devolucion, evidencia_url } = req.body;
     const id_usuario_empleado = req.user.id_usuario;
+
 
     // Validaciones
     if (!id_venta) {
@@ -179,7 +180,7 @@ export const crear = async (req, res) => {
 
       // 5. Insertar la devolución
       const [devolucion] = await sql`
-        INSERT INTO devoluciones (id_usuario_cliente, id_usuario_empleado, id_venta, fecha_devolucion, motivo, total_devuelto, estado)
+        INSERT INTO devoluciones (id_usuario_cliente, id_usuario_empleado, id_venta, fecha_devolucion, motivo, total_devuelto, estado, evidencia_url)
         VALUES (
           ${id_usuario_cliente},
           ${id_usuario_empleado},
@@ -187,8 +188,10 @@ export const crear = async (req, res) => {
           ${fecha_devolucion || new Date()},
           ${motivo.trim()},
           ${totalDevuelto},
-          ${estadoFinal}
+          ${estadoFinal},
+          ${evidencia_url || null}
         )
+
         RETURNING *
       `;
 

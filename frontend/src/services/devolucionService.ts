@@ -13,7 +13,9 @@ export interface CreateDevolucionPayload {
   estado: string;
   fecha_devolucion: string;
   productos: DevolucionProducto[];
+  evidencia_url?: string;
 }
+
 
 export const devolucionService = {
   async getAll(params: { q?: string; estado?: string } = {}) {

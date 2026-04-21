@@ -205,7 +205,9 @@ export const obtenerOrdenes = async (id_usuario, rol = null, options = {}) => {
       p.comprobante_url,
       v.id_venta,
       v.metodo_pago,
+      v.fecha_venta,
       CONCAT(COALESCE(u.nombre, ''), ' ', COALESCE(u.apellido, '')) as nombre_usuario,
+
       u.email as email_usuario
     FROM pedidos p
     LEFT JOIN ventas v ON p.id_pedido = v.id_pedido
@@ -258,7 +260,9 @@ export const obtenerDetalleOrden = async (
         p.fecha_estimada,
         v.id_venta,
         v.metodo_pago,
+        v.fecha_venta,
         CONCAT(COALESCE(u.nombre, ''), ' ', COALESCE(u.apellido, '')) as nombre_usuario,
+
         u.email as email_usuario
       FROM pedidos p
       LEFT JOIN ventas v ON p.id_pedido = v.id_pedido
@@ -283,8 +287,10 @@ export const obtenerDetalleOrden = async (
         p.fecha_envio,
         p.fecha_estimada,
         v.id_venta,
-        v.metodo_pago
+        v.metodo_pago,
+        v.fecha_venta
       FROM pedidos p
+
       LEFT JOIN ventas v ON p.id_pedido = v.id_pedido
       WHERE p.id_pedido = ${id_pedido} 
         AND p.id_usuario_cliente = ${id_usuario}

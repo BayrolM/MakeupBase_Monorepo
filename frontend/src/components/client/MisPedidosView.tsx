@@ -21,6 +21,8 @@ import { orderService } from "../../services/orderService";
 import { generateOrderPDF } from "../../lib/pdfGenerator";
 import { CONFIG } from "../../lib/constants";
 import { toast } from "sonner";
+import { PedidoReturnDialog } from "./PedidoReturnDialog";
+
 
 export function MisPedidosView({
   onNavigate,
@@ -37,6 +39,9 @@ export function MisPedidosView({
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [pedidoToCancel, setPedidoToCancel] = useState<any>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [showReturnDialog, setShowReturnDialog] = useState(false);
+  const [pedidoToReturn, setPedidoToReturn] = useState<any>(null);
+
 
   // Get current client ID
   const currentCliente = clientes.find((c) => c.email === currentUser?.email);
@@ -82,14 +87,26 @@ export function MisPedidosView({
   });
 
   const canRequestReturn = (pedido: any) => {
-    if (pedido.estado !== "entregado") return false;
-    const pedidoDate = new Date(pedido.fecha);
+    // Normalizamos a minúsculas para evitar errores de capitalización
+    const estado = (pedido.estado || "").toLowerCase();
+    if (estado !== "entregado") return false;
+    
+    // El mes de garantía cuenta desde la fecha de venta (entrega real)
+    // Fallback a fecha de pedido si no existe fechaVenta
+    const dateStr = pedido.fechaVenta || pedido.fecha;
+    if (!dateStr) return false;
+
+    const referenceDate = new Date(dateStr);
     const today = new Date();
-    const diffDays = Math.floor(
-      (today.getTime() - pedidoDate.getTime()) / (1000 * 60 * 60 * 24),
-    );
-    return diffDays <= 30;
+    
+    // Calculamos la diferencia en días (Usamos 45 días para dar margen al "mes" del cliente)
+    const diffTime = Math.abs(today.getTime() - referenceDate.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays <= 45;
   };
+
+
 
 
   const handleViewDetail = async (pedido: any) => {
@@ -161,7 +178,9 @@ export function MisPedidosView({
           direccionEnvio: o.direccion || "",
           pago_confirmado: !!o.pago_confirmado,
           comprobante_url: o.comprobante_url || "",
+          fechaVenta: o.fecha_venta || null,
         }));
+
       setPedidos(mapped);
       setShowCancelConfirm(false);
       setPedidoToCancel(null);
@@ -417,6 +436,10 @@ export function MisPedidosView({
                   )}
                   {canRequestReturn(pedido) && (
                     <button
+                      onClick={() => {
+                        setPedidoToReturn(pedido);
+                        setShowReturnDialog(true);
+                      }}
                       style={{
                         padding: '8px 16px', borderRadius: '20px', background: '#fff', border: '1px solid #d1d5db',
                         color: '#374151', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '6px'
@@ -425,9 +448,10 @@ export function MisPedidosView({
                       onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#d1d5db'; e.currentTarget.style.color = '#374151'; e.currentTarget.style.background = '#fff'; }}
                     >
                       <RotateCcw style={{ width: 14, height: 14 }} />
-                      Devolver
+                      Solicitar Devolución
                     </button>
                   )}
+
                 </div>
               </div>
             ))}
@@ -769,7 +793,16 @@ export function MisPedidosView({
         </DialogContent>
       </Dialog>
 
+      {/* Modal: Devolución */}
+      <PedidoReturnDialog 
+        open={showReturnDialog}
+        onOpenChange={setShowReturnDialog}
+        pedido={pedidoToReturn}
+        productosStore={productos}
+      />
+
       {/* Hidden Invoice to Print */}
+
       {selectedPedido && (
         <div
           className="fixed left-0 top-0 w-full h-auto bg-white p-10 z-[-9999] opacity-0 pointer-events-none printable-invoice"

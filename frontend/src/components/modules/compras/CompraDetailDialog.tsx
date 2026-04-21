@@ -9,7 +9,15 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react";
-import { Dialog, DialogContent, DialogTitle } from "../../ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "../../ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../../ui/table";
 import { formatCurrency } from "../../../utils/compraUtils";
 import { jsPDF } from "jspdf";
 import { toast } from "sonner";
@@ -109,493 +117,149 @@ export function CompraDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="border-0 rounded-2xl shadow-2xl p-0 flex flex-col"
-        style={{
-          backgroundColor: "#fff",
-          width: "95vw",
-          maxWidth: "640px",
-          maxHeight: "90vh",
-          overflow: "hidden",
-        }}
+      <DialogContent 
+        className="bg-white border border-gray-100 !w-[95vw] !max-w-[700px] rounded-2xl shadow-2xl p-0 overflow-hidden"
       >
-        {/* Header */}
+        {/* Header con gradiente */}
         <div
-          className="shrink-0 px-6 py-5"
-          style={{
-            background: "linear-gradient(135deg, #2e1020 0%, #4a2035 100%)",
-          }}
+          className="relative px-8 py-6"
+          style={{ backgroundColor: "#c47b96" }}
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div
-                className="flex items-center justify-center rounded-xl"
-                style={{
-                  width: 40,
-                  height: 40,
-                  backgroundColor: "rgba(255,255,255,0.12)",
-                  border: "1px solid rgba(255,255,255,0.18)",
-                }}
-              >
-                <FileText style={{ width: 18, height: 18, color: "white" }} />
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/15 rounded-xl border border-white/20">
+                <FileText className="w-5 h-5 text-white" />
               </div>
               <div>
-                <DialogTitle
-                  className="text-base font-bold text-white"
-                  style={{ lineHeight: 1.3 }}
-                >
+                <DialogTitle className="text-lg font-bold text-white leading-tight">
                   Detalle de Compra
                 </DialogTitle>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <Hash
-                    style={{ width: 12, height: 12, color: "rgba(255,255,255,0.5)" }}
-                  />
-                  <span
-                    style={{
-                      fontSize: 12,
-                      color: "rgba(255,255,255,0.8)",
-                      fontWeight: 700,
-                      fontFamily: "monospace",
-                    }}
-                  >
-                    {selectedCompra.id}
-                  </span>
-                </div>
+                <DialogDescription className="text-white font-bold mt-0.5 font-mono tracking-wider">
+                  ORDEN #{selectedCompra.id.slice(0, 8).toUpperCase()}
+                </DialogDescription>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {/* Status badge */}
               <span
-                className="flex items-center gap-1.5 rounded-full"
+                className="px-3 py-1 rounded-full text-xs font-bold uppercase"
                 style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  padding: "5px 12px",
-                  backgroundColor: isConfirmada
-                    ? "rgba(34,197,94,0.15)"
-                    : "rgba(239,68,68,0.15)",
-                  color: isConfirmada ? "#16a34a" : "#dc2626",
+                  background: isConfirmada ? "rgba(209,250,229,0.9)" : "rgba(254,226,226,0.9)",
+                  color: isConfirmada ? "#065f46" : "#991b1b",
                 }}
               >
-                {isConfirmada ? (
-                  <CheckCircle2 style={{ width: 13, height: 13 }} />
-                ) : (
-                  <XCircle style={{ width: 13, height: 13 }} />
-                )}
                 {isConfirmada ? "Confirmada" : "Anulada"}
               </span>
               <button
                 onClick={() => onOpenChange(false)}
-                style={{
-                  padding: 6,
-                  borderRadius: "50%",
-                  color: "rgba(255,255,255,0.5)",
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                }}
+                className="p-2 rounded-full text-white/60 hover:text-white hover:bg-white/15 transition-colors"
               >
-                <X style={{ width: 16, height: 16 }} />
+                <X className="w-4 h-4" />
               </button>
+            </div>
+          </div>
+
+          {/* Info rápida en el header */}
+          <div className="flex items-center gap-6 mt-5">
+            <div className="flex items-center gap-2">
+              <Building2 className="w-3.5 h-3.5 text-white" />
+              <span className="text-white text-sm font-semibold">{proveedor?.nombre || "N/A"}</span>
+            </div>
+            <div className="w-px h-4 bg-white/20" />
+            <div className="flex items-center gap-2">
+              <Calendar className="w-3.5 h-3.5 text-white" />
+              <span className="text-white text-sm font-semibold">{new Date(selectedCompra.fecha).toLocaleDateString()}</span>
             </div>
           </div>
         </div>
 
         {/* Body */}
-        <div className="flex-1" style={{ overflowY: "auto", padding: "24px" }}>
-          {/* Info Cards Row */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1fr",
-              gap: 12,
-              marginBottom: 24,
-            }}
-          >
-            {/* Proveedor */}
-            <div
-              style={{
-                backgroundColor: "#f9fafb",
-                borderRadius: 12,
-                padding: "14px 16px",
-                border: "1px solid #f0f0f0",
-              }}
-            >
-              <div
-                className="flex items-center gap-2"
-                style={{ marginBottom: 6 }}
-              >
-                <Building2
-                  style={{ width: 14, height: 14, color: "#c47b96" }}
-                />
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: "#9ca3af",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  Proveedor
-                </span>
-              </div>
-              <p
-                style={{
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: "#1a1a2e",
-                  margin: 0,
-                }}
-              >
-                {proveedor?.nombre || "N/A"}
-              </p>
-            </div>
-
-            {/* Fecha */}
-            <div
-              style={{
-                backgroundColor: "#f9fafb",
-                borderRadius: 12,
-                padding: "14px 16px",
-                border: "1px solid #f0f0f0",
-              }}
-            >
-              <div
-                className="flex items-center gap-2"
-                style={{ marginBottom: 6 }}
-              >
-                <Calendar
-                  style={{ width: 14, height: 14, color: "#c47b96" }}
-                />
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: "#9ca3af",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  Fecha
-                </span>
-              </div>
-              <p
-                style={{
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: "#1a1a2e",
-                  margin: 0,
-                }}
-              >
-                {new Date(selectedCompra.fecha).toLocaleDateString()}
-              </p>
-            </div>
-
-            {/* Total */}
-            <div
-              style={{
-                backgroundColor: "#fdf2f6",
-                borderRadius: 12,
-                padding: "14px 16px",
-                border: "1px solid #fad6e3",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: "#c47b96",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  display: "block",
-                  marginBottom: 6,
-                }}
-              >
-                Total
-              </span>
-              <p
-                style={{
-                  fontSize: 20,
-                  fontWeight: 900,
-                  color: "#c47b96",
-                  margin: 0,
-                }}
-              >
-                {formatCurrency(selectedCompra.total)}
-              </p>
-            </div>
-          </div>
-
-          {/* Observaciones */}
+        <div className="px-8 pt-6 pb-4 space-y-6 max-h-[60vh] overflow-y-auto">
+          
+          {/* Observaciones (si existen) */}
           {selectedCompra.observaciones && (
-            <div
-              style={{
-                backgroundColor: "#f9fafb",
-                borderRadius: 12,
-                padding: "12px 16px",
-                border: "1px solid #f0f0f0",
-                marginBottom: 24,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: "#9ca3af",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                }}
-              >
-                Observaciones
-              </span>
-              <p
-                style={{
-                  fontSize: 13,
-                  color: "#374151",
-                  margin: "6px 0 0 0",
-                }}
-              >
-                {selectedCompra.observaciones}
+            <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                <FileText className="w-3.5 h-3.5" /> Observaciones
               </p>
+              <p className="text-sm text-gray-600 italic">"{selectedCompra.observaciones}"</p>
             </div>
           )}
 
-          {/* Products Table */}
+          {/* Tabla de productos */}
           <div>
-            <div
-              className="flex items-center justify-between"
-              style={{ marginBottom: 12 }}
-            >
-              <div className="flex items-center gap-2">
-                <Package style={{ width: 15, height: 15, color: "#c47b96" }} />
-                <span
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: "#1a1a2e",
-                  }}
-                >
-                  Productos
-                </span>
-              </div>
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  color: "#c47b96",
-                  backgroundColor: "#fdf2f6",
-                  padding: "4px 10px",
-                  borderRadius: 8,
-                }}
-              >
-                {itemCount} {itemCount === 1 ? "item" : "items"}
-              </span>
+            <div className="flex items-center gap-2 mb-3">
+              <Package className="w-4 h-4 text-[#c47b96]" />
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Resumen de Productos</p>
             </div>
-
-            <div
-              style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: 12,
-                overflow: "hidden",
-              }}
-            >
-              {/* Table Header */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "2fr 1fr 1fr 1fr",
-                  gap: 0,
-                  padding: "10px 16px",
-                  backgroundColor: "#f9fafb",
-                  borderBottom: "1px solid #e5e7eb",
-                }}
-              >
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#6b7280" }}>
-                  Producto
-                </span>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: "#6b7280",
-                    textAlign: "center",
-                  }}
-                >
-                  Cant.
-                </span>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: "#6b7280",
-                    textAlign: "right",
-                  }}
-                >
-                  P. Unit.
-                </span>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: "#6b7280",
-                    textAlign: "right",
-                  }}
-                >
-                  Subtotal
-                </span>
-              </div>
-
-              {/* Table Body */}
-              {detalles.length === 0 ? (
-                <div
-                  style={{
-                    padding: "32px 16px",
-                    textAlign: "center",
-                    color: "#9ca3af",
-                    fontSize: 13,
-                  }}
-                >
-                  No hay productos cargados en detalle.
-                </div>
-              ) : (
-                detalles.map((d: any, i: number) => {
-                  const pName =
-                    d.nombre_producto ||
-                    productos.find(
-                      (p) => p.id === d.id_producto?.toString(),
-                    )?.nombre ||
-                    `Item #${d.id_producto}`;
-                  const sub =
-                    Number(d.cantidad) * Number(d.precio_unitario);
-                  return (
-                    <div
-                      key={i}
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "2fr 1fr 1fr 1fr",
-                        gap: 0,
-                        padding: "12px 16px",
-                        borderBottom:
-                          i < detalles.length - 1
-                            ? "1px solid #f3f4f6"
-                            : "none",
-                        alignItems: "center",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 700,
-                          color: "#1a1a2e",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {pName}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 800,
-                          color: "#374151",
-                          textAlign: "center",
-                        }}
-                      >
-                        {d.cantidad}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: "#6b7280",
-                          textAlign: "right",
-                        }}
-                      >
-                        {formatCurrency(Number(d.precio_unitario))}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 800,
-                          color: "#c47b96",
-                          textAlign: "right",
-                        }}
-                      >
-                        {formatCurrency(sub)}
-                      </span>
-                    </div>
-                  );
-                })
-              )}
+            
+            <div className="rounded-xl border border-gray-100 overflow-hidden bg-white">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50/50 hover:bg-gray-50/50 border-b border-gray-100">
+                    <TableHead className="text-[10px] font-bold text-gray-400 uppercase tracking-wider py-3 px-4">Producto</TableHead>
+                    <TableHead className="text-[10px] font-bold text-gray-400 uppercase tracking-wider py-3 px-4 text-center">Cant.</TableHead>
+                    <TableHead className="text-[10px] font-bold text-gray-400 uppercase tracking-wider py-3 px-4 text-center">Costo Unit.</TableHead>
+                    <TableHead className="text-[10px] font-bold text-gray-400 uppercase tracking-wider py-3 px-4 text-right">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {detalles.map((d: any, i: number) => {
+                    const pName = d.nombre_producto || productos.find(p => p.id === d.id_producto?.toString())?.nombre || `Item #${d.id_producto}`;
+                    return (
+                      <TableRow key={i} className="border-b border-gray-50 hover:bg-gray-50/30 transition-colors">
+                        <TableCell className="py-3 px-4">
+                          <span className="font-bold text-gray-800 text-sm">{pName}</span>
+                        </TableCell>
+                        <TableCell className="py-3 px-4 text-center">
+                          <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md text-xs font-bold border border-gray-200">
+                            {d.cantidad}
+                          </span>
+                        </TableCell>
+                        <TableCell className="py-3 px-4 text-center">
+                          <span className="text-gray-500 text-xs font-medium">
+                            {formatCurrency(Number(d.precio_unitario))}
+                          </span>
+                        </TableCell>
+                        <TableCell className="py-3 px-4 text-right">
+                          <span className="font-black text-gray-800 text-sm">
+                            {formatCurrency(Number(d.cantidad) * Number(d.precio_unitario))}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div
-          className="shrink-0 flex items-center justify-between"
-          style={{
-            padding: "16px 24px",
-            borderTop: "1px solid #e5e7eb",
-            backgroundColor: "#fafafa",
-          }}
-        >
-          <button
-            onClick={handlePrint}
-            style={{
-              height: 42,
-              padding: "0 18px",
-              borderRadius: 10,
-              fontWeight: 700,
-              fontSize: 13,
-              border: "1px solid #e5e7eb",
-              backgroundColor: "white",
-              color: "#374151",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              transition: "background 0.15s",
-            }}
-            onMouseOver={(e) =>
-              ((e.currentTarget as HTMLElement).style.backgroundColor =
-                "#f3f4f6")
-            }
-            onMouseOut={(e) =>
-              ((e.currentTarget as HTMLElement).style.backgroundColor =
-                "white")
-            }
-          >
-            <Download style={{ width: 15, height: 15, color: "#6b7280" }} />
-            Exportar PDF
-          </button>
-          <button
-            onClick={() => onOpenChange(false)}
-            style={{
-              height: 42,
-              padding: "0 28px",
-              borderRadius: 10,
-              fontWeight: 700,
-              fontSize: 13,
-              border: "none",
-              backgroundColor: "#c47b96",
-              color: "white",
-              cursor: "pointer",
-              transition: "background 0.2s",
-            }}
-            onMouseOver={(e) =>
-              ((e.currentTarget as HTMLElement).style.backgroundColor =
-                "#b06a84")
-            }
-            onMouseOut={(e) =>
-              ((e.currentTarget as HTMLElement).style.backgroundColor =
-                "#c47b96")
-            }
-          >
-            Cerrar
-          </button>
+        <div className="flex items-center justify-between px-8 pb-6 pt-4 border-t border-gray-100 bg-white">
+          <div className="bg-gradient-to-r from-[#fff0f5] to-[#fce8f0] rounded-xl border border-[#f0d5e0]" style={{ padding: "10px 20px", display: "flex", alignItems: "center", gap: "16px" }}>
+            <p style={{ fontSize: "11px", fontWeight: 700, color: "#c47b96", textTransform: "uppercase", letterSpacing: "0.07em", margin: 0 }}>
+              Monto de Inversión
+            </p>
+            <span className="text-[#c47b96] font-black text-2xl">
+              {formatCurrency(selectedCompra.total)}
+            </span>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={handlePrint}
+              className="h-10 px-4 rounded-lg font-bold text-xs border border-gray-200 text-gray-600 hover:bg-gray-50 transition-all flex items-center gap-2"
+            >
+              <Download className="w-3.5 h-3.5" /> Exportar PDF
+            </button>
+            <button
+              onClick={() => onOpenChange(false)}
+              className="h-10 px-6 rounded-lg font-bold text-xs text-white transition-all"
+              style={{ backgroundColor: "#c47b96" }}
+            >
+              Cerrar Detalle
+            </button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

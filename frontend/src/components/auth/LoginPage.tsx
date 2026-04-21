@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { ThemeToggle } from '../ThemeToggle';
 import { ChevronLeft, Info, Key, User } from 'lucide-react';
 
 /* ── Luxury CSS variable helpers ── */
@@ -103,7 +102,7 @@ export function LoginPage({ onLogin, onNavigateToRegister, onNavigateToRecover, 
 
       {/* Theme Toggle */}
       <div style={{ position: 'absolute', top: '24px', right: '24px', zIndex: 10 }}>
-        <ThemeToggle />
+
       </div>
       
       {/* Back to Home Button */}

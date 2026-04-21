@@ -33,7 +33,6 @@ export function DevolucionesModule() {
   // Data & Selection States
   const [selectedDevolucion, setSelectedDevolucion] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterEstado, setFilterEstado] = useState("");
   const [motivoDecision, setMotivoDecision] = useState("");
   const [nuevoEstado, setNuevoEstado] = useState("en_revision");
   const [motivoAnulacion, setMotivoAnulacion] = useState("");
@@ -53,9 +52,6 @@ export function DevolucionesModule() {
   // Pagination
   const filteredDevoluciones = useMemo(() => {
     let result = devoluciones;
-    if (filterEstado) {
-      result = result.filter(d => d.estado === filterEstado);
-    }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(dev => {
@@ -71,7 +67,7 @@ export function DevolucionesModule() {
       });
     }
     return result;
-  }, [devoluciones, searchQuery, filterEstado, clientes]);
+  }, [devoluciones, searchQuery, clientes]);
 
   const {
     currentPage,
@@ -302,9 +298,7 @@ export function DevolucionesModule() {
           devoluciones={paginatedDevoluciones}
           clientes={clientes}
           searchQuery={searchQuery}
-          filterEstado={filterEstado}
           onSearchChange={(q) => { setSearchQuery(q); handlePageChange(1); }}
-          onFilterEstadoChange={(e) => { setFilterEstado(e === "todos" ? "" : e); handlePageChange(1); }}
           onViewDetail={async (dev) => {
             try {
               const fullData = await devolucionService.getById(Number(dev.id));

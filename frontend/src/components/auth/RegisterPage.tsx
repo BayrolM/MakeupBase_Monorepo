@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { ThemeToggle } from '../ThemeToggle';
 import { ChevronLeft } from 'lucide-react';
 import { UserRole } from '../../lib/store';
 
@@ -141,7 +140,7 @@ export function RegisterPage({ onRegister, onNavigateToLogin, onBack }: Register
 
       {/* Theme Toggle */}
       <div style={{ position: 'absolute', top: '24px', right: '24px', zIndex: 10 }}>
-        <ThemeToggle />
+
       </div>
       
       {/* Back to Home Button */}

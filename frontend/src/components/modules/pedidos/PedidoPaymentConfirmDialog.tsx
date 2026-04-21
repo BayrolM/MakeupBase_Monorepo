@@ -1,7 +1,8 @@
 import { 
   X, 
   CreditCard, 
-  AlertCircle 
+  AlertCircle,
+  CheckCircle2
 } from "lucide-react";
 import { 
   Dialog, 
@@ -31,13 +32,23 @@ export function PedidoPaymentConfirmDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-white border border-gray-100 max-w-md rounded-2xl shadow-2xl p-0 overflow-hidden">
+      <DialogContent className="bg-white border border-gray-100 w-[95vw] max-w-[450px] sm:max-w-[450px] rounded-2xl shadow-2xl p-0 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-5 border-b border-gray-100 bg-white">
           <div className="flex items-center gap-4">
             <div
-              className={`flex items-center justify-center text-white font-bold text-lg flex-shrink-0 ${isCurrentlyConfirmed ? 'bg-rose-500 shadow-rose-200' : 'bg-emerald-500 shadow-emerald-200'} shadow-lg`}
-              style={{ width: 44, height: 44, borderRadius: 12 }}
+              className="flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+              style={{ 
+                width: 44, 
+                height: 44, 
+                borderRadius: 12,
+                background: isCurrentlyConfirmed 
+                  ? "linear-gradient(135deg, #ef4444, #f87171)" 
+                  : "linear-gradient(135deg, #10b981, #34d399)",
+                boxShadow: isCurrentlyConfirmed 
+                  ? "0 2px 8px rgba(239,68,68,0.3)" 
+                  : "0 2px 8px rgba(16,185,129,0.3)"
+              }}
             >
               <CreditCard className="w-5 h-5" />
             </div>
@@ -58,24 +69,40 @@ export function PedidoPaymentConfirmDialog({
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
-          <div className={`rounded-xl p-4 flex gap-3 border ${isCurrentlyConfirmed ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100'}`}>
-            <AlertCircle className={`w-5 h-5 ${isCurrentlyConfirmed ? 'text-rose-500' : 'text-emerald-500'} shrink-0`} />
+        {/* Body */}
+        <div className="p-8 space-y-6">
+          <div 
+            className="rounded-2xl p-5 flex gap-4 border"
+            style={{ 
+              backgroundColor: isCurrentlyConfirmed ? "#fef2f2" : "#f0fdf4",
+              borderColor: isCurrentlyConfirmed ? "#fecaca" : "#bbf7d0"
+            }}
+          >
+            <div 
+              className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm"
+              style={{ backgroundColor: "white" }}
+            >
+              {isCurrentlyConfirmed ? (
+                <AlertCircle className="w-5 h-5 text-red-500" />
+              ) : (
+                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+              )}
+            </div>
             <div className="space-y-1">
-              <p className={`text-sm font-bold ${isCurrentlyConfirmed ? 'text-rose-700' : 'text-emerald-700'}`}>
-                {isCurrentlyConfirmed ? "¿Deseas anular la confirmación de pago?" : "¿Deseas confirmar la recepción del pago?"}
+              <p className="text-sm font-bold text-gray-800">
+                {isCurrentlyConfirmed ? "¿Anular confirmación de pago?" : "¿Confirmar recepción del pago?"}
               </p>
-              <p className={`text-xs ${isCurrentlyConfirmed ? 'text-rose-600' : 'text-emerald-600'} leading-relaxed`}>
+              <p className="text-xs text-gray-500 leading-relaxed">
                 {isCurrentlyConfirmed 
-                  ? "Esta acción marcará el pedido como pendiente de pago nuevamente." 
-                  : "Esta acción marcará el pedido como PAGADO en el sistema de gestión."}
+                  ? "Esta acción marcará el pedido como pendiente de pago nuevamente en el sistema." 
+                  : "Esta acción marcará el pedido como PAGADO y permitirá proceder con el despacho."}
               </p>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 px-6 pb-6 pt-4 bg-gray-50/50">
+        <div className="flex justify-end gap-3 px-6 pb-6 pt-2 bg-white">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
@@ -87,9 +114,21 @@ export function PedidoPaymentConfirmDialog({
           <Button
             onClick={onConfirm}
             disabled={isSaving}
-            className={`rounded-xl px-8 h-11 text-sm font-bold text-white hover:opacity-90 border-0 shadow-lg ${isCurrentlyConfirmed ? 'bg-rose-500 shadow-rose-200' : 'bg-emerald-500 shadow-emerald-200'}`}
+            className="rounded-xl px-8 h-11 text-sm font-bold text-white transition-all shadow-md hover:shadow-lg active:scale-95 border-0"
+            style={{ 
+              background: isCurrentlyConfirmed 
+                ? "linear-gradient(135deg, #ef4444, #f87171)" 
+                : "linear-gradient(135deg, #10b981, #34d399)" 
+            }}
           >
-            {isSaving ? "Procesando..." : "Confirmar Acción"}
+            {isSaving ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Procesando...
+              </div>
+            ) : (
+              isCurrentlyConfirmed ? "Sí, Anular Pago" : "Sí, Confirmar Pago"
+            )}
           </Button>
         </div>
       </DialogContent>

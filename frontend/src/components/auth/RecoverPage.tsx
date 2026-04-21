@@ -3,7 +3,6 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { CheckCircle, Loader2, KeyRound } from 'lucide-react';
-import { ThemeToggle } from '../ThemeToggle';
 
 interface RecoverPageProps {
   onRecover: (email: string) => void;
@@ -298,7 +297,7 @@ export function RecoverPage({ onRecover, onNavigateToLogin, onBack }: RecoverPag
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
       {/* Theme Toggle */}
-      <ThemeToggle />
+
       
       <div className="w-full max-w-md">
         {/* Logo */}

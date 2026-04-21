@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useStore } from "../lib/store";
 import { PageHeader } from "./PageHeader";
-import { ThemeToggle } from "./ThemeToggle";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import {
   TrendingUp,
@@ -132,7 +131,7 @@ export function Dashboard() {
         icon={LayoutDashboard}
       />
 
-      <ThemeToggle />
+
 
       <div className="p-8 space-y-8">
         {/* KPI Grid - Modern & Clean */}
