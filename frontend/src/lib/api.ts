@@ -9,7 +9,7 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 10000, // 10 segundos
+  timeout: 30000, // 30 segundos para APIs serverless
 });
 
 // Interceptor para agregar token a todas las peticiones
@@ -30,13 +30,23 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<any>) => {
-    // Manejar errores de autenticación
+    // Ignorar errores 401 en peticiones públicas (GET sin auth)
+    // Solo mostrar error si es una petición que requiere auth
+    const isAuthRequired = error.config?.url?.includes('/orders') || 
+                        error.config?.url?.includes('/cart') ||
+                        error.config?.url?.includes('/ventas');
+    
+    if (error.response?.status === 401 && !isAuthRequired) {
+      console.log('ℹ️ Error 401 en ruta pública, ignorando');
+      return Promise.reject(error);
+    }
+
+    // Manejar errores de autenticación en rutas privadas
     if (error.response?.status === 401) {
       localStorage.removeItem("authToken");
       toast.error("Sesión expirada", {
         description: "Por favor, inicia sesión nuevamente",
       });
-      // Redirigir a login
       window.location.href = "/";
     }
 

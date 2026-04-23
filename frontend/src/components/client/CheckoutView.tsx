@@ -7,6 +7,7 @@ import { orderService } from '../../services/orderService';
 import { productService } from '../../services/productService';
 import { toast } from 'sonner';
 import { CONFIG } from '../../lib/constants';
+import { uploadToSupabase } from '../supabaseUpload';
 
 /* ── Luxury CSS variable helpers ── */
 const V = (name: string) => `var(--luxury-${name})`;
@@ -109,14 +110,23 @@ export function CheckoutView({ onBack, onComplete }: CheckoutViewProps) {
       const response = await orderService.create(orderData);
       const idPedido = response.id_pedido;
 
+      let comprobanteUrl = '';
       if (comprobanteFile && idPedido) {
         setIsUploading(true);
         try {
-          const formData = new FormData();
-          formData.append('comprobante', comprobanteFile);
-          await orderService.uploadComprobante(idPedido, formData);
-        } catch (uploadError) {
-          toast.warning('Tu pedido se creó, pero hubo un problema subiendo tu comprobante de pago.');
+          console.log('📤 Iniciando upload del comprobante...');
+          const uploadResult = await uploadToSupabase(comprobanteFile, 'comprobantes');
+          comprobanteUrl = uploadResult.secure_url;
+          console.log('✅ Comprobante subido:', comprobanteUrl);
+          
+          await orderService.updateComprobanteUrl(idPedido, comprobanteUrl);
+          console.log('✅ URL guardada en el pedido');
+          toast.success('Comprobante de pago subido correctamente');
+        } catch (uploadError: any) {
+          console.error('❌ Error al subir comprobante:', uploadError);
+          toast.error('Error al subir comprovante', {
+            description: uploadError.message || 'El comprovante no se pudo subir. Contacta al administrador.',
+          });
         } finally {
           setIsUploading(false);
         }
@@ -143,7 +153,7 @@ export function CheckoutView({ onBack, onComplete }: CheckoutViewProps) {
         total,
         estado: 'pendiente',
         pago_confirmado: false,
-        comprobante_url: '',
+        comprobante_url: comprobanteUrl,
         direccionEnvio,
       });
 

@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Producto, Categoria, Marca } from "../../../lib/store";
-import { uploadToCloudinary } from "../../Cloudinary";
+import { uploadToSupabase } from "../../supabaseUpload";
 import { validateProductField } from "../../../utils/productUtils";
 import { productService } from "../../../services/productService";
 
@@ -124,7 +124,7 @@ export function ProductFormDialog({
 
     setIsUploading(true);
     try {
-      const data = await uploadToCloudinary(file);
+      const data = await uploadToSupabase(file);
       setFormData((prev) => ({ ...prev, imagenUrl: data.secure_url }));
       setImagePreview(data.secure_url);
       toast.success("Imagen cargada correctamente");

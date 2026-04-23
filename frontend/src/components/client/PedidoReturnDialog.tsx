@@ -28,7 +28,7 @@ import { toast } from "sonner";
 import { devolucionService } from "../../services/devolucionService";
 import { saleService } from "../../services/saleService";
 import { orderService } from "../../services/orderService";
-import { uploadToCloudinary } from "../Cloudinary";
+import { uploadToSupabase } from "../supabaseUpload";
 
 interface PedidoReturnDialogProps {
   open: boolean;
@@ -155,10 +155,10 @@ export function PedidoReturnDialog({
     let finalImageUrl = "";
 
     try {
-      // 1. Upload image to Cloudinary if selected
+      // 1. Upload image to Supabase if selected
       if (selectedFile) {
         setIsUploadingImage(true);
-        const uploadResult = await uploadToCloudinary(selectedFile);
+        const uploadResult = await uploadToSupabase(selectedFile, "comprobantes");
         finalImageUrl = uploadResult.secure_url;
         setIsUploadingImage(false);
       }

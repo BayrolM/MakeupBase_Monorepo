@@ -159,5 +159,17 @@ export const orderService = {
     } catch (error: any) {
       throw new Error(error.response?.data?.message || "Error al subir el comprobante");
     }
+  },
+
+  /**
+   * Actualizar URL del comprobante
+   */
+  async updateComprobanteUrl(id: number, url: string): Promise<any> {
+    try {
+      const response = await api.put(`/orders/${id}/comprobante_url`, { url });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Error al actualizar el comprobante");
+    }
   }
 };
