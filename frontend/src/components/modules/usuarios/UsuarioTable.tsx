@@ -13,6 +13,7 @@ interface UsuarioTableProps {
   onDelete: (user: any) => void;
   onStatusChange: (user: any, newStatus: 'activo' | 'inactivo') => void;
   isAdmin: boolean;
+  roles: any[];
 }
 
 export function UsuarioTable({
@@ -24,7 +25,8 @@ export function UsuarioTable({
   onEdit,
   onDelete,
   onStatusChange,
-  isAdmin
+  isAdmin,
+  roles
 }: UsuarioTableProps) {
   return (
     <div className="bg-white/80 backdrop-blur-sm border border-white/50 rounded-2xl overflow-hidden shadow-xl">
@@ -88,7 +90,8 @@ export function UsuarioTable({
             </TableRow>
           ) : (
             users.map((user) => {
-              const rolBadge = getRolBadgeStyles(user.rol);
+              const rolNombre = roles.find((r: any) => String(r.id) === String(user.rol))?.nombre || user.rol;
+              const rolBadge = getRolBadgeStyles(rolNombre.toLowerCase());
               const pedidosActivos = pedidos.filter(p =>
                 p.clienteId === user.id &&
                 !['entregado', 'cancelado'].includes(p.estado)
@@ -111,7 +114,7 @@ export function UsuarioTable({
                   </TableCell>
                   <TableCell className="py-2.5">
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${rolBadge.bg} ${rolBadge.text}`}>
-                      {getRolLabel(user.rol)}
+                      {rolNombre}
                     </span>
                   </TableCell>
                   <TableCell className="py-2.5">

@@ -6,14 +6,18 @@ interface UsuarioDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   user: any;
+  roles: any[];
 }
 
 export function UsuarioDetailDialog({
   open,
   onOpenChange,
-  user
+  user,
+  roles
 }: UsuarioDetailDialogProps) {
   if (!user) return null;
+
+  const rolNombre = roles.find((r: any) => String(r.id) === String(user.rol))?.nombre || user.rol;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -32,7 +36,7 @@ export function UsuarioDetailDialog({
                 Perfil del Usuario
               </DialogTitle>
               <DialogDescription className="text-xs text-gray-400 mt-0.5">
-                Rol: {getRolLabel(user.rol)}
+                Rol: {rolNombre}
               </DialogDescription>
             </div>
           </div>
@@ -125,7 +129,7 @@ export function UsuarioDetailDialog({
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-[#fff0f5] border border-pink-100 rounded-xl p-4 text-center">
                 <Shield className="w-5 h-5 text-[#c47b96] mx-auto mb-2" />
-                <p className="text-xl font-bold text-gray-800">{getRolLabel(user.rol)}</p>
+                <p className="text-xl font-bold text-gray-800">{rolNombre}</p>
                 <p className="text-[10px] text-gray-500 uppercase font-semibold">Nivel de Acceso</p>
               </div>
               

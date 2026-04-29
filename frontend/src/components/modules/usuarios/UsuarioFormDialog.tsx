@@ -13,6 +13,7 @@ interface UsuarioFormDialogProps {
   formData: any;
   fieldErrors: Record<string, string>;
   isSaving: boolean;
+  roles: any[];
   onFieldChange: (name: string, value: string) => void;
   onSelectChange: (name: string, value: string) => void;
   onSave: () => void;
@@ -25,6 +26,7 @@ export function UsuarioFormDialog({
   formData,
   fieldErrors,
   isSaving,
+  roles,
   onFieldChange,
   onSelectChange,
   onSave
@@ -219,10 +221,9 @@ export function UsuarioFormDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-white border-gray-100 rounded-xl shadow-lg">
-                  <SelectItem value="admin">Administrador</SelectItem>
-                  <SelectItem value="vendedor">Vendedor</SelectItem>
-                  <SelectItem value="bodeguero">Bodeguero</SelectItem>
-                  <SelectItem value="cliente">Cliente</SelectItem>
+                  {roles && roles.map((r: any) => (
+                    <SelectItem key={r.id} value={String(r.id)}>{r.nombre}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

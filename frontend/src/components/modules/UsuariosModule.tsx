@@ -3,6 +3,7 @@ import { useStore, TipoDocumento, Status } from '../../lib/store';
 import { Pagination } from '../Pagination';
 import { toast } from 'sonner';
 import { userService } from '../../services/userService';
+import { getRoles } from '../../services/roleService';
 import { validateField } from '../../utils/usuarioUtils';
 
 // Sub-componentes
@@ -26,6 +27,7 @@ export function UsuariosModule() {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [roles, setRoles] = useState<any[]>([]);
   
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
@@ -44,7 +46,7 @@ export function UsuariosModule() {
     direccion: '',
     ciudad: '',
     pais: 'Colombia',
-    rol: 'cliente' as any,
+    rol: '',
     estado: 'activo' as Status,
   });
 
@@ -69,7 +71,7 @@ export function UsuariosModule() {
         telefono: u.telefono,
         direccion: u.direccion,
         ciudad: u.ciudad,
-        rol: (Number(u.id_rol) === 1 ? 'admin' : Number(u.id_rol) === 2 ? 'cliente' : 'vendedor') as any,
+        rol: String(u.id_rol),
         estado: (u.estado ? 'activo' : 'inactivo') as Status,
         fechaCreacion: u.fecha_registro || new Date().toISOString(),
       }));
@@ -78,6 +80,18 @@ export function UsuariosModule() {
       toast.error('Error al cargar usuarios', { description: error.message });
     }
   };
+
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const fetchedRoles = await getRoles();
+        setRoles(fetchedRoles);
+      } catch (err) {
+        console.error('Error fetching roles', err);
+      }
+    };
+    fetchInitialData();
+  }, []);
 
   useEffect(() => { fetchUsers(); }, [searchQuery]);
 
@@ -119,7 +133,7 @@ export function UsuariosModule() {
       setFormData({
         nombres: '', apellidos: '', tipoDocumento: 'CC', numeroDocumento: '',
         fechaNacimiento: '', email: '', passwordHash: '', telefono: '',
-        direccion: '', ciudad: '', pais: 'Colombia', rol: 'cliente', estado: 'activo',
+        direccion: '', ciudad: '', pais: 'Colombia', rol: roles.length > 0 ? String(roles[0].id) : '', estado: 'activo',
       });
     }
     setFieldErrors({});
@@ -154,7 +168,7 @@ export function UsuariosModule() {
     setIsSaving(true);
     try {
       const userData = {
-        id_rol: formData.rol === 'admin' ? 1 : 2,
+        id_rol: Number(formData.rol),
         nombres: formData.nombres.trim(), 
         apellidos: formData.apellidos.trim(),
         telefono: formData.telefono.trim(),
@@ -265,6 +279,7 @@ export function UsuariosModule() {
           onDelete={handleOpenDeleteDialog}
           onStatusChange={handleStatusChange}
           isAdmin={isAdmin}
+          roles={roles}
         />
 
         {filteredUsers.length > 0 && (
@@ -291,12 +306,14 @@ export function UsuariosModule() {
         onFieldChange={handleFieldChange}
         onSelectChange={(name, val) => setFormData(p => ({ ...p, [name]: val }))}
         onSave={handleSave}
+        roles={roles}
       />
 
       <UsuarioDetailDialog 
         open={isDetailDialogOpen}
         onOpenChange={setIsDetailDialogOpen}
         user={selectedUser}
+        roles={roles}
       />
 
       <UsuarioDeleteDialog 
