@@ -89,6 +89,7 @@ function AppContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [showAuthPage, setShowAuthPage] = useState(false);
   const [authPage, setAuthPage] = useState<AuthPage>("login");
+  const [recoverToken, setRecoverToken] = useState<string | undefined>(undefined);
   const [currentRoute, setCurrentRoute] = useState<Route>(
     userType === "admin" ? "dashboard" : "inicio",
   );
@@ -281,6 +282,17 @@ function AppContent() {
 
   useEffect(() => {
     checkAuth();
+    
+    // Verificar si hay un token de recuperación en la URL
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    if (token) {
+      setRecoverToken(token);
+      setAuthPage("recover");
+      setShowAuthPage(true);
+      // Limpiar la URL sin recargar la página
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount
 
@@ -438,9 +450,16 @@ function AppContent() {
       case "recover":
         authContent = (
           <RecoverPage
+            initialToken={recoverToken}
             onRecover={handleRecover}
-            onNavigateToLogin={() => setAuthPage("login")}
-            onBack={() => setShowAuthPage(false)}
+            onNavigateToLogin={() => {
+              setAuthPage("login");
+              setRecoverToken(undefined);
+            }}
+            onBack={() => {
+              setShowAuthPage(false);
+              setRecoverToken(undefined);
+            }}
           />
         );
         break;

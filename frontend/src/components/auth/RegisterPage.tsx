@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Eye, EyeOff } from 'lucide-react';
 import { UserRole } from '../../lib/store';
 
 /* ── Luxury CSS variable helpers ── */
@@ -40,6 +40,8 @@ export function RegisterPage({ onRegister, onNavigateToLogin, onBack }: Register
     aceptaTerminos: false,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -70,8 +72,8 @@ export function RegisterPage({ onRegister, onNavigateToLogin, onBack }: Register
       newErrors.password = 'La contraseña es obligatoria';
     } else if (formData.password.length < 8) {
       newErrors.password = 'La contraseña debe tener al menos 8 caracteres';
-    } else if (!/[A-Z]/.test(formData.password) || !/[0-9]/.test(formData.password)) {
-      newErrors.password = 'La contraseña debe tener al menos una mayúscula y un número';
+    } else if (!/[A-Z]/.test(formData.password) || !/[0-9]/.test(formData.password) || !/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)) {
+      newErrors.password = 'La contraseña debe tener al menos una mayúscula, un número y un carácter especial';
     }
 
     if (formData.password !== formData.confirmPassword) {
@@ -98,35 +100,46 @@ export function RegisterPage({ onRegister, onNavigateToLogin, onBack }: Register
   };
 
   // Luxury Input Field Minimalist
-  const InputField = ({ label, id, value, onChange, error, type = "text", placeholder = "" }: any) => (
+  const InputField = ({ label, id, value, onChange, error, type = "text", placeholder = "", toggleVisibility, isVisible }: any) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
       <label htmlFor={id} style={{ fontSize: '13px', fontWeight: 600, color: C.textDark, opacity: 0.8 }}>
         {label}
       </label>
-      <input
-        id={id}
-        type={type}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        style={{
-          width: '100%', height: '48px', borderRadius: '8px',
-          border: `1px solid ${error ? C.danger : C.accent}`,
-          padding: '0 16px', outline: 'none', fontSize: '14px',
-          color: C.textDark, background: 'rgba(255,255,255,0.8)', boxSizing: 'border-box',
-          transition: 'all 0.3s ease',
-        }}
-        onFocus={(e) => {
-          e.currentTarget.style.borderColor = C.accentDeep;
-          e.currentTarget.style.background = C.white;
-          e.currentTarget.style.boxShadow = `0 4px 12px rgba(176,96,128,0.08)`;
-        }}
-        onBlur={(e) => {
-          e.currentTarget.style.borderColor = error ? C.danger : C.accent;
-          e.currentTarget.style.background = 'rgba(255,255,255,0.8)';
-          e.currentTarget.style.boxShadow = 'none';
-        }}
-      />
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        <input
+          id={id}
+          type={type}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          style={{
+            width: '100%', height: '48px', borderRadius: '8px',
+            border: `1px solid ${error ? C.danger : C.accent}`,
+            padding: toggleVisibility ? '0 40px 0 16px' : '0 16px', outline: 'none', fontSize: '14px',
+            color: C.textDark, background: 'rgba(255,255,255,0.8)', boxSizing: 'border-box',
+            transition: 'all 0.3s ease',
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = C.accentDeep;
+            e.currentTarget.style.background = C.white;
+            e.currentTarget.style.boxShadow = `0 4px 12px rgba(176,96,128,0.08)`;
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = error ? C.danger : C.accent;
+            e.currentTarget.style.background = 'rgba(255,255,255,0.8)';
+            e.currentTarget.style.boxShadow = 'none';
+          }}
+        />
+        {toggleVisibility && (
+          <button
+            type="button"
+            onClick={toggleVisibility}
+            style={{ position: 'absolute', right: '12px', background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            {isVisible ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        )}
+      </div>
       {error && <p style={{ color: C.danger, fontSize: '12px', margin: 0, marginTop: '2px' }}>{error}</p>}
     </div>
   );
@@ -170,7 +183,7 @@ export function RegisterPage({ onRegister, onNavigateToLogin, onBack }: Register
       )}
 
       {/* Main Content Container */}
-      <div style={{ width: '100%', maxWidth: '900px', display: 'flex', flexDirection: 'column', md: {flexDirection: 'row'}, margin: '0 auto', gap: '40px', alignItems: 'center', zIndex: 2 }} className="md:flex-row">
+      <div style={{ width: '100%', maxWidth: '900px', display: 'flex', flexDirection: 'column', margin: '0 auto', gap: '40px', alignItems: 'center', zIndex: 2 }} className="md:flex-row">
         
         {/* Left Side: Branding & Info */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '20px' }}>
@@ -229,14 +242,18 @@ export function RegisterPage({ onRegister, onNavigateToLogin, onBack }: Register
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <InputField 
-                  label="Contraseña" id="password" type="password" value={formData.password} 
+                  label="Contraseña" id="password" type={showPassword ? "text" : "password"} value={formData.password} 
                   onChange={(e: any) => setFormData({ ...formData, password: e.target.value })} 
                   error={errors.password} placeholder="••••••••"
+                  toggleVisibility={() => setShowPassword(!showPassword)}
+                  isVisible={showPassword}
                 />
                 <InputField 
-                  label="Confirmar" id="confirmPassword" type="password" value={formData.confirmPassword} 
+                  label="Confirmar" id="confirmPassword" type={showConfirmPassword ? "text" : "password"} value={formData.confirmPassword} 
                   onChange={(e: any) => setFormData({ ...formData, confirmPassword: e.target.value })} 
                   error={errors.confirmPassword} placeholder="••••••••"
+                  toggleVisibility={() => setShowConfirmPassword(!showConfirmPassword)}
+                  isVisible={showConfirmPassword}
                 />
               </div>
 

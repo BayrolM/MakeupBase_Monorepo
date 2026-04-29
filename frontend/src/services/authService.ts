@@ -126,4 +126,30 @@ export const authService = {
   isAuthenticated(): boolean {
     return !!localStorage.getItem("authToken");
   },
+
+  /**
+   * Solicitar recuperación de contraseña
+   */
+  async forgotPassword(email: string): Promise<void> {
+    try {
+      await api.post("/auth/forgot-password", { email });
+    } catch (error: any) {
+      const message =
+        error.response?.data?.message || "Error al solicitar recuperación";
+      throw new Error(message);
+    }
+  },
+
+  /**
+   * Restablecer contraseña con token
+   */
+  async resetPassword(token: string, new_password: string): Promise<void> {
+    try {
+      await api.post("/auth/reset-password", { token, new_password });
+    } catch (error: any) {
+      const message =
+        error.response?.data?.message || "Error al restablecer contraseña";
+      throw new Error(message);
+    }
+  },
 };

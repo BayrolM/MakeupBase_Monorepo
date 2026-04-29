@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, Info, Key, User } from 'lucide-react';
+import { ChevronLeft, Info, Key, User, Eye, EyeOff } from 'lucide-react';
 
 /* ── Luxury CSS variable helpers ── */
 const V = (name: string) => `var(--luxury-${name})`;
@@ -23,9 +23,55 @@ interface LoginPageProps {
   onBack?: () => void;
 }
 
+// Luxury Input Field Minimalist
+const InputField = ({ label, id, value, onChange, error, type = "text", placeholder = "", toggleVisibility, isVisible }: any) => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+    <label htmlFor={id} style={{ fontSize: '13px', fontWeight: 600, color: C.textDark, opacity: 0.8 }}>
+      {label}
+    </label>
+    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+      <input
+        id={id}
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        style={{
+          width: '100%', height: '48px', borderRadius: '8px',
+          border: `1px solid ${error ? C.danger : C.accent}`,
+          padding: toggleVisibility ? '0 40px 0 16px' : '0 16px', outline: 'none', fontSize: '14px',
+          color: C.textDark, background: 'rgba(255,255,255,0.8)', boxSizing: 'border-box',
+          transition: 'all 0.3s ease',
+        }}
+        onFocus={(e) => {
+          e.currentTarget.style.borderColor = C.accentDeep;
+          e.currentTarget.style.background = C.white;
+          e.currentTarget.style.boxShadow = `0 4px 12px rgba(176,96,128,0.08)`;
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.borderColor = error ? C.danger : C.accent;
+          e.currentTarget.style.background = 'rgba(255,255,255,0.8)';
+          e.currentTarget.style.boxShadow = 'none';
+        }}
+      />
+      {toggleVisibility && (
+        <button
+          type="button"
+          onClick={toggleVisibility}
+          style={{ position: 'absolute', right: '12px', background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          {isVisible ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      )}
+    </div>
+    {error && <p style={{ color: C.danger, fontSize: '12px', margin: 0, marginTop: '2px' }}>{error}</p>}
+  </div>
+);
+
 export function LoginPage({ onLogin, onNavigateToRegister, onNavigateToRecover, onBack }: LoginPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
@@ -58,40 +104,6 @@ export function LoginPage({ onLogin, onNavigateToRegister, onNavigateToRecover, 
     setErrors({});
     onLogin(email, password);
   };
-
-  // Luxury Input Field Minimalist
-  const InputField = ({ label, id, value, onChange, error, type = "text", placeholder = "" }: any) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-      <label htmlFor={id} style={{ fontSize: '13px', fontWeight: 600, color: C.textDark, opacity: 0.8 }}>
-        {label}
-      </label>
-      <input
-        id={id}
-        type={type}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        style={{
-          width: '100%', height: '48px', borderRadius: '8px',
-          border: `1px solid ${error ? C.danger : C.accent}`,
-          padding: '0 16px', outline: 'none', fontSize: '14px',
-          color: C.textDark, background: 'rgba(255,255,255,0.8)', boxSizing: 'border-box',
-          transition: 'all 0.3s ease',
-        }}
-        onFocus={(e) => {
-          e.currentTarget.style.borderColor = C.accentDeep;
-          e.currentTarget.style.background = C.white;
-          e.currentTarget.style.boxShadow = `0 4px 12px rgba(176,96,128,0.08)`;
-        }}
-        onBlur={(e) => {
-          e.currentTarget.style.borderColor = error ? C.danger : C.accent;
-          e.currentTarget.style.background = 'rgba(255,255,255,0.8)';
-          e.currentTarget.style.boxShadow = 'none';
-        }}
-      />
-      {error && <p style={{ color: C.danger, fontSize: '12px', margin: 0, marginTop: '2px' }}>{error}</p>}
-    </div>
-  );
 
   return (
     <div style={{ minHeight: '100vh', background: C.bgSoft, display: 'flex', alignItems: 'center', justifyItems: 'center', padding: '16px', position: 'relative', fontFamily: "'DM Sans', sans-serif", overflow: 'hidden' }}>
@@ -132,7 +144,7 @@ export function LoginPage({ onLogin, onNavigateToRegister, onNavigateToRecover, 
       )}
 
       {/* Main Content Container */}
-      <div style={{ width: '100%', maxWidth: '900px', display: 'flex', flexDirection: 'column', md: {flexDirection: 'row'}, margin: '0 auto', gap: '40px', alignItems: 'center', zIndex: 2 }} className="md:flex-row">
+      <div style={{ width: '100%', maxWidth: '900px', display: 'flex', flexDirection: 'column', margin: '0 auto', gap: '40px', alignItems: 'center', zIndex: 2 }} className="md:flex-row">
         
         {/* Left Side: Branding & Info */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '20px' }}>
@@ -224,9 +236,11 @@ export function LoginPage({ onLogin, onNavigateToRegister, onNavigateToRecover, 
 
               <div style={{ position: 'relative' }}>
                 <InputField 
-                  label="Contraseña" id="password" type="password" value={password} 
+                  label="Contraseña" id="password" type={showPassword ? "text" : "password"} value={password} 
                   onChange={(e: any) => setPassword(e.target.value)} 
                   error={errors.password} placeholder="••••••••"
+                  toggleVisibility={() => setShowPassword(!showPassword)}
+                  isVisible={showPassword}
                 />
                 <button
                   type="button"

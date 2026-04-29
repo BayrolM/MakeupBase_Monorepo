@@ -1,6 +1,10 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import sql from "../config/db.js";
+import { Resend } from "resend";
+import crypto from "crypto";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const register = async (req, res) => {
   try {
@@ -28,6 +32,10 @@ export const register = async (req, res) => {
     // Validar campos requeridos
     if (!email || !password || !nombre || !apellido) {
       return res.status(400).json({ message: "Faltan campos requeridos" });
+    }
+
+    if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      return res.status(400).json({ message: "La contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un carácter especial" });
     }
 
     // Verificar si el correo ya existe
@@ -167,3 +175,100 @@ export const login = async (req, res) => {
     });
   }
 };
+
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email es requerido" });
+
+    const result = await sql`SELECT * FROM usuarios WHERE email = ${email}`;
+    if (result.length === 0) {
+      return res.status(400).json({ message: "El email no está registrado" });
+    }
+
+    const user = result[0];
+    if (user.estado === false || user.estado === 0) {
+      return res.status(403).json({ message: "La cuenta está inactiva" });
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
+
+    await sql`
+      UPDATE usuarios 
+      SET reset_token = ${token}, reset_token_expires = ${expires}
+      WHERE id_usuario = ${user.id_usuario}
+    `;
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const resetLink = `${frontendUrl}/?token=${token}`;
+
+    await resend.emails.send({
+      from: 'onboarding@resend.dev',
+      to: email,
+      subject: 'Recuperación de contraseña',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <img src="${frontendUrl}/logo.png" alt="Glamour ML Logo" style="width: 80px; height: 80px; border-radius: 16px; background-color: #000;" />
+          </div>
+          <h2 style="color: #c47b96; text-align: center;">Recuperación de contraseña</h2>
+          <p>Hola <strong>${user.nombre}</strong>,</p>
+          <p>Has solicitado restablecer tu contraseña. Haz clic en el botón a continuación para crear una nueva contraseña. El enlace es válido por 15 minutos.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetLink}" style="display:inline-block;padding:12px 24px;background-color:#c47b96;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;">Restablecer Contraseña</a>
+          </div>
+          <p style="color: #666; font-size: 14px;">Si no solicitaste esto, puedes ignorar este correo.</p>
+        </div>
+      `
+    });
+
+    return res.status(200).json({ message: "Correo de recuperación enviado" });
+  } catch (error) {
+    console.error("Error en forgotPassword:", error);
+    return res.status(500).json({ message: "Error enviando correo de recuperación" });
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  try {
+    const { token, new_password } = req.body;
+
+    if (!token || !new_password) {
+      return res.status(400).json({ message: "Token y nueva contraseña son requeridos" });
+    }
+
+    if (new_password.length < 8) {
+      return res.status(400).json({ message: "La contraseña debe tener al menos 8 caracteres" });
+    }
+
+    if (!/[A-Z]/.test(new_password) || !/[0-9]/.test(new_password) || !/[!@#$%^&*(),.?":{}|<>]/.test(new_password)) {
+      return res.status(400).json({ message: "La contraseña debe tener al menos una mayúscula, un número y un carácter especial" });
+    }
+
+    const result = await sql`
+      SELECT * FROM usuarios 
+      WHERE reset_token = ${token} 
+      AND reset_token_expires > NOW()
+    `;
+
+    if (result.length === 0) {
+      return res.status(400).json({ message: "Token inválido o expirado" });
+    }
+
+    const user = result[0];
+    const hashedPassword = await bcrypt.hash(new_password, 10);
+
+    await sql`
+      UPDATE usuarios 
+      SET password_hash = ${hashedPassword}, reset_token = NULL, reset_token_expires = NULL
+      WHERE id_usuario = ${user.id_usuario}
+    `;
+
+    return res.status(200).json({ message: "Contraseña actualizada exitosamente" });
+  } catch (error) {
+    console.error("Error en resetPassword:", error);
+    return res.status(500).json({ message: "Error al actualizar la contraseña" });
+  }
+};
+
