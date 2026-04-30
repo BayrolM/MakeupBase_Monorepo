@@ -1,12 +1,18 @@
-import { useState } from 'react';
-import { useStore } from '../../lib/store';
-import { ProductCard } from './ProductCard';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Input } from '../ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Slider } from '../ui/slider';
-import { Search, Filter, ShoppingCart, Package } from 'lucide-react';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { useStore } from "../../lib/store";
+import { ProductCard } from "./ProductCard";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Input } from "../ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { Slider } from "../ui/slider";
+import { Search, Filter, ShoppingCart } from "lucide-react";
+import { toast } from "sonner";
 
 /* ── Luxury CSS variable helpers (same pattern as InicioView) ── */
 const V = (name: string) => `var(--luxury-${name})`;
@@ -29,59 +35,64 @@ const C = {
   shadowLg: V("shadow-lg"),
 };
 
-export function CatalogoView({ 
-  initialCategory = 'all',
-  onClearCategory
-}: { 
-  initialCategory?: string,
-  onClearCategory?: () => void
+export function CatalogoView({
+  initialCategory = "all",
+  onClearCategory,
+}: {
+  initialCategory?: string;
+  onClearCategory?: () => void;
 } = {}) {
   const { productos, categorias, addToCarrito } = useStore();
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [quantity, setQuantity] = useState(1);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState(initialCategory || 'all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState(
+    initialCategory || "all",
+  );
   const [priceRange, setPriceRange] = useState([0, 150000]);
   const [showFilters, setShowFilters] = useState(true);
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
       minimumFractionDigits: 0,
     }).format(value);
   };
 
   // Filter products
-  const filteredProducts = productos.filter(p => {
-    if (p.estado !== 'activo') return false;
-    
+  const filteredProducts = productos.filter((p) => {
+    if (p.estado !== "activo") return false;
+
     // Search filter
-    if (searchQuery && !p.nombre.toLowerCase().includes(searchQuery.toLowerCase())) {
+    if (
+      searchQuery &&
+      !p.nombre.toLowerCase().includes(searchQuery.toLowerCase())
+    ) {
       return false;
     }
-    
+
     // Category filter
-    if (selectedCategory !== 'all' && p.categoriaId !== selectedCategory) {
+    if (selectedCategory !== "all" && p.categoriaId !== selectedCategory) {
       return false;
     }
-    
+
     // Price range filter
     if (p.precioVenta < priceRange[0] || p.precioVenta > priceRange[1]) {
       return false;
     }
-    
+
     // Stock filter
     if (p.stock === 0) {
       return false;
     }
-    
+
     return true;
   });
 
   const clearFilters = () => {
-    setSearchQuery('');
-    setSelectedCategory('all');
+    setSearchQuery("");
+    setSelectedCategory("all");
     setPriceRange([0, 150000]);
     onClearCategory?.();
   };
@@ -125,12 +136,16 @@ export function CatalogoView({
             width: "300px",
             height: "300px",
             borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(196,123,150,0.15) 0%, transparent 70%)",
+            background:
+              "radial-gradient(circle, rgba(196,123,150,0.15) 0%, transparent 70%)",
             pointerEvents: "none",
           }}
         />
 
-        <div className="max-w-7xl mx-auto" style={{ position: "relative", zIndex: 1 }}>
+        <div
+          className="max-w-7xl mx-auto"
+          style={{ position: "relative", zIndex: 1 }}
+        >
           <div style={{ marginBottom: "0.5rem" }}>
             <span
               style={{
@@ -153,8 +168,7 @@ export function CatalogoView({
               marginBottom: "0.5rem",
             }}
           >
-            Catálogo de{" "}
-            <em style={{ fontWeight: 400 }}>Productos</em>
+            Catálogo de <em style={{ fontWeight: 400 }}>Productos</em>
           </h1>
           <p
             style={{
@@ -164,7 +178,8 @@ export function CatalogoView({
               maxWidth: "420px",
             }}
           >
-            Descubre nuestra selección de cosméticos premium con ingredientes exclusivos.
+            Descubre nuestra selección de cosméticos premium con ingredientes
+            exclusivos.
           </p>
 
           {/* Search Bar — glass effect, full width */}
@@ -190,16 +205,29 @@ export function CatalogoView({
           </div>
 
           {/* Quick category chips */}
-          <div style={{ display: "flex", gap: "8px", marginTop: "1rem", flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "8px",
+              marginTop: "1rem",
+              flexWrap: "wrap",
+            }}
+          >
             <button
-              onClick={() => { setSelectedCategory('all'); onClearCategory?.(); }}
+              onClick={() => {
+                setSelectedCategory("all");
+                onClearCategory?.();
+              }}
               style={{
                 padding: "6px 16px",
                 borderRadius: "20px",
                 fontSize: "12px",
                 fontWeight: 600,
                 border: "1px solid rgba(255,255,255,0.2)",
-                background: selectedCategory === 'all' ? "rgba(255,255,255,0.2)" : "transparent",
+                background:
+                  selectedCategory === "all"
+                    ? "rgba(255,255,255,0.2)"
+                    : "transparent",
                 color: "rgba(255,255,255,0.8)",
                 cursor: "pointer",
                 transition: "all 0.2s",
@@ -217,7 +245,10 @@ export function CatalogoView({
                   fontSize: "12px",
                   fontWeight: 600,
                   border: "1px solid rgba(255,255,255,0.2)",
-                  background: selectedCategory === cat.id ? "rgba(255,255,255,0.2)" : "transparent",
+                  background:
+                    selectedCategory === cat.id
+                      ? "rgba(255,255,255,0.2)"
+                      : "transparent",
                   color: "rgba(255,255,255,0.8)",
                   cursor: "pointer",
                   transition: "all 0.2s",
@@ -234,7 +265,7 @@ export function CatalogoView({
         <div className="flex gap-8">
           {/* Filters Sidebar */}
           {showFilters && (
-            <div className="w-64 flex-shrink-0">
+            <div className="w-64 shrink-0">
               <div
                 className="sticky top-8"
                 style={{
@@ -254,7 +285,13 @@ export function CatalogoView({
                     marginBottom: "1.5rem",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
                     <div
                       style={{
                         width: "36px",
@@ -296,9 +333,21 @@ export function CatalogoView({
                   </button>
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "1.5rem",
+                  }}
+                >
                   {/* Category Filter */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "8px",
+                    }}
+                  >
                     <label
                       style={{
                         fontSize: "13px",
@@ -310,7 +359,10 @@ export function CatalogoView({
                     >
                       Categoría
                     </label>
-                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <Select
+                      value={selectedCategory}
+                      onValueChange={setSelectedCategory}
+                    >
                       <SelectTrigger
                         className="h-10 rounded-xl"
                         style={{
@@ -329,7 +381,7 @@ export function CatalogoView({
                         }}
                       >
                         <SelectItem value="all">Todas</SelectItem>
-                        {categorias.map(cat => (
+                        {categorias.map((cat) => (
                           <SelectItem key={cat.id} value={cat.id}>
                             {cat.nombre}
                           </SelectItem>
@@ -342,7 +394,13 @@ export function CatalogoView({
                   <div style={{ height: "1px", background: C.accentSoft }} />
 
                   {/* Price Range Filter */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+                    }}
+                  >
                     <label
                       style={{
                         fontSize: "13px",
@@ -402,7 +460,9 @@ export function CatalogoView({
                 }}
               >
                 {filteredProducts.length}{" "}
-                {filteredProducts.length === 1 ? 'producto encontrado' : 'productos encontrados'}
+                {filteredProducts.length === 1
+                  ? "producto encontrado"
+                  : "productos encontrados"}
               </p>
               <button
                 onClick={() => setShowFilters(!showFilters)}
@@ -419,7 +479,7 @@ export function CatalogoView({
                 }}
               >
                 <Filter className="w-4 h-4" />
-                {showFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
+                {showFilters ? "Ocultar filtros" : "Mostrar filtros"}
               </button>
             </div>
 
@@ -467,8 +527,12 @@ export function CatalogoView({
                     cursor: "pointer",
                     transition: "transform 0.2s",
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.transform = "scale(1.05)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.transform = "scale(1)")
+                  }
                 >
                   Limpiar filtros
                 </button>
@@ -483,7 +547,7 @@ export function CatalogoView({
               >
                 {filteredProducts.map((producto) => {
                   const categoria = categorias.find(
-                    (c) => c.id === producto.categoriaId
+                    (c) => c.id === producto.categoriaId,
                   );
                   return (
                     <ProductCard
@@ -493,7 +557,7 @@ export function CatalogoView({
                       onCardClick={() => setSelectedProduct(producto)}
                       onAddToCart={() => {
                         addToCarrito(producto.id, 1);
-                        toast.success('Producto agregado', {
+                        toast.success("Producto agregado", {
                           description: `${producto.nombre} se agregó al carrito`,
                         });
                       }}
@@ -507,7 +571,10 @@ export function CatalogoView({
       </div>
 
       {/* Product Detail Dialog */}
-      <Dialog open={!!selectedProduct} onOpenChange={() => setSelectedProduct(null)}>
+      <Dialog
+        open={!!selectedProduct}
+        onOpenChange={() => setSelectedProduct(null)}
+      >
         <DialogContent
           className="max-w-3xl"
           style={{
@@ -528,7 +595,7 @@ export function CatalogoView({
               Detalle del Producto
             </DialogTitle>
           </DialogHeader>
-          
+
           {selectedProduct && (
             <div className="grid md:grid-cols-2 gap-6 py-4">
               <div
@@ -544,19 +611,31 @@ export function CatalogoView({
                 }}
               >
                 {selectedProduct.imagenUrl ? (
-                  <img 
-                    src={selectedProduct.imagenUrl} 
-                    alt={selectedProduct.nombre} 
-                    className="w-full h-full object-cover" 
+                  <img
+                    src={selectedProduct.imagenUrl}
+                    alt={selectedProduct.nombre}
+                    className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div style={{ color: C.accent, opacity: 0.3, textAlign: "center" }}>
+                  <div
+                    style={{
+                      color: C.accent,
+                      opacity: 0.3,
+                      textAlign: "center",
+                    }}
+                  >
                     <div style={{ fontSize: "64px" }}>💄</div>
                   </div>
                 )}
               </div>
-              
-              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1rem",
+                }}
+              >
                 <div>
                   <p
                     style={{
@@ -568,7 +647,11 @@ export function CatalogoView({
                       marginBottom: "6px",
                     }}
                   >
-                    {categorias.find(c => c.id === selectedProduct.categoriaId)?.nombre}
+                    {
+                      categorias.find(
+                        (c) => c.id === selectedProduct.categoriaId,
+                      )?.nombre
+                    }
                   </p>
                   <h3
                     style={{
@@ -617,7 +700,6 @@ export function CatalogoView({
                   </p>
                 </div>
 
-
                 <div
                   style={{
                     paddingTop: "1.5rem",
@@ -627,7 +709,13 @@ export function CatalogoView({
                     gap: "1rem",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "1rem",
+                    }}
+                  >
                     <label
                       style={{
                         fontSize: "13px",
@@ -647,7 +735,7 @@ export function CatalogoView({
                         height: "40px",
                       }}
                     >
-                      <button 
+                      <button
                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
                         disabled={quantity <= 1}
                         style={{
@@ -664,10 +752,14 @@ export function CatalogoView({
                       >
                         −
                       </button>
-                      <input 
-                        type="number" 
+                      <input
+                        type="number"
                         value={quantity}
-                        onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                        onChange={(e) =>
+                          setQuantity(
+                            Math.max(1, parseInt(e.target.value) || 1),
+                          )
+                        }
                         style={{
                           width: "48px",
                           textAlign: "center",
@@ -681,8 +773,12 @@ export function CatalogoView({
                           outline: "none",
                         }}
                       />
-                      <button 
-                        onClick={() => setQuantity(Math.min(selectedProduct.stock, quantity + 1))}
+                      <button
+                        onClick={() =>
+                          setQuantity(
+                            Math.min(selectedProduct.stock, quantity + 1),
+                          )
+                        }
                         disabled={quantity >= selectedProduct.stock}
                         style={{
                           padding: "0 14px",
@@ -700,13 +796,13 @@ export function CatalogoView({
                       </button>
                     </div>
                   </div>
-                  
+
                   <button
                     onClick={() => {
                       addToCarrito(selectedProduct.id, quantity);
                       // Reset and notify
-                      toast.success('Producto agregado', {
-                        description: `${quantity} ${quantity === 1 ? 'unidad' : 'unidades'} de ${selectedProduct.nombre} agregadas al carrito`,
+                      toast.success("Producto agregado", {
+                        description: `${quantity} ${quantity === 1 ? "unidad" : "unidades"} de ${selectedProduct.nombre} agregadas al carrito`,
                       });
                       setSelectedProduct(null);
                       setQuantity(1);
@@ -731,9 +827,12 @@ export function CatalogoView({
                       opacity: selectedProduct.stock === 0 ? 0.5 : 1,
                     }}
                     onMouseEnter={(e) => {
-                      if (selectedProduct.stock > 0) e.currentTarget.style.transform = "scale(1.02)";
+                      if (selectedProduct.stock > 0)
+                        e.currentTarget.style.transform = "scale(1.02)";
                     }}
-                    onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.transform = "scale(1)")
+                    }
                   >
                     <ShoppingCart className="w-5 h-5" />
                     AGREGAR AL CARRITO

@@ -2,27 +2,13 @@ import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
   DialogDescription,
 } from "../ui/dialog";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
+
 import { Textarea } from "../ui/textarea";
-import { 
-  RotateCcw, 
-  X, 
-  Package, 
-  AlertCircle, 
-  Image as ImageIcon,
-  CheckCircle2,
-  ChevronRight,
-  MessageSquare,
-  ClipboardList,
-  Upload,
-  Loader2,
-  Check
-} from "lucide-react";
+import { RotateCcw, X, Upload, Loader2, Check } from "lucide-react";
 
 import { toast } from "sonner";
 import { devolucionService } from "../../services/devolucionService";
@@ -48,12 +34,12 @@ export function PedidoReturnDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
-  
+
   // Image upload states
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -71,7 +57,7 @@ export function PedidoReturnDialog({
       // Fetch both Sale and Full Order Details in parallel
       const [saleRes, orderRes] = await Promise.all([
         saleService.getAll({ pedidoId: pedido.id }),
-        orderService.getById(Number(pedido.id))
+        orderService.getById(Number(pedido.id)),
       ]);
 
       const sale = saleRes.items?.[0];
@@ -83,11 +69,12 @@ export function PedidoReturnDialog({
         return;
       }
 
-      // Priorizamos los productos de la VENTA (sale.productos) 
+      // Priorizamos los productos de la VENTA (sale.productos)
       // ya que son los que realmente se facturaron.
-      const rawItems = (orderRes.items && orderRes.items.length > 0) 
-        ? orderRes.items 
-        : (sale.productos || []);
+      const rawItems =
+        orderRes.items && orderRes.items.length > 0
+          ? orderRes.items
+          : sale.productos || [];
 
       if (rawItems && rawItems.length > 0) {
         const mapped = rawItems.map((item: any) => ({
@@ -95,13 +82,12 @@ export function PedidoReturnDialog({
           cantidad: item.cantidad,
           precioUnitario: Number(item.precio_unitario || item.precioUnitario),
           selected: false,
-          cantidadADevolver: 1
+          cantidadADevolver: 1,
         }));
         setSelectedProducts(mapped);
       } else {
         toast.error("No se pudieron cargar los productos para devolución.");
       }
-
     } catch (error) {
       console.error(error);
       toast.error("Error al sincronizar datos del pedido");
@@ -109,7 +95,6 @@ export function PedidoReturnDialog({
       setIsLoading(false);
     }
   };
-
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -141,7 +126,7 @@ export function PedidoReturnDialog({
   };
 
   const handleSubmit = async () => {
-    const itemsToReturn = selectedProducts.filter(p => p.selected);
+    const itemsToReturn = selectedProducts.filter((p) => p.selected);
     if (itemsToReturn.length === 0) {
       toast.error("Selecciona al menos un producto para devolver");
       return;
@@ -158,7 +143,10 @@ export function PedidoReturnDialog({
       // 1. Upload image to Supabase if selected
       if (selectedFile) {
         setIsUploadingImage(true);
-        const uploadResult = await uploadToSupabase(selectedFile, "comprobantes");
+        const uploadResult = await uploadToSupabase(
+          selectedFile,
+          "comprobantes",
+        );
         finalImageUrl = uploadResult.secure_url;
         setIsUploadingImage(false);
       }
@@ -171,22 +159,23 @@ export function PedidoReturnDialog({
         estado: "pendiente",
         fecha_devolucion: new Date().toISOString().split("T")[0],
         evidencia_url: finalImageUrl,
-        productos: itemsToReturn.map(p => ({
+        productos: itemsToReturn.map((p) => ({
           id_producto: Number(p.productoId),
           cantidad: p.cantidadADevolver,
-          precio_unitario: p.precioUnitario
-        }))
+          precio_unitario: p.precioUnitario,
+        })),
       });
 
-
-      // Note: If the backend supports evidences, we'd send finalImageUrl. 
-      // Current service doesn't seem to have a field for it in the payload, 
+      // Note: If the backend supports evidences, we'd send finalImageUrl.
+      // Current service doesn't seem to have a field for it in the payload,
       // but I'll assume it's part of the motive or handled by the backend if I can update the service.
-      
+
       toast.success("Solicitud de devolución enviada correctamente");
       onOpenChange(false);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Error al enviar la solicitud");
+      toast.error(
+        error.response?.data?.message || "Error al enviar la solicitud",
+      );
     } finally {
       setIsSubmitting(false);
       setIsUploadingImage(false);
@@ -209,7 +198,10 @@ export function PedidoReturnDialog({
         {/* Encabezado - Diseño de Categoria */}
         <div className="flex items-center justify-between px-6 pt-6 pb-5 border-b border-gray-100">
           <div className="flex items-center gap-4">
-            <div className="flex items-center justify-center text-white font-bold text-lg flex-shrink-0 luxury-icon-gradient" style={{ width: 44, height: 44, borderRadius: 12 }}>
+            <div
+              className="flex items-center justify-center text-white font-bold text-lg shrink-0 luxury-icon-gradient"
+              style={{ width: 44, height: 44, borderRadius: 12 }}
+            >
               <RotateCcw className="w-5 h-5" />
             </div>
             <div>
@@ -231,7 +223,6 @@ export function PedidoReturnDialog({
 
         {/* Cuerpo */}
         <div className="max-h-[60vh] overflow-y-auto no-scrollbar px-6 py-5 flex flex-col gap-4">
-          
           {isLoading ? (
             <div className="py-10 flex flex-col items-center justify-center gap-4 text-gray-400">
               <Loader2 className="w-8 h-8 animate-spin text-[#c47b96]" />
@@ -246,51 +237,71 @@ export function PedidoReturnDialog({
                 </p>
                 <div className="space-y-2">
                   {selectedProducts.map((item, idx) => {
-                    const producto = productosStore.find(p => p.id === item.productoId);
+                    const producto = productosStore.find(
+                      (p) => p.id === item.productoId,
+                    );
                     return (
-                      <div 
+                      <div
                         key={idx}
                         className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all duration-200 ${
-                          item.selected 
-                            ? "bg-[#c47b96]/5 border-[#c47b96] shadow-md transform scale-[1.01]" 
+                          item.selected
+                            ? "bg-[#c47b96]/5 border-[#c47b96] shadow-md transform scale-[1.01]"
                             : "bg-white border-gray-100 hover:border-gray-200 opacity-80"
                         }`}
                         onClick={() => handleToggleProduct(idx)}
-                        style={{ cursor: 'pointer' }}
+                        style={{ cursor: "pointer" }}
                       >
-                        <div 
+                        <div
                           className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center transition-all duration-300 ${
-                            item.selected ? "shadow-lg shadow-[#c47b96]/30 rotate-0 scale-110" : "rotate-[-10deg] scale-100"
+                            item.selected
+                              ? "shadow-lg shadow-[#c47b96]/30 rotate-0 scale-110"
+                              : "rotate-[-10deg] scale-100"
                           }`}
                           style={{
-                            backgroundColor: item.selected ? '#c47b96' : '#f9fafb',
-                            borderColor: item.selected ? '#c47b96' : '#e5e7eb'
+                            backgroundColor: item.selected
+                              ? "#c47b96"
+                              : "#f9fafb",
+                            borderColor: item.selected ? "#c47b96" : "#e5e7eb",
                           }}
                         >
-                          <Check 
+                          <Check
                             className={`w-5 h-5 text-white stroke-[4px] transition-all duration-300 ${
-                              item.selected ? "opacity-100 scale-100" : "opacity-0 scale-50"
-                            }`} 
-                            style={{ color: 'white' }}
+                              item.selected
+                                ? "opacity-100 scale-100"
+                                : "opacity-0 scale-50"
+                            }`}
+                            style={{ color: "white" }}
                           />
                         </div>
 
-
                         <div className="flex-1">
-                          <p className={`text-xs font-bold transition-colors ${item.selected ? "text-[#c47b96]" : "text-gray-800"}`}>
+                          <p
+                            className={`text-xs font-bold transition-colors ${item.selected ? "text-[#c47b96]" : "text-gray-800"}`}
+                          >
                             {producto?.nombre || "Producto sin nombre"}
                           </p>
                           <p className="text-[10px] text-gray-400 font-medium">
-                            {item.cantidad} comprados · {formatCurrency(item.precioUnitario)}
+                            {item.cantidad} comprados ·{" "}
+                            {formatCurrency(item.precioUnitario)}
                           </p>
                         </div>
                         {item.selected && (
-                          <div className="flex flex-col items-end gap-1" onClick={e => e.stopPropagation()}>
-                            <span className="text-[9px] font-bold text-[#c47b96] uppercase tracking-tighter">Cantidad</span>
-                            <input 
+                          <div
+                            className="flex flex-col items-end gap-1"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <span className="text-[9px] font-bold text-[#c47b96] uppercase tracking-tighter">
+                              Cantidad
+                            </span>
+                            <input
                               type="number"
                               value={item.cantidadADevolver}
-                              onChange={(e) => handleUpdateCantidad(idx, parseInt(e.target.value))}
+                              onChange={(e) =>
+                                handleUpdateCantidad(
+                                  idx,
+                                  parseInt(e.target.value),
+                                )
+                              }
                               className="w-12 h-8 bg-white border-2 border-[#c47b96]/30 rounded-lg text-center text-xs font-bold text-[#c47b96] focus:outline-none focus:border-[#c47b96] shadow-sm"
                               min={1}
                               max={item.cantidad}
@@ -299,7 +310,6 @@ export function PedidoReturnDialog({
                         )}
                       </div>
                     );
-
                   })}
                 </div>
               </div>
@@ -307,7 +317,8 @@ export function PedidoReturnDialog({
               {/* Motivo */}
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
-                  Motivo de la devolución <span className="text-rose-500">*</span>
+                  Motivo de la devolución{" "}
+                  <span className="text-rose-500">*</span>
                 </p>
                 <Textarea
                   value={motivo}
@@ -323,8 +334,8 @@ export function PedidoReturnDialog({
                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
                   Evidencia fotográfica (Opcional)
                 </p>
-                
-                <input 
+
+                <input
                   type="file"
                   ref={fileInputRef}
                   onChange={handleFileChange}
@@ -333,18 +344,27 @@ export function PedidoReturnDialog({
                 />
 
                 {!previewUrl ? (
-                  <button 
+                  <button
                     onClick={() => fileInputRef.current?.click()}
                     className="w-full h-24 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-[#c47b96] hover:bg-[#c47b96]/5 transition-all group"
                   >
                     <Upload className="w-6 h-6 text-gray-300 group-hover:text-[#c47b96]" />
-                    <span className="text-[10px] font-bold text-gray-400 group-hover:text-[#c47b96] uppercase tracking-wider">Subir desde dispositivo</span>
+                    <span className="text-[10px] font-bold text-gray-400 group-hover:text-[#c47b96] uppercase tracking-wider">
+                      Subir desde dispositivo
+                    </span>
                   </button>
                 ) : (
                   <div className="relative group rounded-xl overflow-hidden border border-gray-200 bg-white p-2">
-                    <img src={previewUrl} alt="Preview" className="w-full h-32 object-contain rounded-lg" />
-                    <button 
-                      onClick={() => { setSelectedFile(null); setPreviewUrl(null); }}
+                    <img
+                      src={previewUrl}
+                      alt="Preview"
+                      className="w-full h-32 object-contain rounded-lg"
+                    />
+                    <button
+                      onClick={() => {
+                        setSelectedFile(null);
+                        setPreviewUrl(null);
+                      }}
                       className="absolute top-3 right-3 p-1.5 bg-rose-500 text-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <X className="w-3 h-3" />
@@ -374,7 +394,9 @@ export function PedidoReturnDialog({
             {isSubmitting || isUploadingImage ? (
               <div className="flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>{isUploadingImage ? "Cargando Imagen..." : "Enviando..."}</span>
+                <span>
+                  {isUploadingImage ? "Cargando Imagen..." : "Enviando..."}
+                </span>
               </div>
             ) : (
               "Solicitar Devolución"

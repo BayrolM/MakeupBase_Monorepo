@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "../ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../ui/sheet";
-import { CONFIG } from "../../lib/constants";
 import { productService } from "../../services/productService";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
@@ -29,7 +28,7 @@ const COLORS = {
   accent: "#c47b96",
   accentDark: "#a85d77",
   accentDeep: "#7b1347",
-  accentSoft: "#fce8f0", // Actualizado al rosa suave global
+  accentSoft: "#fce8f0",
 };
 
 export function ClientNavbar({
@@ -81,7 +80,6 @@ export function ClientNavbar({
     return sum + (producto ? producto.precioVenta * cantidad : 0);
   }, 0);
 
-  const shippingCost = 0;
   const total = cartTotal;
 
   // Use a ref so validateStock doesn't re-create on every carrito change
@@ -180,9 +178,9 @@ export function ClientNavbar({
               {/* Logo */}
               <button
                 onClick={() => onNavigate("inicio")}
-                className="flex items-center gap-3 flex-shrink-0 cursor-pointer"
+                className="flex items-center gap-3 shrink-0 cursor-pointer"
               >
-                <div className="w-12 h-12 rounded-xl overflow-hidden border border-border shadow-sm bg-black flex-shrink-0">
+                <div className="w-12 h-12 rounded-xl overflow-hidden border border-border shadow-sm bg-black shrink-0">
                   <img
                     src="/logo.png"
                     alt="Glamour ML"
@@ -213,8 +211,8 @@ export function ClientNavbar({
                     onClick={() => onNavigate(route)}
                     className={`px-4 py-2 rounded-lg transition-colors cursor-pointer font-medium ${
                       isActive(route)
-                        ? "bg-[#fce8f0] text-[#7b1347] shadow-sm"
-                        : "text-gray-600 hover:text-[#7b1347] hover:bg-[#fce8f0]/60"
+                        ? "bg-[#fce8f0] text-ring shadow-sm"
+                        : "text-gray-600 hover:text-ring hover:bg-[#fce8f0]/60"
                     }`}
                     style={{ fontSize: "14px" }}
                   >
@@ -560,7 +558,7 @@ export function ClientNavbar({
                             : "0 2px 12px var(--luxury-shadow-xs)",
                         }}
                       >
-                        <div className="w-20 h-20 rounded-lg overflow-hidden border border-border flex-shrink-0 bg-white">
+                        <div className="w-20 h-20 rounded-lg overflow-hidden border border-border shrink-0 bg-white">
                           <img
                             src={
                               producto.imagenUrl ||
@@ -600,7 +598,7 @@ export function ClientNavbar({
 
                           {stockIssues[item.productoId] && (
                             <div className="flex items-center gap-1.5 mt-2 text-amber-600">
-                              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                               <span className="text-[11px] font-medium leading-tight">
                                 {stockIssues[item.productoId].available === 0
                                   ? "Agotado — por favor retíralo"
@@ -611,7 +609,7 @@ export function ClientNavbar({
 
                           <div className="flex items-center mt-3">
                             <div className="flex items-center gap-3 bg-background border border-border rounded-lg p-1">
-                               <button
+                              <button
                                 onClick={() => {
                                   const next = item.cantidad - 1;
                                   if (next >= 1) {
@@ -685,7 +683,7 @@ export function ClientNavbar({
                                   }));
                                 }}
                               />
-                               <button
+                              <button
                                 onClick={() => {
                                   const next = item.cantidad + 1;
                                   if (next <= producto.stock) {
@@ -799,7 +797,7 @@ export function ClientNavbar({
           <div className="flex items-center justify-between px-6 pt-6 pb-5 border-b border-gray-100">
             <div className="flex items-center gap-4">
               <div
-                className="flex items-center justify-center flex-shrink-0"
+                className="flex items-center justify-center shrink-0"
                 style={{
                   width: 44,
                   height: 44,

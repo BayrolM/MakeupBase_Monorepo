@@ -20,7 +20,6 @@ import {
 import { orderService } from "../../services/orderService";
 import { productService } from "../../services/productService";
 import { toast } from "sonner";
-import { CONFIG } from "../../lib/constants";
 import { uploadToSupabase } from "../supabaseUpload";
 
 /* ── Luxury CSS variable helpers ── */
@@ -742,13 +741,16 @@ export function CheckoutView({ onBack, onComplete }: CheckoutViewProps) {
 
               {/* Comprobante upload */}
               {(() => {
-                const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                const handleFileChange = (
+                  e: React.ChangeEvent<HTMLInputElement>,
+                ) => {
                   const file = e.target.files?.[0] || null;
                   if (file) {
                     // Validar tipo de archivo (solo imágenes)
                     if (!file.type.startsWith("image/")) {
                       toast.error("Archivo no válido", {
-                        description: "Por favor selecciona una imagen (PNG, JPG, etc.)",
+                        description:
+                          "Por favor selecciona una imagen (PNG, JPG, etc.)",
                       });
                       e.target.value = ""; // Limpiar input
                       setComprobanteFile(null);
@@ -806,7 +808,9 @@ export function CheckoutView({ onBack, onComplete }: CheckoutViewProps) {
                           width: "56px",
                           height: "56px",
                           borderRadius: "50%",
-                          background: comprobanteFile ? "rgba(22, 163, 74, 0.1)" : C.bgSoft,
+                          background: comprobanteFile
+                            ? "rgba(22, 163, 74, 0.1)"
+                            : C.bgSoft,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -814,17 +818,42 @@ export function CheckoutView({ onBack, onComplete }: CheckoutViewProps) {
                         }}
                       >
                         {comprobanteFile ? (
-                          <CheckCircle style={{ width: 28, height: 28, color: "#16a34a" }} />
+                          <CheckCircle
+                            style={{ width: 28, height: 28, color: "#16a34a" }}
+                          />
                         ) : (
-                          <Upload style={{ width: 28, height: 28, color: C.accentDeep }} />
+                          <Upload
+                            style={{
+                              width: 28,
+                              height: 28,
+                              color: C.accentDeep,
+                            }}
+                          />
                         )}
                       </div>
                       <div style={{ textAlign: "center" }}>
-                        <p style={{ fontSize: "14px", fontWeight: 700, color: C.textDark, margin: 0 }}>
-                          {comprobanteFile ? "¡Comprobante listo!" : "Subir comprobante"}
+                        <p
+                          style={{
+                            fontSize: "14px",
+                            fontWeight: 700,
+                            color: C.textDark,
+                            margin: 0,
+                          }}
+                        >
+                          {comprobanteFile
+                            ? "¡Comprobante listo!"
+                            : "Subir comprobante"}
                         </p>
-                        <p style={{ fontSize: "12px", color: C.textMuted, margin: "4px 0 0 0" }}>
-                          {comprobanteFile ? comprobanteFile.name : "PNG, JPG o JPEG (Máx. 5MB)"}
+                        <p
+                          style={{
+                            fontSize: "12px",
+                            color: C.textMuted,
+                            margin: "4px 0 0 0",
+                          }}
+                        >
+                          {comprobanteFile
+                            ? comprobanteFile.name
+                            : "PNG, JPG o JPEG (Máx. 5MB)"}
                         </p>
                       </div>
                     </label>
@@ -898,7 +927,7 @@ export function CheckoutView({ onBack, onComplete }: CheckoutViewProps) {
             <div className="flex items-center justify-between px-6 pt-6 pb-5 border-b border-gray-100">
               <div className="flex items-center gap-4">
                 <div
-                  className="flex items-center justify-center flex-shrink-0"
+                  className="flex items-center justify-center shrink-0"
                   style={{
                     width: 44,
                     height: 44,

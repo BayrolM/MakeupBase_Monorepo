@@ -1,6 +1,5 @@
 import { Package, Heart } from "lucide-react";
 
-/* ── Luxury CSS variable helpers (shared design system) ── */
 const V = (name: string) => `var(--luxury-${name})`;
 const C = {
   accent: V("pink-soft"),
@@ -179,7 +178,9 @@ export function ProductCard({
               zIndex: 2,
               transition: "transform 0.2s",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.1)")}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.transform = "scale(1.1)")
+            }
             onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
           >
             <Heart
