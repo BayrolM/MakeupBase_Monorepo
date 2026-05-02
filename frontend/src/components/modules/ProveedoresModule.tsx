@@ -140,6 +140,11 @@ export function ProveedoresModule() {
     }
     if (!formData.nit.trim()) {
       errors.nit = "El NIT/Documento es requerido";
+    } else {
+      const duplicateNit = proveedores.find(p => p.nit === formData.nit.trim() && p.id !== editingProveedor?.id);
+      if (duplicateNit) {
+        errors.nit = "Ya existe un proveedor registrado con este NIT";
+      }
     }
     if (!formData.telefono.trim()) {
       errors.telefono = "El teléfono es requerido";
@@ -150,6 +155,11 @@ export function ProveedoresModule() {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(formData.email.trim())) {
         errors.email = "Formato de correo electrónico inválido";
+      } else {
+        const duplicateEmail = proveedores.find(p => p.email.toLowerCase() === formData.email.trim().toLowerCase() && p.id !== editingProveedor?.id);
+        if (duplicateEmail) {
+          errors.email = "Este correo electrónico ya está en uso";
+        }
       }
     }
     if (!formData.direccion.trim()) {

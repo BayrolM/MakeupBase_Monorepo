@@ -41,6 +41,7 @@ export function DevolucionesModule() {
   const [isSaving, setIsSaving] = useState(false);
   const [ventaData, setVentaData] = useState<any>(null);
   const [productosDevolver, setProductosDevolver] = useState<any[]>([]);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState({
     ventaId: "",
@@ -136,6 +137,7 @@ export function DevolucionesModule() {
     setErrorMessage("");
     setVentaData(null);
     setProductosDevolver([]);
+    setFieldErrors({});
     setIsDialogOpen(true);
   };
 
@@ -180,6 +182,7 @@ export function DevolucionesModule() {
     }
     setProductosDevolver(newProductos);
     setErrorMessage("");
+    setFieldErrors(prev => ({ ...prev, productos: "" }));
   };
 
   const handleCantidadChange = (index: number, cantidad: number) => {
@@ -188,6 +191,11 @@ export function DevolucionesModule() {
       newProductos[index].cantidadADevolver = cantidad;
       setProductosDevolver(newProductos);
       setErrorMessage("");
+      setFieldErrors(prev => {
+        const nf = { ...prev, productos: "" };
+        delete nf[`cantidad_${index}`];
+        return nf;
+      });
     }
   };
 
@@ -198,43 +206,41 @@ export function DevolucionesModule() {
   }, [productosDevolver]);
 
   const handleSaveDevolucion = async () => {
-    // Validaciones de campos obligatorios
-    if (!formData.ventaId.trim()) {
-      setErrorMessage("El ID de la venta es obligatorio");
-      return;
-    }
-    
-    if (!ventaData) {
-      setErrorMessage("Debes cargar una venta válida antes de continuar");
-      return;
-    }
+    const errors: Record<string, string> = {};
 
-    const productosSeleccionados = productosDevolver.filter(p => p.selected && p.cantidadADevolver > 0);
+    if (!formData.ventaId.trim()) errors.ventaId = "El ID de la venta es obligatorio.";
+    else if (!ventaData) errors.ventaId = "Debes cargar una venta válida.";
+
+    if (!formData.motivo.trim()) errors.motivo = "El motivo de la devolución es obligatorio.";
+    else if (formData.motivo.trim().length < 5) errors.motivo = "Mínimo 5 caracteres.";
+    else if (formData.motivo.trim().length > 100) errors.motivo = "Máximo 100 caracteres.";
+
+    const productosSeleccionados = productosDevolver.filter(p => p.selected);
     if (productosSeleccionados.length === 0) {
-      setErrorMessage("Debes seleccionar al menos un producto e ingresar una cantidad válida a devolver");
+      errors.productos = "Selecciona al menos un producto.";
+    } else {
+      let tieneCantidadValida = false;
+      productosDevolver.forEach((p, index) => {
+        if (p.selected) {
+          if (!p.cantidadADevolver || p.cantidadADevolver <= 0) {
+            errors[`cantidad_${index}`] = "Cantidad inválida.";
+          } else {
+            tieneCantidadValida = true;
+          }
+        }
+      });
+      if (!tieneCantidadValida && !Object.keys(errors).some(k => k.startsWith('cantidad_'))) {
+        errors.productos = "Ingresa una cantidad válida.";
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setErrorMessage("Hay campos incompletos o inválidos marcados en rojo.");
       return;
     }
 
-    if (!formData.motivo.trim()) {
-      setErrorMessage("El motivo de la devolución es obligatorio");
-      return;
-    }
-
-    if (formData.motivo.trim().length < 5) {
-      setErrorMessage("El motivo debe tener al menos 5 caracteres");
-      return;
-    }
-
-    if (formData.motivo.trim().length > 100) {
-      setErrorMessage("El motivo no puede exceder los 100 caracteres");
-      return;
-    }
-
-    if (!formData.fechaDevolucion) {
-      setErrorMessage("La fecha de devolución es obligatoria");
-      return;
-    }
-
+    setFieldErrors({});
     setIsSaving(true);
     setErrorMessage("");
     try {
@@ -390,6 +396,8 @@ export function DevolucionesModule() {
         onCantidadChange={handleCantidadChange}
         onSave={handleSaveDevolucion}
         totalDevolucion={totalDevolucionEstimado}
+        fieldErrors={fieldErrors}
+        setFieldErrors={setFieldErrors}
       />
 
       <DevolucionDetailDialog

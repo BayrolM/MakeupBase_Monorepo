@@ -55,10 +55,12 @@ export function ComprasModule() {
     observaciones: "",
     detalles: [] as {
       productoId: string;
-      cantidad: number;
-      precioUnitario: number;
+      cantidad: number | "";
+      precioUnitario: number | "";
     }[],
   });
+
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
 
 
@@ -108,6 +110,7 @@ export function ComprasModule() {
   }, []);
 
   const handleOpenDialog = () => {
+    setFieldErrors({});
     setFormData({
       proveedorId: proveedores[0]?.id || "",
       observaciones: "",
@@ -120,10 +123,24 @@ export function ComprasModule() {
 
 
   const handleSave = async () => {
-    if (!formData.proveedorId || formData.detalles.length === 0) {
-      toast.error("Seleccione un proveedor y al menos un producto");
+    const errors: Record<string, string> = {};
+
+    if (!formData.proveedorId) errors.proveedorId = "Debe seleccionar un proveedor.";
+    if (formData.detalles.length === 0) errors.detalles = "Debe agregar al menos un producto.";
+
+    formData.detalles.forEach((d, i) => {
+      if (!d.productoId) errors[`producto_${i}`] = "Seleccione un producto.";
+      if (!d.cantidad || Number(d.cantidad) <= 0) errors[`cantidad_${i}`] = "Dato inválido.";
+      if (d.precioUnitario === "" || Number(d.precioUnitario) < 0) errors[`precio_${i}`] = "Precio inválido.";
+    });
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      toast.error("Hay campos incompletos o inválidos.");
       return;
     }
+
+    setFieldErrors({});
 
     setIsSaving(true);
     try {
@@ -132,8 +149,8 @@ export function ComprasModule() {
         observaciones: formData.observaciones,
         detalles: formData.detalles.map((d) => ({
           id_producto: Number(d.productoId),
-          cantidad: d.cantidad,
-          precio_unitario: d.precioUnitario,
+          cantidad: Number(d.cantidad) || 0,
+          precio_unitario: Number(d.precioUnitario) || 0,
         })),
       });
       toast.success("Compra registrada con éxito");
@@ -224,6 +241,8 @@ export function ComprasModule() {
         productos={productos}
         isSaving={isSaving}
         onSave={handleSave}
+        fieldErrors={fieldErrors}
+        setFieldErrors={setFieldErrors}
       />
 
       <CompraDetailDialog

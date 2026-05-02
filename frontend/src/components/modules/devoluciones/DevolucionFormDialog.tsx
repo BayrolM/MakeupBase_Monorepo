@@ -1,9 +1,6 @@
-import { useState } from "react";
-import { X, Plus, Search, Calendar, Package, Check, Loader2, Info } from "lucide-react";
+import { X, Search, Calendar, Package, Check, Info } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "../../ui/dialog";
-import { Label } from "../../ui/label";
 import { Input } from "../../ui/input";
-import { Button } from "../../ui/button";
 import {
   Select,
   SelectContent,
@@ -19,7 +16,6 @@ interface DevolucionFormDialogProps {
   formData: any;
   ventaData: any;
   productosDevolver: any[];
-  clientes: any[];
   productos: any[];
   successMessage: string;
   errorMessage: string;
@@ -30,6 +26,8 @@ interface DevolucionFormDialogProps {
   onCantidadChange: (index: number, cantidad: number) => void;
   onSave: () => void;
   totalDevolucion: number;
+  fieldErrors?: Record<string, string>;
+  setFieldErrors?: React.Dispatch<React.SetStateAction<Record<string, string>>>;
 }
 
 export function DevolucionFormDialog({
@@ -38,7 +36,6 @@ export function DevolucionFormDialog({
   formData,
   ventaData,
   productosDevolver,
-  clientes,
   productos,
   successMessage,
   errorMessage,
@@ -49,37 +46,57 @@ export function DevolucionFormDialog({
   onCantidadChange,
   onSave,
   totalDevolucion,
+  fieldErrors,
+  setFieldErrors,
 }: DevolucionFormDialogProps) {
+  // Estilo de etiqueta de campo
+  const labelStyle: React.CSSProperties = {
+    fontSize: 11,
+    fontWeight: 700,
+    color: "#9ca3af",
+    textTransform: "uppercase",
+    letterSpacing: "0.07em",
+    marginBottom: 7,
+    display: "flex",
+    alignItems: "center",
+    gap: 5,
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-white border border-gray-100 !w-[95vw] !max-w-[900px] rounded-2xl shadow-2xl p-0 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-6 pb-5 border-b border-gray-100 bg-white z-10">
-          <div className="flex items-center gap-4">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "22px 24px 20px", borderBottom: "1px solid #f3f4f6" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div
-              className="flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
               style={{
                 width: 44,
                 height: 44,
                 borderRadius: 12,
                 background: "linear-gradient(135deg,#c47b96,#e092b2)",
                 boxShadow: "0 2px 8px rgba(196,123,150,0.3)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0
               }}
             >
-              <Package className="w-5 h-5" />
+              <Package className="w-5 h-5 text-white" />
             </div>
             <div>
-              <DialogTitle className="text-base font-bold text-gray-900 leading-tight">
+              <DialogTitle style={{ fontSize: 15, fontWeight: 800, color: "#111827", lineHeight: 1.3 }}>
                 Registrar Devolución
               </DialogTitle>
-              <DialogDescription className="text-xs text-gray-400 mt-0.5">
+              <DialogDescription style={{ fontSize: 12, color: "#9ca3af", marginTop: 2 }}>
                 Gestiona las devoluciones asociadas a ventas realizadas
               </DialogDescription>
             </div>
           </div>
           <button
             onClick={() => onOpenChange(false)}
-            className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            style={{ padding: 6, borderRadius: "50%", border: "none", background: "transparent", cursor: "pointer", color: "#9ca3af", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
             <X className="w-4 h-4" />
           </button>
@@ -113,31 +130,36 @@ export function DevolucionFormDialog({
           {/* Fila superior: ID Venta + Fecha */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             <div>
-              <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+              <p style={{ ...labelStyle, color: fieldErrors?.ventaId ? "#ef4444" : labelStyle.color }}>
                 <Search className="w-3.5 h-3.5" /> ID de Venta <span style={{ color: "#f87171" }}>*</span>
               </p>
               <div style={{ position: "relative" }}>
                 <Input
                   value={formData.ventaId}
                   onChange={(e) => onVentaIdChange(e.target.value)}
-                  className="h-10 rounded-lg pr-10 border-gray-200"
+                  className={`h-10 rounded-lg pr-10 border-gray-200 focus:border-[#c47b96] focus:ring-[#c47b96]/10 text-sm ${fieldErrors?.ventaId ? "border-red-500 bg-red-50 focus:border-red-500" : "bg-white"}`}
                   placeholder="Ej: 6..."
                   disabled={isSaving}
+                  style={{ fontSize: 13, color: "#374151" }}
+                  onFocus={() => { if (fieldErrors?.ventaId && setFieldErrors) setFieldErrors(prev => ({ ...prev, ventaId: "" })); }}
                 />
-                <Search className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Search className={`w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none ${fieldErrors?.ventaId ? "text-red-400" : "text-gray-400"}`} />
               </div>
+              {fieldErrors?.ventaId && <p style={{ fontSize: 10, color: "#ef4444", margin: "4px 0 0", fontWeight: 600 }}>{fieldErrors.ventaId}</p>}
             </div>
 
             <div>
-              <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+              <p style={labelStyle}>
                 <Calendar className="w-3.5 h-3.5" /> Fecha Devolución <span style={{ color: "#f87171" }}>*</span>
               </p>
               <Input
                 type="date"
                 value={formData.fechaDevolucion}
                 onChange={(e) => onFieldChange("fechaDevolucion", e.target.value)}
-                className="h-10 rounded-lg border-gray-200 bg-white"
-                disabled={isSaving}
+                className="h-10 rounded-lg border-gray-200 text-sm"
+                disabled={true}
+                readOnly={true}
+                style={{ fontSize: 13, color: "#9ca3af", background: "#f9fafb", cursor: "not-allowed", pointerEvents: "none" }}
               />
             </div>
           </div>
@@ -145,7 +167,7 @@ export function DevolucionFormDialog({
           {/* Motivo y Estado */}
           <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: "16px" }}>
             <div>
-              <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+              <p style={{ ...labelStyle, color: fieldErrors?.motivo ? "#ef4444" : labelStyle.color }}>
                 Motivo de Devolución <span style={{ color: "#f87171" }}>*</span>
               </p>
               <textarea
@@ -155,28 +177,37 @@ export function DevolucionFormDialog({
                 }}
                 disabled={isSaving}
                 placeholder="Describa el motivo..."
-                className="w-100 min-h-[40px] bg-white border border-gray-200 rounded-lg p-3 text-sm focus:outline-none transition-all"
-                style={{ width: "100%", resize: "none" }}
+                className="w-100 min-h-[40px] border border-gray-200 rounded-lg p-3 focus:outline-none focus:border-[#c47b96] focus:ring-1 focus:ring-[#c47b96]/10 transition-all text-sm"
+                style={{
+                  width: "100%",
+                  resize: "none",
+                  fontSize: 13,
+                  color: "#374151",
+                  background: fieldErrors?.motivo ? "#fef2f2" : "#fff",
+                  borderColor: fieldErrors?.motivo ? "#ef4444" : undefined,
+                }}
+                onFocus={() => { if (fieldErrors?.motivo && setFieldErrors) setFieldErrors(prev => ({ ...prev, motivo: "" })); }}
               />
-              <div className="flex justify-end mt-1">
-                <span style={{ fontSize: "10px", fontWeight: 700, color: formData.motivo.length > 90 ? "#ef4444" : "#aaa" }}>
+              <div className="flex justify-between mt-1">
+                <span style={{ fontSize: "10px", fontWeight: 600, color: "#ef4444" }}>{fieldErrors?.motivo || ""}</span>
+                <span style={{ fontSize: "10px", fontWeight: 700, color: formData.motivo.length > 90 ? "#ef4444" : "#9ca3af" }}>
                   {formData.motivo.length}/100
                 </span>
               </div>
             </div>
 
             <div>
-              <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "8px" }}>
+              <p style={labelStyle}>
                 Estado Inicial
               </p>
               <Select value={formData.estado} onValueChange={(v) => onFieldChange("estado", v)}>
-                <SelectTrigger className="h-10 rounded-lg bg-white border-gray-200">
+                <SelectTrigger className="h-10 rounded-lg bg-white border-gray-200 focus:border-[#c47b96] focus:ring-[#c47b96]/10 text-sm" style={{ fontSize: 13, color: "#374151" }}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-white border-gray-100">
-                  <SelectItem value="aprobada">Aprobada (Suma Stock)</SelectItem>
-                  <SelectItem value="pendiente">Pendiente de Revisión</SelectItem>
-                  <SelectItem value="rechazada">Rechazada</SelectItem>
+                <SelectContent position="popper" sideOffset={4} className="bg-white border-gray-100 shadow-xl rounded-xl" style={{ zIndex: 99999 }}>
+                  <SelectItem value="aprobada" className="text-sm" style={{ fontSize: 13 }}>Aprobada (Suma Stock)</SelectItem>
+                  <SelectItem value="pendiente" className="text-sm" style={{ fontSize: 13 }}>Pendiente de Revisión</SelectItem>
+                  <SelectItem value="rechazada" className="text-sm" style={{ fontSize: 13 }}>Rechazada</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -191,69 +222,125 @@ export function DevolucionFormDialog({
                 </p>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
                   <div>
-                    <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-wider">Fecha Venta</span>
-                    <span className="text-sm font-bold text-gray-800">{ventaData.fecha}</span>
+                    <span style={{ display: "block", fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em" }}>Fecha Venta</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#374151" }}>{ventaData.fecha}</span>
                   </div>
                   <div>
-                    <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-wider">Cliente</span>
-                    <span className="text-sm font-bold text-gray-800">{ventaData.clienteNombre || "N/A"}</span>
+                    <span style={{ display: "block", fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em" }}>Cliente</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#374151" }}>{ventaData.clienteNombre || "N/A"}</span>
                   </div>
                   <div>
-                    <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-wider">Monto Venta</span>
-                    <span className="text-sm font-black text-[#c47b96]">{formatCurrency(ventaData.total || 0)}</span>
+                    <span style={{ display: "block", fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em" }}>Monto Venta</span>
+                    <span style={{ fontSize: 13, fontWeight: 900, color: "#c47b96" }}>{formatCurrency(ventaData.total || 0)}</span>
                   </div>
                 </div>
               </div>
 
               {/* Lista de productos para devolver */}
-              <div style={{ background: "#ffffff", border: "1px solid #f3f4f6", borderRadius: "12px", overflow: "hidden" }}>
-                <div className="flex items-center justify-between" style={{ background: "#f9fafb", padding: "12px 16px", borderBottom: "1px solid #f3f4f6" }}>
-                  <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", display: "flex", alignItems: "center", gap: "6px", margin: 0 }}>
-                    <Package className="w-3.5 h-3.5" /> Productos de la Venta
-                  </p>
-                  <span className="text-[10px] font-black text-[#c47b96] bg-[#fff0f5] px-2 py-0.5 rounded-full">
+              <div style={{ background: "#ffffff", border: fieldErrors?.productos ? "1px solid #ef4444" : "1px solid #f3f4f6", borderRadius: "12px", overflow: "hidden" }}>
+                <div className="flex items-center justify-between" style={{ background: fieldErrors?.productos ? "#fef2f2" : "#f9fafb", padding: "10px 16px", borderBottom: fieldErrors?.productos ? "1px solid #fee2e2" : "1px solid #f3f4f6" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <p style={{ ...labelStyle, margin: 0, color: fieldErrors?.productos ? "#ef4444" : labelStyle.color }}>
+                      <Package className="w-3.5 h-3.5" /> Productos de la Venta
+                    </p>
+                    {fieldErrors?.productos && <span style={{ fontSize: 11, color: "#ef4444", fontWeight: 600 }}>({fieldErrors.productos})</span>}
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: "#c47b96", background: "#fff0f5", padding: "2px 8px", borderRadius: 12 }}>
                     {productosDevolver.filter(p => p.selected).length} SELECCIONADOS
                   </span>
                 </div>
                 
-                <div style={{ padding: "0 16px", maxHeight: "250px", overflowY: "auto" }}>
+                <div style={{ padding: "0", maxHeight: "280px", overflowY: "auto" }}>
                   {(ventaData.productos || []).map((item: any, index: number) => {
                     const producto = productos.find((p) => p.id === item.productoId);
                     const isSelected = productosDevolver[index]?.selected || false;
+                    const cantidadDev = productosDevolver[index]?.cantidadADevolver || 0;
+                    const subtotal = isSelected ? (cantidadDev * item.precioUnitario) : 0;
 
                     return (
                       <div
                         key={index}
-                        className={`flex items-center gap-4 py-4 border-b border-gray-50 last:border-0 transition-colors ${isSelected ? "bg-pink-50/20" : ""}`}
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 14,
+                          padding: "16px",
+                          borderBottom: index < ventaData.productos.length - 1 ? "1px solid #f9fafb" : "none",
+                          background: isSelected ? "#fffafb" : "#fff",
+                          transition: "background 0.2s"
+                        }}
                       >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => onToggleProducto(index)}
-                          disabled={isSaving}
-                          className="w-5 h-5 rounded border-gray-300 text-[#c47b96] focus:ring-[#c47b96] cursor-pointer"
-                        />
-                        <div className="flex-1">
-                          <p className="font-bold text-sm text-gray-800">{producto?.nombre || "N/A"}</p>
-                          <p className="text-[10px] text-gray-400 font-medium">Precio Unit: {formatCurrency(item.precioUnitario)}</p>
-                        </div>
-                        <div className="text-center w-20">
-                          <p className="text-[9px] font-bold text-gray-400 uppercase mb-1">Original</p>
-                          <span className="text-sm font-black text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200">
-                            {item.cantidad}
-                          </span>
-                        </div>
-                        <div className="text-center w-24">
-                          <p className="text-[9px] font-bold text-gray-400 uppercase mb-1">A Devolver</p>
-                          <Input
-                            type="number"
-                            value={productosDevolver[index]?.cantidadADevolver || 0}
-                            onChange={(e) => onCantidadChange(index, parseInt(e.target.value) || 0)}
-                            disabled={!isSelected || isSaving}
-                            min={0}
-                            max={item.cantidad}
-                            className="h-8 text-center font-black border-gray-200 rounded-lg text-sm bg-white"
+                        {/* Header: Checkbox + Nombre Producto + Precio unitario */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => onToggleProducto(index)}
+                            disabled={isSaving}
+                            style={{
+                              width: 18, height: 18, cursor: "pointer",
+                              accentColor: "#c47b96"
+                            }}
                           />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontSize: 13, fontWeight: 800, color: "#111827", margin: 0 }}>{producto?.nombre || "Producto Desconocido"}</p>
+                            <p style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", margin: "2px 0 0 0" }}>Precio Unitario: {formatCurrency(item.precioUnitario)}</p>
+                          </div>
+                        </div>
+
+                        {/* Fila 2: Original | A Devolver | Subtotal */}
+                        <div style={{ display: "flex", alignItems: "flex-end", gap: 12, paddingLeft: 30 }}>
+                          {/* Cantidad Original */}
+                          <div style={{ flex: 1 }}>
+                            <p style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>Cant. Original</p>
+                            <div style={{ height: 38, borderRadius: 8, background: "#f9fafb", border: "1px solid #f3f4f6", display: "flex", alignItems: "center", padding: "0 10px" }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: "#6b7280" }}>{item.cantidad}</span>
+                            </div>
+                          </div>
+                          
+                          {/* Cantidad a devolver */}
+                          <div style={{ flex: 1 }}>
+                            <p style={{ fontSize: 10, fontWeight: 700, color: fieldErrors?.[`cantidad_${index}`] ? "#ef4444" : (isSelected ? "#9ca3af" : "#d1d5db"), textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>A Devolver</p>
+                            <input
+                              type="number"
+                              value={cantidadDev === 0 && !isSelected ? "" : cantidadDev}
+                              onChange={(e) => onCantidadChange(index, parseInt(e.target.value) || 0)}
+                              disabled={!isSelected || isSaving}
+                              min={0}
+                              max={item.cantidad}
+                              placeholder="0"
+                              style={{
+                                width: "100%", height: 38, padding: "0 10px",
+                                border: fieldErrors?.[`cantidad_${index}`] ? "1px solid #ef4444" : "1px solid #e5e7eb", borderRadius: 8,
+                                fontSize: 13, fontWeight: 600, textAlign: "center",
+                                color: "#374151", background: fieldErrors?.[`cantidad_${index}`] ? "#fef2f2" : (!isSelected ? "#f9fafb" : "#fff"),
+                                outline: "none", boxSizing: "border-box", transition: "border-color 0.15s"
+                              }}
+                              onFocus={(e) => {
+                                e.target.style.borderColor = fieldErrors?.[`cantidad_${index}`] ? "#ef4444" : "#c47b96";
+                                if (fieldErrors?.[`cantidad_${index}`] && setFieldErrors) setFieldErrors(prev => { const n = {...prev}; delete n[`cantidad_${index}`]; return n; });
+                              }}
+                              onBlur={(e) => (e.target.style.borderColor = fieldErrors?.[`cantidad_${index}`] ? "#ef4444" : "#e5e7eb")}
+                            />
+                            {fieldErrors?.[`cantidad_${index}`] && <p style={{ fontSize: 10, color: "#ef4444", margin: "4px 0 0", fontWeight: 600 }}>{fieldErrors[`cantidad_${index}`]}</p>}
+                          </div>
+
+                          {/* Subtotal Devolución */}
+                          <div style={{ flex: 1 }}>
+                            <p style={{ fontSize: 10, fontWeight: 700, color: isSelected ? "#9ca3af" : "#d1d5db", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>Subtotal</p>
+                            <div
+                              style={{
+                                height: 38, borderRadius: 8,
+                                background: subtotal > 0 ? "#fff0f5" : "#f9fafb",
+                                border: `1px solid ${subtotal > 0 ? "#f0d5e0" : "#f3f4f6"}`,
+                                display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "0 10px"
+                              }}
+                            >
+                              <span style={{ fontSize: 13, fontWeight: 800, color: subtotal > 0 ? "#c47b96" : "#9ca3af", whiteSpace: "nowrap" }}>
+                                {subtotal > 0 ? formatCurrency(subtotal) : "—"}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     );

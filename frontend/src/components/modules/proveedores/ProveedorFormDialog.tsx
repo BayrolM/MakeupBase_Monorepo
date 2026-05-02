@@ -1,16 +1,5 @@
-import { 
-  X, 
-  Building2, 
-  Settings, 
-  FileText, 
-  Phone, 
-  Mail, 
-  MapPin, 
-  ShieldCheck 
-} from "lucide-react";
+import { X, Building2, Settings, FileText, Phone, Mail, MapPin } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "../../ui/dialog";
-import { Button } from "../../ui/button";
-import { Label } from "../../ui/label";
 import { Input } from "../../ui/input";
 
 interface ProveedorFormDialogProps {
@@ -29,6 +18,8 @@ interface ProveedorFormDialogProps {
   setFormData: (data: any) => void;
   isSaving: boolean;
   onSave: () => void;
+  fieldErrors?: Record<string, string>;
+  onChange?: (field: string, value: any) => void;
 }
 
 export function ProveedorFormDialog({
@@ -39,6 +30,8 @@ export function ProveedorFormDialog({
   setFormData,
   isSaving,
   onSave,
+  fieldErrors = {},
+  onChange,
 }: ProveedorFormDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -86,7 +79,7 @@ export function ProveedorFormDialog({
               </p>
               <select
                 value={formData.tipo_proveedor}
-                onChange={(e) => setFormData({ ...formData, tipo_proveedor: e.target.value })}
+                onChange={(e) => onChange ? onChange("tipo_proveedor", e.target.value) : setFormData({ ...formData, tipo_proveedor: e.target.value })}
                 className="w-full h-10 px-3 border border-gray-200 focus:border-[#c47b96] focus:ring-[#c47b96]/10 rounded-lg text-sm bg-white"
               >
                 <option value="Persona Natural">Persona Natural</option>
@@ -95,80 +88,95 @@ export function ProveedorFormDialog({
             </div>
 
             <div>
-              <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <Building2 className="w-3.5 h-3.5 text-gray-400" /> Nombre / Razón Social <span style={{ color: "#f87171" }}>*</span>
+              <p style={{ fontSize: "11px", fontWeight: 700, color: fieldErrors.nombre ? "#ef4444" : "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                <Building2 className={`w-3.5 h-3.5 ${fieldErrors.nombre ? "text-red-400" : "text-gray-400"}`} /> Nombre / Razón Social <span style={{ color: "#f87171" }}>*</span>
               </p>
               <Input
                 value={formData.nombre}
-                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                onChange={(e) => onChange ? onChange("nombre", e.target.value) : setFormData({ ...formData, nombre: e.target.value })}
                 maxLength={100}
                 required
-                className="h-10 border-gray-200 focus:border-[#c47b96] focus:ring-[#c47b96]/10 rounded-lg text-sm bg-white"
+                className={`h-10 text-sm bg-white transition-colors ${fieldErrors.nombre ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : "border-gray-200 focus:border-[#c47b96] focus:ring-[#c47b96]/10"}`}
                 placeholder="Ej: Suministros S.A.S"
               />
+              {fieldErrors.nombre && (
+                <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.nombre}</p>
+              )}
             </div>
           </div>
 
           {/* Fila 2 */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             <div>
-              <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <FileText className="w-3.5 h-3.5 text-gray-400" /> NIT / Documento <span style={{ color: "#f87171" }}>*</span>
+              <p style={{ fontSize: "11px", fontWeight: 700, color: fieldErrors.nit ? "#ef4444" : "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                <FileText className={`w-3.5 h-3.5 ${fieldErrors.nit ? "text-red-400" : "text-gray-400"}`} /> NIT / Documento <span style={{ color: "#f87171" }}>*</span>
               </p>
               <Input
                 value={formData.nit}
-                onChange={(e) => setFormData({ ...formData, nit: e.target.value })}
+                onChange={(e) => onChange ? onChange("nit", e.target.value) : setFormData({ ...formData, nit: e.target.value })}
                 maxLength={20}
                 required
-                className="h-10 border-gray-200 focus:border-[#c47b96] focus:ring-[#c47b96]/10 rounded-lg text-sm bg-white font-mono"
+                className={`h-10 text-sm bg-white font-mono transition-colors ${fieldErrors.nit ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : "border-gray-200 focus:border-[#c47b96] focus:ring-[#c47b96]/10"}`}
                 placeholder="900.123.456-7"
               />
+              {fieldErrors.nit && (
+                <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.nit}</p>
+              )}
             </div>
 
             <div>
-              <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <Phone className="w-3.5 h-3.5 text-gray-400" /> Teléfono <span style={{ color: "#f87171" }}>*</span>
+              <p style={{ fontSize: "11px", fontWeight: 700, color: fieldErrors.telefono ? "#ef4444" : "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                <Phone className={`w-3.5 h-3.5 ${fieldErrors.telefono ? "text-red-400" : "text-gray-400"}`} /> Teléfono <span style={{ color: "#f87171" }}>*</span>
               </p>
               <Input
                 value={formData.telefono}
-                onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                onChange={(e) => onChange ? onChange("telefono", e.target.value) : setFormData({ ...formData, telefono: e.target.value })}
                 maxLength={20}
                 required
-                className="h-10 border-gray-200 focus:border-[#c47b96] focus:ring-[#c47b96]/10 rounded-lg text-sm bg-white"
+                className={`h-10 text-sm bg-white transition-colors ${fieldErrors.telefono ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : "border-gray-200 focus:border-[#c47b96] focus:ring-[#c47b96]/10"}`}
                 placeholder="+57 321..."
               />
+              {fieldErrors.telefono && (
+                <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.telefono}</p>
+              )}
             </div>
           </div>
 
           {/* Fila 3 */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             <div>
-              <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <Mail className="w-3.5 h-3.5 text-gray-400" /> Correo Electrónico <span style={{ color: "#f87171" }}>*</span>
+              <p style={{ fontSize: "11px", fontWeight: 700, color: fieldErrors.email ? "#ef4444" : "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                <Mail className={`w-3.5 h-3.5 ${fieldErrors.email ? "text-red-400" : "text-gray-400"}`} /> Correo Electrónico <span style={{ color: "#f87171" }}>*</span>
               </p>
               <Input
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) => onChange ? onChange("email", e.target.value) : setFormData({ ...formData, email: e.target.value })}
                 maxLength={100}
                 required
-                className="h-10 border-gray-200 focus:border-[#c47b96] focus:ring-[#c47b96]/10 rounded-lg text-sm bg-white"
+                className={`h-10 text-sm bg-white transition-colors ${fieldErrors.email ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : "border-gray-200 focus:border-[#c47b96] focus:ring-[#c47b96]/10"}`}
                 placeholder="contacto@proveedor.com"
               />
+              {fieldErrors.email && (
+                <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.email}</p>
+              )}
             </div>
 
             <div>
-              <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <MapPin className="w-3.5 h-3.5 text-gray-400" /> Dirección <span style={{ color: "#f87171" }}>*</span>
+              <p style={{ fontSize: "11px", fontWeight: 700, color: fieldErrors.direccion ? "#ef4444" : "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                <MapPin className={`w-3.5 h-3.5 ${fieldErrors.direccion ? "text-red-400" : "text-gray-400"}`} /> Dirección <span style={{ color: "#f87171" }}>*</span>
               </p>
               <Input
                 value={formData.direccion}
-                onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
+                onChange={(e) => onChange ? onChange("direccion", e.target.value) : setFormData({ ...formData, direccion: e.target.value })}
                 maxLength={150}
                 required
-                className="h-10 border-gray-200 focus:border-[#c47b96] focus:ring-[#c47b96]/10 rounded-lg text-sm bg-white"
+                className={`h-10 text-sm bg-white transition-colors ${fieldErrors.direccion ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : "border-gray-200 focus:border-[#c47b96] focus:ring-[#c47b96]/10"}`}
                 placeholder="Av. Siempre Viva 123"
               />
+              {fieldErrors.direccion && (
+                <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.direccion}</p>
+              )}
             </div>
           </div>
 
