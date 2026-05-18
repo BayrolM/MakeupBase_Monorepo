@@ -1,36 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
-import { useStore } from "../lib/store";
 import { reportService, DashboardData, SalesComparisonData } from "../services/reportService";
 import { toast } from "sonner";
 
 export function useDashboardData() {
-  const { pedidos, productos } = useStore();
-  const [data, setData] = useState<DashboardData | null>({
-    resumen: {
-      total_ventas: 0,
-      total_ordenes: 0,
-      total_productos: 0,
-      total_usuarios: 0,
-      productos_bajo_stock: 0,
-    },
-    productos_mas_vendidos: [],
-    ventas_tendencia: [],
-  });
+  const [data, setData] = useState<DashboardData | null>(null);
   const [salesComparison, setSalesComparison] = useState<SalesComparisonData | null>(null);
-
-  useEffect(() => {
-    fetchDashboardData();
-    fetchSalesComparison();
-  }, []);
-
-  const fetchSalesComparison = async () => {
-    try {
-      const res = await reportService.getSalesComparison();
-      setSalesComparison(res);
-    } catch (error: any) {
-      console.error(error);
-    }
-  };
 
   const fetchDashboardData = async () => {
     try {
@@ -41,6 +15,30 @@ export function useDashboardData() {
       toast.error("Error al cargar datos del dashboard");
     }
   };
+
+  const fetchSalesComparison = async () => {
+    try {
+      const res = await reportService.getSalesComparison();
+      setSalesComparison(res);
+    } catch (error: any) {
+      console.error(error);
+    }
+  };
+
+  // Carga inicial y Polling cada 30 segundos
+  useEffect(() => {
+    fetchDashboardData();
+    fetchSalesComparison();
+
+    const intervalId = setInterval(() => {
+      fetchDashboardData();
+      fetchSalesComparison();
+    }, 30000); // 30 segundos
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("es-CO", {
@@ -54,43 +52,50 @@ export function useDashboardData() {
     resumen: {
       total_ventas: 0,
       total_ordenes: 0,
-      total_usuarios: 0,
+      total_productos: 0,
+      devoluciones_pendientes: 0,
       productos_bajo_stock: 0,
     },
     productos_mas_vendidos: [],
+    pedidos_por_estado: [],
+    productos_stock_critico: [],
+    ventas_tendencia: [],
+    ventas_del_mes: [],
   };
 
   const ordersByStatus = useMemo(() => {
-    const normalize = (s: string) => s?.toLowerCase() || "";
-    return [
-      {
-        estado: "Pendiente",
-        cantidad: pedidos.filter((p) => normalize(p.estado) === "pendiente").length,
-      },
-      {
-        estado: "Procesando",
-        cantidad: pedidos.filter((p) => 
-          normalize(p.estado) === "procesando" || normalize(p.estado) === "preparado"
-        ).length,
-      },
-      {
-        estado: "Enviado",
-        cantidad: pedidos.filter((p) => normalize(p.estado) === "enviado").length,
-      },
-      {
-        estado: "Entregado",
-        cantidad: pedidos.filter((p) => normalize(p.estado) === "entregado").length,
-      },
-      {
-        estado: "Cancelado",
-        cantidad: pedidos.filter((p) => normalize(p.estado) === "cancelado").length,
-      },
-    ];
-  }, [pedidos]);
+    if (!safeData.pedidos_por_estado || safeData.pedidos_por_estado.length === 0) {
+      return [
+        { estado: "Pendiente", cantidad: 0 },
+        { estado: "Procesando", cantidad: 0 },
+        { estado: "Enviado", cantidad: 0 },
+        { estado: "Entregado", cantidad: 0 },
+        { estado: "Cancelado", cantidad: 0 },
+      ];
+    }
+    
+    // Mapear los datos de la BD a un formato amigable si es necesario, 
+    // o simplemente usarlos directamente capitalizando el estado
+    return safeData.pedidos_por_estado.map(p => ({
+      estado: p.estado ? p.estado.charAt(0).toUpperCase() + p.estado.slice(1) : "Desconocido",
+      cantidad: parseInt(p.cantidad) || 0
+    }));
+  }, [safeData.pedidos_por_estado]);
 
-  const productosStockCriticoList = useMemo(() => 
-    productos.filter((p) => p.stock <= p.stockMinimo),
-  [productos]);
+  const productosStockCriticoList = useMemo(() => {
+    if (!safeData.productos_stock_critico) return [];
+    
+    // Mapear al formato que espera CriticalStockCard (que era el de Producto del store)
+    return safeData.productos_stock_critico.map(p => ({
+      id: p.id_producto.toString(),
+      nombre: p.nombre,
+      stock: p.stock_actual,
+      stockMinimo: p.stock_min,
+      precioVenta: p.precio_venta,
+      categoria: p.categoria || '',
+      marca: p.marca || ''
+    }));
+  }, [safeData.productos_stock_critico]);
 
   const trendChartData = useMemo(() => {
     if (!data?.ventas_tendencia) return [];
@@ -102,6 +107,15 @@ export function useDashboardData() {
     }));
   }, [data?.ventas_tendencia]);
 
+  const ventasMesChartData = useMemo(() => {
+    if (!safeData.ventas_del_mes) return [];
+
+    return safeData.ventas_del_mes.map((v) => ({
+      dia: v.dia,
+      total: parseFloat(v.total) || 0,
+    }));
+  }, [safeData.ventas_del_mes]);
+
   return {
     data,
     safeData,
@@ -109,6 +123,7 @@ export function useDashboardData() {
     ordersByStatus,
     productosStockCriticoList,
     trendChartData,
+    ventasMesChartData,
     formatCurrency,
     refresh: fetchDashboardData
   };

@@ -5,7 +5,7 @@ export interface DashboardData {
     total_ventas: number;
     total_ordenes: number;
     total_productos: number;
-    total_usuarios: number;
+    devoluciones_pendientes: number;
     productos_bajo_stock: number;
   };
   ventas_tendencia: Array<{
@@ -18,6 +18,23 @@ export interface DashboardData {
     id_producto: number;
     nombre: string;
     total_vendido: string;
+  }>;
+  pedidos_por_estado: Array<{
+    estado: string;
+    cantidad: string;
+  }>;
+  productos_stock_critico: Array<{
+    id_producto: number;
+    nombre: string;
+    stock_actual: number;
+    stock_min: number;
+    precio_venta: number;
+    categoria: string;
+    marca: string;
+  }>;
+  ventas_del_mes: Array<{
+    dia: string;
+    total: string;
   }>;
 }
 
