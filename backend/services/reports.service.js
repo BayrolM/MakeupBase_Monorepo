@@ -25,11 +25,11 @@ export const obtenerDashboard = async () => {
     WHERE estado = true
   `;
 
-  // Total de usuarios
-  const totalUsuarios = await sql`
+  // Total de devoluciones pendientes
+  const devolucionesPendientes = await sql`
     SELECT COUNT(*) as total
-    FROM usuarios
-    WHERE estado = true
+    FROM devoluciones
+    WHERE estado = 'pendiente'
   `;
 
   // Productos con bajo stock
@@ -96,16 +96,58 @@ export const obtenerDashboard = async () => {
     ORDER BY m.mes_fecha ASC
   `;
 
+  // Pedidos por estado
+  const pedidosPorEstado = await sql`
+    SELECT 
+      estado,
+      COUNT(*) as cantidad
+    FROM pedidos
+    GROUP BY estado
+  `;
+
+  // Productos con stock crítico detallado
+  const productosStockCriticoDetalle = await sql`
+    SELECT 
+      p.id_producto,
+      p.nombre,
+      p.stock_actual,
+      p.stock_min,
+      p.precio_venta,
+      c.nombre as categoria,
+      m.nombre as marca
+    FROM productos p
+    LEFT JOIN categorias c ON p.id_categoria = c.id_categoria
+    LEFT JOIN marcas m ON p.id_marca = m.id_marca
+    WHERE p.stock_actual <= p.stock_min AND p.estado = true
+    ORDER BY p.stock_actual ASC
+    LIMIT 20
+  `;
+
+  // Ventas por día del mes actual
+  const ventasDelMes = await sql`
+    SELECT 
+      TO_CHAR(fecha_venta, 'DD') as dia,
+      COALESCE(SUM(total), 0) as total
+    FROM ventas
+    WHERE fecha_venta >= DATE_TRUNC('month', CURRENT_DATE)
+      AND estado = true
+    GROUP BY TO_CHAR(fecha_venta, 'DD')
+    ORDER BY dia ASC
+  `;
+
   return {
     resumen: {
       total_ventas: parseFloat(totalVentas[0].total),
       total_ordenes: parseInt(totalOrdenes[0].total),
       total_productos: parseInt(totalProductos[0].total),
-      total_usuarios: parseInt(totalUsuarios[0].total),
+      devoluciones_pendientes: parseInt(devolucionesPendientes[0].total),
       productos_bajo_stock: parseInt(productosBajoStock[0].total),
     },
     ventas_tendencia: ventasTendencia,
     productos_mas_vendidos: productosMasVendidos,
+    pedidos_por_estado: pedidosPorEstado,
+    productos_stock_critico: productosStockCriticoDetalle,
+    ventas_del_mes: ventasDelMes,
   };
 };
 

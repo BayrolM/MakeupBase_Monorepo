@@ -3,7 +3,7 @@ import { PageHeader } from "../layout/PageHeader";
 import { 
   TrendingUp, 
   ShoppingCart, 
-  Users, 
+  RotateCcw, 
   LayoutDashboard,
   Package
 } from "lucide-react";
@@ -13,6 +13,7 @@ import { C } from "../../styles/dashboardStyles";
 // Sub-components
 import { StatCard } from "./StatCard";
 import { SalesTrendChart } from "./SalesTrendChart";
+import { VentasMesChart } from "./VentasMesChart";
 import { OrderStatusPie } from "./OrderStatusPie";
 import { RankingMesCard } from "./RankingMesCard";
 import { CriticalStockCard } from "./CriticalStockCard";
@@ -21,22 +22,34 @@ export function Dashboard() {
   const { productos } = useStore();
   const { 
     safeData, 
+    salesComparison,
     ordersByStatus, 
     productosStockCriticoList, 
     trendChartData, 
+    ventasMesChartData,
     formatCurrency 
   } = useDashboardData();
+
+  const formatCrecimiento = (valor: number | undefined) => {
+    if (valor === undefined) return "0%";
+    const sign = valor > 0 ? "+" : "";
+    return `${sign}${valor.toFixed(1)}%`;
+  };
+
+  const crecimientoVentas = formatCrecimiento(salesComparison?.resumen?.crecimiento);
 
   return (
     <div
       className="min-h-screen relative"
       style={{ background: C.bgSoft, fontFamily: "'DM Sans', sans-serif" }}
     >
-      <PageHeader
-        title="Panel de Control"
-        subtitle="Métricas estratégicas y estado del negocio"
-        icon={LayoutDashboard}
-      />
+      <div className="relative mb-6">
+        <PageHeader
+          title="Panel de Control"
+          subtitle="Métricas estratégicas y estado del negocio"
+          icon={LayoutDashboard}
+        />
+      </div>
 
       <div className="p-6 space-y-6">
         {/* KPI Grid */}
@@ -45,19 +58,18 @@ export function Dashboard() {
             title="Ingresos Totales" 
             value={formatCurrency(safeData.resumen.total_ventas)} 
             icon={TrendingUp} 
-            trend="+12.5%" 
+            trend={crecimientoVentas} 
           />
           <StatCard 
             title="Pedidos Realizados" 
             value={safeData.resumen.total_ordenes} 
             icon={ShoppingCart} 
-            trend="+5.2%" 
           />
           <StatCard 
-            title="Clientes Activos" 
-            value={safeData.resumen.total_usuarios} 
-            icon={Users} 
-            trend="+3.1%" 
+            title="Devoluciones Pendientes" 
+            value={safeData.resumen.devoluciones_pendientes} 
+            icon={RotateCcw} 
+            isNegative={safeData.resumen.devoluciones_pendientes > 0}
           />
           <StatCard 
             title="Alerta Stock Bajo" 
@@ -67,8 +79,11 @@ export function Dashboard() {
           />
         </div>
 
-        {/* Main Chart Section */}
-        <SalesTrendChart data={trendChartData} formatCurrency={formatCurrency} />
+        {/* Main Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <SalesTrendChart data={trendChartData} formatCurrency={formatCurrency} />
+          <VentasMesChart data={ventasMesChartData} formatCurrency={formatCurrency} />
+        </div>
 
         {/* Detailed Insights Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
